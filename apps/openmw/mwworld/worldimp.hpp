@@ -287,9 +287,9 @@ namespace MWWorld
             ///< Return a pointer to a liveCellRef with the given name.
             /// \param activeOnly do non search inactive cells.
 
-            Ptr searchPtr (const std::string& name, bool activeOnly, bool searchInContainers = true) override;
+            Ptr searchPtr (const std::string& name, bool activeOnly, bool searchInContainers = false) override;
             ///< Return a pointer to a liveCellRef with the given name.
-            /// \param activeOnly do non search inactive cells.
+            /// \param activeOnly do not search inactive cells.
 
             Ptr searchPtrViaActorId (int actorId) override;
             ///< Search is limited to the active cells.
@@ -409,6 +409,8 @@ namespace MWWorld
             /// doPhysics.
 
             void updateAnimatedCollisionShape(const Ptr &ptr) override;
+
+            const MWPhysics::RayCastingInterface* getRayCasting() const override;
 
             bool castRay (float x1, float y1, float z1, float x2, float y2, float z2, int mask) override;
             ///< cast a Ray and return true if there is an object in the ray path.
@@ -531,11 +533,8 @@ namespace MWWorld
             bool toggleVanityMode(bool enable) override;
 
             void allowVanityMode(bool allow) override;
-
-            void changeVanityModeScale(float factor) override;
-
             bool vanityRotateCamera(float * rot) override;
-            void setCameraDistance(float dist, bool adjust = false, bool override = true) override;
+            void adjustCameraDistance(float dist) override;
 
             void applyDeferredPreviewRotationToPlayer(float dt) override;
             void disableDeferredPreviewRotation() override;

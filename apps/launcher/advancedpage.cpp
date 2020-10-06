@@ -10,37 +10,6 @@
 
 #include <cmath>
 
-
-class HorizontalTextWestTabStyle : public QProxyStyle
-{
-public:
-    QSize sizeFromContents(ContentsType type, const QStyleOption* option, const QSize& size, const QWidget* widget) const
-    {
-        QSize s = QProxyStyle::sizeFromContents(type, option, size, widget);
-        if (type == QStyle::CT_TabBarTab)
-        {
-            s.transpose();
-            s.setHeight(s.height() + 20);
-        }
-        return s;
-    }
-
-    void drawControl(ControlElement element, const QStyleOption* option, QPainter* painter, const QWidget* widget) const
-    {
-        if (element == CE_TabBarTabLabel)
-        {
-            if (const QStyleOptionTab* tab = qstyleoption_cast<const QStyleOptionTab*>(option))
-            {
-                QStyleOptionTab opt(*tab);
-                opt.shape = QTabBar::RoundedNorth;
-                QProxyStyle::drawControl(element, &opt, painter, widget);
-                return;
-            }
-        }
-        QProxyStyle::drawControl(element, option, painter, widget);
-    }
-};
-
 Launcher::AdvancedPage::AdvancedPage(Files::ConfigurationManager &cfg,
                                      Config::GameSettings &gameSettings,
                                      Settings::Manager &engineSettings, QWidget *parent)
@@ -53,7 +22,6 @@ Launcher::AdvancedPage::AdvancedPage(Files::ConfigurationManager &cfg,
     setupUi(this);
 
     loadSettings();
-    AdvancedTabWidget->tabBar()->setStyle(new HorizontalTextWestTabStyle);
     mCellNameCompleter.setModel(&mCellNameCompleterModel);
     startDefaultCharacterAtField->setCompleter(&mCellNameCompleter);
 }
@@ -120,6 +88,7 @@ bool Launcher::AdvancedPage::loadSettings()
         loadSettingBool(uncappedDamageFatigueCheckBox, "uncapped damage fatigue", "Game");
         loadSettingBool(normaliseRaceSpeedCheckBox, "normalise race speed", "Game");
         loadSettingBool(swimUpwardCorrectionCheckBox, "swim upward correction", "Game");
+        loadSettingBool(avoidCollisionsCheckBox, "NPCs avoid collisions", "Game");
         int unarmedFactorsStrengthIndex = mEngineSettings.getInt("strength influences hand to hand", "Game");
         if (unarmedFactorsStrengthIndex >= 0 && unarmedFactorsStrengthIndex <= 2)
             unarmedFactorsStrengthComboBox->setCurrentIndex(unarmedFactorsStrengthIndex);
@@ -144,6 +113,7 @@ bool Launcher::AdvancedPage::loadSettings()
             loadSettingBool(shieldSheathingCheckBox, "shield sheathing", "Game");
         }
         loadSettingBool(turnToMovementDirectionCheckBox, "turn to movement direction", "Game");
+        loadSettingBool(smoothMovementCheckBox, "smooth movement", "Game");
 
         const bool distantTerrain = mEngineSettings.getBool("distant terrain", "Terrain");
         const bool objectPaging = mEngineSettings.getBool("object paging", "Terrain");
@@ -159,7 +129,7 @@ bool Launcher::AdvancedPage::loadSettings()
     {
         loadSettingBool(viewOverShoulderCheckBox, "view over shoulder", "Camera");
         connect(viewOverShoulderCheckBox, SIGNAL(toggled(bool)), this, SLOT(slotViewOverShoulderToggled(bool)));
-        viewOverShoulderGroup->setEnabled(viewOverShoulderCheckBox->checkState());
+        viewOverShoulderVerticalLayout->setEnabled(viewOverShoulderCheckBox->checkState());
         loadSettingBool(autoSwitchShoulderCheckBox, "auto switch shoulder", "Camera");
         loadSettingBool(previewIfStandStillCheckBox, "preview if stand still", "Camera");
         loadSettingBool(deferredPreviewRotationCheckBox, "deferred preview rotation", "Camera");
@@ -232,6 +202,7 @@ void Launcher::AdvancedPage::saveSettings()
         saveSettingBool(uncappedDamageFatigueCheckBox, "uncapped damage fatigue", "Game");
         saveSettingBool(normaliseRaceSpeedCheckBox, "normalise race speed", "Game");
         saveSettingBool(swimUpwardCorrectionCheckBox, "swim upward correction", "Game");
+        saveSettingBool(avoidCollisionsCheckBox, "NPCs avoid collisions", "Game");
         int unarmedFactorsStrengthIndex = unarmedFactorsStrengthComboBox->currentIndex();
         if (unarmedFactorsStrengthIndex != mEngineSettings.getInt("strength influences hand to hand", "Game"))
             mEngineSettings.setInt("strength influences hand to hand", "Game", unarmedFactorsStrengthIndex);
@@ -252,6 +223,7 @@ void Launcher::AdvancedPage::saveSettings()
         saveSettingBool(weaponSheathingCheckBox, "weapon sheathing", "Game");
         saveSettingBool(shieldSheathingCheckBox, "shield sheathing", "Game");
         saveSettingBool(turnToMovementDirectionCheckBox, "turn to movement direction", "Game");
+        saveSettingBool(smoothMovementCheckBox, "smooth movement", "Game");
 
         const bool distantTerrain = mEngineSettings.getBool("distant terrain", "Terrain");
         const bool objectPaging = mEngineSettings.getBool("object paging", "Terrain");
@@ -371,5 +343,5 @@ void Launcher::AdvancedPage::slotAnimSourcesToggled(bool checked)
 
 void Launcher::AdvancedPage::slotViewOverShoulderToggled(bool checked)
 {
-    viewOverShoulderGroup->setEnabled(viewOverShoulderCheckBox->checkState());
+    viewOverShoulderVerticalLayout->setEnabled(viewOverShoulderCheckBox->checkState());
 }

@@ -179,7 +179,7 @@ namespace MWPhysics
     {
         // First of all, try to hit where you aim to
         int hitmask = CollisionType_World | CollisionType_Door | CollisionType_HeightMap | CollisionType_Actor;
-        RayResult result = castRay(origin, origin + (orient * osg::Vec3f(0.0f, queryDistance, 0.0f)), actor, targets, hitmask, CollisionType_Actor);
+        RayCastingResult result = castRay(origin, origin + (orient * osg::Vec3f(0.0f, queryDistance, 0.0f)), actor, targets, hitmask, CollisionType_Actor);
 
         if (result.mHit)
         {
@@ -262,8 +262,10 @@ namespace MWPhysics
             return (point - Misc::Convert::toOsg(cb.m_hitPointWorld)).length();
     }
 
-    PhysicsSystem::RayResult PhysicsSystem::castRay(const osg::Vec3f &from, const osg::Vec3f &to, const MWWorld::ConstPtr& ignore, std::vector<MWWorld::Ptr> targets, int mask, int group) const
+    RayCastingResult PhysicsSystem::castRay(const osg::Vec3f &from, const osg::Vec3f &to, const MWWorld::ConstPtr& ignore, std::vector<MWWorld::Ptr> targets, int mask, int group) const
     {
+        if (from == to)
+            return RayCastingResult { false };
         btVector3 btFrom = Misc::Convert::toBullet(from);
         btVector3 btTo = Misc::Convert::toBullet(to);
 
@@ -299,7 +301,7 @@ namespace MWPhysics
 
         mCollisionWorld->rayTest(btFrom, btTo, resultCallback);
 
-        RayResult result;
+        RayCastingResult result;
         result.mHit = resultCallback.hasHit();
         if (resultCallback.hasHit())
         {
@@ -311,7 +313,7 @@ namespace MWPhysics
         return result;
     }
 
-    PhysicsSystem::RayResult PhysicsSystem::castSphere(const osg::Vec3f &from, const osg::Vec3f &to, float radius)
+    RayCastingResult PhysicsSystem::castSphere(const osg::Vec3f &from, const osg::Vec3f &to, float radius) const
     {
         btCollisionWorld::ClosestConvexResultCallback callback(Misc::Convert::toBullet(from), Misc::Convert::toBullet(to));
         callback.m_collisionFilterGroup = 0xff;
@@ -325,7 +327,7 @@ namespace MWPhysics
 
         mCollisionWorld->convexSweepTest(&shape, from_, to_, callback);
 
-        RayResult result;
+        RayCastingResult result;
         result.mHit = callback.hasHit();
         if (result.mHit)
         {
@@ -346,7 +348,7 @@ namespace MWPhysics
         osg::Vec3f pos1 (physactor1->getCollisionObjectPosition() + osg::Vec3f(0,0,physactor1->getHalfExtents().z() * 0.9)); // eye level
         osg::Vec3f pos2 (physactor2->getCollisionObjectPosition() + osg::Vec3f(0,0,physactor2->getHalfExtents().z() * 0.9));
 
-        RayResult result = castRay(pos1, pos2, MWWorld::ConstPtr(), std::vector<MWWorld::Ptr>(), CollisionType_World|CollisionType_HeightMap|CollisionType_Door);
+        RayCastingResult result = castRay(pos1, pos2, MWWorld::ConstPtr(), std::vector<MWWorld::Ptr>(), CollisionType_World|CollisionType_HeightMap|CollisionType_Door);
 
         return !result.mHit;
     }
