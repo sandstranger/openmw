@@ -360,6 +360,7 @@ public:
         osg::ref_ptr<osg::FrontFace> frontFace (new osg::FrontFace);
         frontFace->setMode(osg::FrontFace::CLOCKWISE);
         getOrCreateStateSet()->setAttributeAndModes(frontFace, osg::StateAttribute::ON);
+        getOrCreateStateSet()->addUniform(new osg::Uniform("skip", true));
 
         mClipCullNode = new ClipCullNode;
         addChild(mClipCullNode);

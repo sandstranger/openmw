@@ -161,7 +161,7 @@ void main()
 #endif
 
 #else
-    gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor, shadowing);
+    gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor, shadowing, false);
 #endif
 
 #if @envMap && !@preLightEnv
@@ -210,4 +210,5 @@ void main()
 #if (@gamma != 1000)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
+
 }

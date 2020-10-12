@@ -249,6 +249,14 @@ namespace MWRender
         globalDefines["preLightEnv"] = Settings::Manager::getBool("apply lighting to environment maps", "Shaders") ? "1" : "0";
         globalDefines["radialFog"] = Settings::Manager::getBool("radial fog", "Shaders") ? "1" : "0";
 
+
+        globalDefines["particleHandling"] = std::to_string(std::max(1, Settings::Manager::getInt("particle handling", "Shaders")));
+        static int gammacor = 1000;
+        const char *s = getenv("OPENMW_GAMMA");
+        if (s) gammacor = static_cast<int>(atof(s)*1000.0);
+        globalDefines["gamma"] = std::to_string(gammacor);
+
+
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
 
@@ -373,6 +381,9 @@ namespace MWRender
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("near", mNearClip));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("far", mViewDistance));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("simpleWater", false));
+        mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isInterior", false));
+        mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isPlayer", false));
+        mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("skip", false));
 
         mUniformNear = mRootNode->getOrCreateStateSet()->getUniform("near");
         mUniformFar = mRootNode->getOrCreateStateSet()->getUniform("far");
@@ -1163,6 +1174,7 @@ namespace MWRender
         {
             mPlayerNode = new SceneUtil::PositionAttitudeTransform;
             mPlayerNode->setNodeMask(Mask_Player);
+            mPlayerNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isPlayer", true));
             mPlayerNode->setName("Player Root");
             mSceneRoot->addChild(mPlayerNode);
         }
