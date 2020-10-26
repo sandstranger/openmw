@@ -1,5 +1,7 @@
 project(OpenMW)
 cmake_minimum_required(VERSION 3.1.0)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # for link time optimization, remove if cmake version is >= 3.9
 if(POLICY CMP0069)
@@ -151,6 +153,8 @@ endif()
 
 # Dependencies
 find_package(OpenGL REQUIRED)
+
+find_package(LZ4 REQUIRED)
 
 if (USE_QT)
     find_package(Qt5Core 5.12 REQUIRED)
@@ -304,7 +308,7 @@ endif()
 
 set(Boost_NO_BOOST_CMAKE ON)
 
-find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
+find_package(Boost 1.6.2 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 find_package(MyGUI 3.2.2 REQUIRED)
 find_package(SDL2 2.0.9 REQUIRED)
 find_package(OpenAL REQUIRED)
@@ -391,9 +395,6 @@ if (NOT WIN32 AND NOT APPLE)
         "${OpenMW_BINARY_DIR}/org.openmw.cs.desktop")
 endif()
 
-# CXX Compiler settings
-set(CMAKE_CXX_STANDARD 14)
-
 if(OPENMW_LTO_BUILD)
     if(NOT CMAKE_VERSION VERSION_LESS 3.9)
         include(CheckIPOSupported)
@@ -414,7 +415,7 @@ endif()
 
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID STREQUAL Clang)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wundef -Wno-unused-parameter -std=c++14 -pedantic -Wno-long-long")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wundef -Wno-unused-parameter -pedantic -Wno-long-long")
     add_definitions( -DBOOST_NO_CXX11_SCOPED_ENUMS=ON )
 
     if (APPLE)
@@ -430,6 +431,10 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID STREQUAL Clang)
 
     if (CMAKE_CXX_COMPILER_ID STREQUAL GNU AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.6 OR CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 4.6)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-parameter")
+    endif()
+
+    if (CMAKE_CXX_COMPILER_ID STREQUAL GNU AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0 OR CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 5.0)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
     endif()
 elseif (MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:MULTIPLE")
@@ -833,7 +838,11 @@ elseif(NOT APPLE)
 
         # Install binaries
         IF(BUILD_OPENMW)
-            INSTALL(PROGRAMS "${INSTALL_SOURCE}/openmw" DESTINATION "${BINDIR}" )
+            IF(ANDROID)
+                INSTALL(PROGRAMS "${INSTALL_SOURCE}/libopenmw.so" DESTINATION "${BINDIR}" )
+            ELSE(ANDROID)
+                INSTALL(PROGRAMS "${INSTALL_SOURCE}/openmw" DESTINATION "${BINDIR}" )
+            ENDIF(ANDROID)
         ENDIF(BUILD_OPENMW)
         IF(BUILD_LAUNCHER)
             INSTALL(PROGRAMS "${INSTALL_SOURCE}/openmw-launcher" DESTINATION "${BINDIR}" )
