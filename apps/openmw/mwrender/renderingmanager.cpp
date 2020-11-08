@@ -83,6 +83,7 @@ namespace MWRender
     public:
         GroundcoverUpdater()
             : mWindSpeed(0.f)
+            , mStormDir(osg::Vec2f())
             , mPlayerPos(osg::Vec3f())
         {
         }
@@ -90,6 +91,11 @@ namespace MWRender
         void setWindSpeed(float windSpeed)
         {
             mWindSpeed = windSpeed;
+        }
+
+        void setStormDir(osg::Vec2f stormDir)
+        {
+            mStormDir = stormDir;
         }
 
         void setPlayerPos(osg::Vec3f playerPos)
@@ -103,6 +109,9 @@ namespace MWRender
             osg::ref_ptr<osg::Uniform> windUniform = new osg::Uniform("windSpeed", 0.0f);
             stateset->addUniform(windUniform.get());
 
+            osg::ref_ptr<osg::Uniform> stormDirUniform = new osg::Uniform("stormDir", osg::Vec2f(0.f, 0.f));
+            stateset->addUniform(stormDirUniform.get());
+
             osg::ref_ptr<osg::Uniform> playerPosUniform = new osg::Uniform("playerPos", osg::Vec3f(0.f, 0.f, 0.f));
             stateset->addUniform(playerPosUniform.get());
         }
@@ -113,6 +122,10 @@ namespace MWRender
             if (windUniform != nullptr)
                 windUniform->set(mWindSpeed);
 
+            osg::ref_ptr<osg::Uniform> stormDirUniform = stateset->getUniform("stormDir");
+            if (stormDirUniform != nullptr)
+                stormDirUniform->set(mStormDir);
+
             osg::ref_ptr<osg::Uniform> playerPosUniform = stateset->getUniform("playerPos");
             if (playerPosUniform != nullptr)
                 playerPosUniform->set(mPlayerPos);
@@ -120,6 +133,7 @@ namespace MWRender
 
     private:
         float mWindSpeed;
+        osg::Vec2f mStormDir;
         osg::Vec3f mPlayerPos;
     };
 
@@ -302,6 +316,12 @@ namespace MWRender
         globalDefines["groundcoverFadeStart"] = std::to_string(groundcoverDistance * Settings::Manager::getFloat("fade start", "Groundcover"));
         globalDefines["groundcoverFadeEnd"] = std::to_string(groundcoverDistance);
 
+        globalDefines["particleHandling"] = std::to_string(std::max(1, Settings::Manager::getInt("particle handling", "Shaders")));
+        static int gammacor = 1000;
+        const char *s = getenv("OPENMW_GAMMA");
+        if (s) gammacor = static_cast<int>(atof(s)*1000.0);
+        globalDefines["gamma"] = std::to_string(gammacor);
+
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
 
@@ -453,6 +473,9 @@ namespace MWRender
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("near", mNearClip));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("far", mViewDistance));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("simpleWater", false));
+        mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isInterior", false));
+        mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isPlayer", false));
+        mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("skip", false));
 
         mUniformNear = mRootNode->getOrCreateStateSet()->getUniform("near");
         mUniformFar = mRootNode->getOrCreateStateSet()->getUniform("far");
@@ -712,7 +735,10 @@ namespace MWRender
                 osg::Vec3f playerPos(player.getRefData().getPosition().asVec3());
 
                 float windSpeed = mSky->getBaseWindSpeed();
+		osg::Vec2f stormDir = mSky->getSmoothedStormDir();
+
                 mGroundcoverUpdater->setWindSpeed(windSpeed);
+		mGroundcoverUpdater->setStormDir(stormDir);
                 mGroundcoverUpdater->setPlayerPos(playerPos);
             }
         }
@@ -1265,6 +1291,7 @@ namespace MWRender
         {
             mPlayerNode = new SceneUtil::PositionAttitudeTransform;
             mPlayerNode->setNodeMask(Mask_Player);
+            mPlayerNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isPlayer", true));
             mPlayerNode->setName("Player Root");
             mSceneRoot->addChild(mPlayerNode);
         }

@@ -8,6 +8,7 @@
 
 #include "../mwworld/ptr.hpp"
 #include "../mwworld/class.hpp"
+#include "../mwworld/cellstore.hpp"
 
 #include "animation.hpp"
 #include "npcanimation.hpp"
@@ -64,6 +65,9 @@ void Objects::insertBegin(const MWWorld::Ptr& ptr)
     osg::Vec3f scaleVec(scale, scale, scale);
     ptr.getClass().adjustScale(ptr, scaleVec, true);
     insert->setScale(scaleVec);
+
+    if (!ptr.getCell()->isExterior())
+        insert->getOrCreateStateSet()->addUniform(new osg::Uniform("isInterior", true));
 
     ptr.getRefData().setBaseNode(insert);
 }

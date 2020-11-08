@@ -184,6 +184,8 @@ namespace MWRender
 
         float getBaseWindSpeed() const;
 
+        osg::Vec2f getSmoothedStormDir() const;
+
     private:
         void create();
         ///< no need to call this, automatically done on first enable()

@@ -7,6 +7,8 @@ set(SDIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(DDIRRELATIVE resources/shaders)
 
 set(SHADER_FILES
+    particles_vertex.glsl
+    particles_fragment.glsl
     groundcover_vertex.glsl
     groundcover_fragment.glsl
     water_vertex.glsl
