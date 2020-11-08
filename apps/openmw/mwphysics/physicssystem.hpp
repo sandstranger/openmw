@@ -45,6 +45,7 @@ class btDefaultCollisionConfiguration;
 class btCollisionDispatcher;
 class btCollisionObject;
 class btCollisionShape;
+class btVector3;
 
 namespace MWPhysics
 {
@@ -55,6 +56,13 @@ namespace MWPhysics
     class Object;
     class Actor;
     class PhysicsTaskScheduler;
+
+    struct ContactPoint
+    {
+        MWWorld::Ptr mObject;
+        osg::Vec3f mPoint;
+        osg::Vec3f mNormal;
+    };
 
     struct LOSRequest
     {
@@ -144,6 +152,7 @@ namespace MWPhysics
             void debugDraw();
 
             std::vector<MWWorld::Ptr> getCollisions(const MWWorld::ConstPtr &ptr, int collisionGroup, int collisionMask) const; ///< get handles this object collides with
+            std::vector<ContactPoint> getCollisionsPoints(const MWWorld::ConstPtr &ptr, int collisionGroup, int collisionMask) const;
             osg::Vec3f traceDown(const MWWorld::Ptr &ptr, const osg::Vec3f& position, float maxHeight);
 
             std::pair<MWWorld::Ptr, osg::Vec3f> getHitContact(const MWWorld::ConstPtr& actor,
@@ -232,6 +241,7 @@ namespace MWPhysics
             bool isAreaOccupiedByOtherActor(const osg::Vec3f& position, const float radius, const MWWorld::ConstPtr& ignore) const;
 
             void reportStats(unsigned int frameNumber, osg::Stats& stats) const;
+            void reportCollision(const btVector3& position, const btVector3& normal);
 
         private:
 

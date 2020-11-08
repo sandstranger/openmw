@@ -1,5 +1,8 @@
 #include "physicssystem.hpp"
 
+#include <LinearMath/btIDebugDraw.h>
+#include <LinearMath/btVector3.h>
+#include <memory>
 #include <osg/Group>
 #include <osg/Stats>
 
@@ -90,6 +93,7 @@ namespace MWPhysics
         }
 
         mTaskScheduler = std::make_unique<PhysicsTaskScheduler>(mPhysicsDt, mCollisionWorld);
+        mDebugDrawer = std::make_unique<MWRender::DebugDrawer>(mParentNode, mCollisionWorld.get());
     }
 
     PhysicsSystem::~PhysicsSystem()
@@ -124,14 +128,8 @@ namespace MWPhysics
     {
         mDebugDrawEnabled = !mDebugDrawEnabled;
 
-        if (mDebugDrawEnabled && !mDebugDrawer)
-        {
-            mDebugDrawer.reset(new MWRender::DebugDrawer(mParentNode, mCollisionWorld.get()));
-            mCollisionWorld->setDebugDrawer(mDebugDrawer.get());
-            mDebugDrawer->setDebugMode(mDebugDrawEnabled);
-        }
-        else if (mDebugDrawer)
-            mDebugDrawer->setDebugMode(mDebugDrawEnabled);
+        mCollisionWorld->setDebugDrawer(mDebugDrawEnabled ? mDebugDrawer.get() : nullptr);
+        mDebugDrawer->setDebugMode(mDebugDrawEnabled);
         return mDebugDrawEnabled;
     }
 
@@ -175,6 +173,7 @@ namespace MWPhysics
 
         if (result.mHit)
         {
+            reportCollision(Misc::Convert::toBullet(result.mHitPos), Misc::Convert::toBullet(result.mHitNormal));
             return std::make_pair(result.mHitObject, result.mHitPos);
         }
 
@@ -219,7 +218,10 @@ namespace MWPhysics
         {
             PtrHolder* holder = static_cast<PtrHolder*>(resultCallback.mObject->getUserPointer());
             if (holder)
+            {
+                reportCollision(resultCallback.mContactPoint, resultCallback.mContactNormal);
                 return std::make_pair(holder->getPtr(), Misc::Convert::toOsg(resultCallback.mContactPoint));
+            }
         }
         return std::make_pair(MWWorld::Ptr(), osg::Vec3f());
     }
@@ -401,21 +403,29 @@ namespace MWPhysics
             return osg::Vec3f();
     }
 
-    std::vector<MWWorld::Ptr> PhysicsSystem::getCollisions(const MWWorld::ConstPtr &ptr, int collisionGroup, int collisionMask) const
+    std::vector<ContactPoint> PhysicsSystem::getCollisionsPoints(const MWWorld::ConstPtr &ptr, int collisionGroup, int collisionMask) const
     {
         btCollisionObject* me = nullptr;
 
-        ObjectMap::const_iterator found = mObjects.find(ptr);
+        auto found = mObjects.find(ptr);
         if (found != mObjects.end())
             me = found->second->getCollisionObject();
         else
-            return std::vector<MWWorld::Ptr>();
+            return {};
 
         ContactTestResultCallback resultCallback (me);
         resultCallback.m_collisionFilterGroup = collisionGroup;
         resultCallback.m_collisionFilterMask = collisionMask;
         mTaskScheduler->contactTest(me, resultCallback);
         return resultCallback.mResult;
+    }
+
+    std::vector<MWWorld::Ptr> PhysicsSystem::getCollisions(const MWWorld::ConstPtr &ptr, int collisionGroup, int collisionMask) const
+    {
+        std::vector<MWWorld::Ptr> actors;
+        for (auto& [actor, point, normal] : getCollisionsPoints(ptr, collisionGroup, collisionMask))
+            actors.emplace_back(actor);
+        return actors;
     }
 
     osg::Vec3f PhysicsSystem::traceDown(const MWWorld::Ptr &ptr, const osg::Vec3f& position, float maxHeight)
@@ -758,7 +768,7 @@ namespace MWPhysics
 
     void PhysicsSystem::debugDraw()
     {
-        if (mDebugDrawer)
+        if (mDebugDrawEnabled)
             mDebugDrawer->step();
     }
 
@@ -862,6 +872,12 @@ namespace MWPhysics
         stats.setAttribute(frameNumber, "Physics Actors", mActors.size());
         stats.setAttribute(frameNumber, "Physics Objects", mObjects.size());
         stats.setAttribute(frameNumber, "Physics HeightFields", mHeightFields.size());
+    }
+
+    void PhysicsSystem::reportCollision(const btVector3& position, const btVector3& normal)
+    {
+        if (mDebugDrawEnabled)
+            mDebugDrawer->addCollision(position, normal);
     }
 
     ActorFrameData::ActorFrameData(const std::shared_ptr<Actor>& actor, const MWWorld::Ptr character, const MWWorld::Ptr standingOn,
