@@ -366,7 +366,7 @@ namespace Shader
         writableStateSet->addUniform(new osg::Uniform("colorMode", reqs.mColorMode));
 
         osg::ref_ptr<osg::Shader> vertexShader (mShaderManager.getShader(Vs, defineMap, osg::Shader::VERTEX));
-        osg::ref_ptr<osg::Shader> fragmentShader (mShaderManager.getShader(Ps, defineMap, osg::Shader::FRAGMENT));
+        osg::ref_ptr<osg::Shader> fragmentShader (mShaderManager.getShader(Fs, defineMap, osg::Shader::FRAGMENT));
 
         if (vertexShader && fragmentShader)
         {
