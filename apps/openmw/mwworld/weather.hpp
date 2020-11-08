@@ -301,6 +301,8 @@ namespace MWWorld
 
         osg::Vec3f getStormDirection() const;
 
+        osg::Vec2f getSmoothedStormDirection() const;
+
         void advanceTime(double hours, bool incremental);
 
         unsigned int getWeatherID() const;
@@ -343,6 +345,8 @@ namespace MWWorld
         bool mIsStorm;
         bool mPrecipitation;
         osg::Vec3f mStormDirection;
+        osg::Vec3f mSmoothedStormDirection;
+        bool mSmoothedStormDirectionNeedReset;
 
         std::string mCurrentRegion;
         float mTimePassed;

@@ -1853,6 +1853,13 @@ void SkyManager::setWeather(const WeatherResult& weather)
         fader->setAlpha(weather.mEffectFade);
 }
 
+osg::Vec2f SkyManager::getSmoothedStormDir() const
+{
+    if (!mCreated) return osg::Vec2f(0.0, 0.0);
+
+    return MWBase::Environment::get().getWorld()->getSmoothedStormDirection();
+}
+
 void SkyManager::sunEnable()
 {
     if (!mCreated) return;

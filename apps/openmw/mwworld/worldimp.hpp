@@ -685,6 +685,9 @@ namespace MWWorld
             /// @see MWWorld::WeatherManager::getStormDirection
             osg::Vec3f getStormDirection() const override;
 
+            /// @see MWWorld::WeatherManager::getSmoothedStormDirection
+            osg::Vec2f getSmoothedStormDirection() const override;
+
             /// Resets all actors in the current active cells to their original location within that cell.
             void resetActors() override;
 
