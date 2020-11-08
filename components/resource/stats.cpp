@@ -211,7 +211,7 @@ public:
     {
     }
 
-    virtual void drawImplementation(osg::RenderInfo& renderInfo,const osg::Drawable* drawable) const
+    void drawImplementation(osg::RenderInfo& renderInfo,const osg::Drawable* drawable) const override
     {
         if (!mStats) return;
 
@@ -281,6 +281,7 @@ void StatsHandler::setUpScene(osgViewer::ViewerBase *viewer)
             "FrameNumber",
             "",
             "Compiling",
+            "UnrefQueue",
             "WorkQueue",
             "WorkThread",
             "",
@@ -294,13 +295,12 @@ void StatsHandler::setUpScene(osgViewer::ViewerBase *viewer)
             "Nif",
             "Keyframe",
             "",
+            "Groundcover Chunk",
             "Object Chunk",
             "Terrain Chunk",
             "Terrain Texture",
             "Land",
             "Composite",
-            "",
-            "UnrefQueue",
             "",
             "NavMesh UpdateJobs",
             "NavMesh CacheSize",

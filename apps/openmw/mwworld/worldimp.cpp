@@ -102,12 +102,12 @@ namespace MWWorld
             return mLoaders.insert(std::make_pair(extension, loader)).second;
         }
 
-        void load(const boost::filesystem::path& filepath, int& index)
+        void load(const boost::filesystem::path& filepath, int& index, bool isGroundcover) override
         {
             LoadersContainer::iterator it(mLoaders.find(Misc::StringUtils::lowerCase(filepath.extension().string())));
             if (it != mLoaders.end())
             {
-                it->second->load(filepath, index);
+                it->second->load(filepath, index, isGroundcover);
             }
             else
             {
@@ -139,19 +139,20 @@ namespace MWWorld
         Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue,
         const Files::Collections& fileCollections,
         const std::vector<std::string>& contentFiles,
+        const std::vector<std::string>& groundcoverFiles,
         ToUTF8::Utf8Encoder* encoder, int activationDistanceOverride,
         const std::string& startCell, const std::string& startupScript,
         const std::string& resourcePath, const std::string& userDataPath)
     : mResourceSystem(resourceSystem), mLocalScripts (mStore),
       mCells (mStore, mEsm), mSky (true),
-      mGodMode(false), mScriptsEnabled(true), mContentFiles (contentFiles),
+      mGodMode(false), mScriptsEnabled(true), mDiscardMovements(true), mContentFiles (contentFiles),
       mUserDataPath(userDataPath), mShouldUpdateNavigator(false),
       mActivationDistanceOverride (activationDistanceOverride),
       mStartCell(startCell), mDistanceToFacedObject(-1.f), mTeleportEnabled(true),
       mLevitationEnabled(true), mGoToJail(false), mDaysInPrison(0),
       mPlayerTraveling(false), mPlayerInJail(false), mSpellPreloadTimer(0.f)
     {
-        mEsm.resize(contentFiles.size());
+        mEsm.resize(contentFiles.size() + groundcoverFiles.size());
         Loading::Listener* listener = MWBase::Environment::get().getWindowManager()->getLoadingScreen();
         listener->loadingOn();
 
@@ -164,7 +165,7 @@ namespace MWWorld
         gameContentLoader.addLoader(".omwaddon", &esmLoader);
         gameContentLoader.addLoader(".project", &esmLoader);
 
-        loadContentFiles(fileCollections, contentFiles, gameContentLoader);
+        loadContentFiles(fileCollections, contentFiles, groundcoverFiles, gameContentLoader);
 
         listener->loadingOff();
 
@@ -932,6 +933,7 @@ namespace MWWorld
     void World::changeToInteriorCell (const std::string& cellName, const ESM::Position& position, bool adjustPlayerPos, bool changeEvent)
     {
         mPhysics->clearQueuedMovement();
+        mDiscardMovements = true;
 
         if (changeEvent && mCurrentWorldSpace != cellName)
         {
@@ -951,6 +953,7 @@ namespace MWWorld
     void World::changeToExteriorCell (const ESM::Position& position, bool adjustPlayerPos, bool changeEvent)
     {
         mPhysics->clearQueuedMovement();
+        mDiscardMovements = true;
 
         if (changeEvent && mCurrentWorldSpace != ESM::CellId::sDefaultWorldspace)
         {
@@ -1494,24 +1497,23 @@ namespace MWWorld
 
     void World::doPhysics(float duration)
     {
-        mPhysics->stepSimulation(duration);
+        mPhysics->stepSimulation();
         processDoors(duration);
 
         mProjectileManager->update(duration);
 
-        const MWPhysics::PtrVelocityList &results = mPhysics->applyQueuedMovement(duration);
-        MWPhysics::PtrVelocityList::const_iterator player(results.end());
-        for(MWPhysics::PtrVelocityList::const_iterator iter(results.begin());iter != results.end();++iter)
+        const auto results = mPhysics->applyQueuedMovement(duration, mDiscardMovements);
+        mDiscardMovements = false;
+
+        for(const auto& result : results)
         {
-            if(iter->first == getPlayerPtr())
-            {
-                // Handle player last, in case a cell transition occurs
-                player = iter;
-                continue;
-            }
-            moveObjectImp(iter->first, iter->second.x(), iter->second.y(), iter->second.z(), false);
+            // Handle player last, in case a cell transition occurs
+            if(result.first != getPlayerPtr())
+                moveObjectImp(result.first, result.second.x(), result.second.y(), result.second.z(), false);
         }
-        if(player != results.end())
+
+        const auto player = results.find(getPlayerPtr());
+        if (player != results.end())
             moveObjectImp(player->first, player->second.x(), player->second.y(), player->second.z(), false);
     }
 
@@ -1539,7 +1541,7 @@ namespace MWWorld
             *object->getShapeInstance()->getCollisionShape(),
             object->getShapeInstance()->getAvoidCollisionShape()
         };
-        return mNavigator->updateObject(DetourNavigator::ObjectId(object), shapes, object->getCollisionObject()->getWorldTransform());
+        return mNavigator->updateObject(DetourNavigator::ObjectId(object), shapes, object->getTransform());
     }
 
     const MWPhysics::RayCastingInterface* World::getRayCasting() const
@@ -1576,21 +1578,28 @@ namespace MWWorld
         float minRot = door.getCellRef().getPosition().rot[2];
         float maxRot = minRot + osg::DegreesToRadians(90.f);
 
-        float diff = duration * osg::DegreesToRadians(90.f);
-        float targetRot = std::min(std::max(minRot, oldRot + diff * (state == MWWorld::DoorState::Opening ? 1 : -1)), maxRot);
+        float diff = duration * osg::DegreesToRadians(90.f) * (state == MWWorld::DoorState::Opening ? 1 : -1);
+        float targetRot = std::min(std::max(minRot, oldRot + diff), maxRot);
         rotateObject(door, objPos.rot[0], objPos.rot[1], targetRot, MWBase::RotationFlag_none);
 
         bool reached = (targetRot == maxRot && state != MWWorld::DoorState::Idle) || targetRot == minRot;
 
         /// \todo should use convexSweepTest here
         bool collisionWithActor = false;
-        std::vector<MWWorld::Ptr> collisions = mPhysics->getCollisions(door, MWPhysics::CollisionType_Door, MWPhysics::CollisionType_Actor);
-        for (MWWorld::Ptr& ptr : collisions)
+        for (auto& [ptr, point, normal] : mPhysics->getCollisionsPoints(door, MWPhysics::CollisionType_Door, MWPhysics::CollisionType_Actor))
         {
+
             if (ptr.getClass().isActor())
             {
+                auto localPoint = objPos.asVec3() - point;
+                osg::Vec3f direction = osg::Quat(diff, osg::Vec3f(0, 0, 1)) * localPoint - localPoint;
+                direction.normalize();
+                mPhysics->reportCollision(Misc::Convert::toBullet(point), Misc::Convert::toBullet(normal));
+                if (direction * normal < 0) // door is turning away from actor
+                    continue;
+
                 collisionWithActor = true;
-                
+
                 // Collided with actor, ask actor to try to avoid door
                 if(ptr != getPlayerPtr() )
                 {
@@ -1730,6 +1739,11 @@ namespace MWWorld
     }
 
     const ESM::NPC *World::createOverrideRecord(const ESM::NPC &record)
+    {
+        return mStore.overrideRecord(record);
+    }
+
+    const ESM::Container *World::createOverrideRecord(const ESM::Container &record)
     {
         return mStore.overrideRecord(record);
     }
@@ -2181,6 +2195,8 @@ namespace MWWorld
 
     Ptr World::copyObjectToCell(const ConstPtr &object, CellStore* cell, ESM::Position pos, int count, bool adjustPos)
     {
+        if (!cell)
+            throw std::runtime_error("copyObjectToCell(): cannot copy object to null cell");
         if (cell->isExterior())
         {
             int cellX, cellY;
@@ -2918,7 +2934,7 @@ namespace MWWorld
     }
 
     void World::loadContentFiles(const Files::Collections& fileCollections,
-        const std::vector<std::string>& content, ContentLoader& contentLoader)
+        const std::vector<std::string>& content, const std::vector<std::string>& groundcover, ContentLoader& contentLoader)
     {
         int idx = 0;
         for (const std::string &file : content)
@@ -2927,11 +2943,27 @@ namespace MWWorld
             const Files::MultiDirCollection& col = fileCollections.getCollection(filename.extension().string());
             if (col.doesExist(file))
             {
-                contentLoader.load(col.getPath(file), idx);
+                contentLoader.load(col.getPath(file), idx, false);
             }
             else
             {
                 std::string message = "Failed loading " + file + ": the content file does not exist";
+                throw std::runtime_error(message);
+            }
+            idx++;
+        }
+
+        for (const std::string &file : groundcover)
+        {
+            boost::filesystem::path filename(file);
+            const Files::MultiDirCollection& col = fileCollections.getCollection(filename.extension().string());
+            if (col.doesExist(file))
+            {
+                contentLoader.load(col.getPath(file), idx, true);
+            }
+            else
+            {
+                std::string message = "Failed loading " + file + ": the groundcover file does not exist";
                 throw std::runtime_error(message);
             }
             idx++;
@@ -3130,9 +3162,9 @@ namespace MWWorld
         {
         }
 
-        virtual void visit (MWMechanics::EffectKey key, int /*effectIndex*/,
+        void visit (MWMechanics::EffectKey key, int /*effectIndex*/,
                             const std::string& /*sourceName*/, const std::string& /*sourceId*/, int /*casterActorId*/,
-                            float /*magnitude*/, float /*remainingTime*/ = -1, float /*totalTime*/ = -1)
+                            float /*magnitude*/, float /*remainingTime*/ = -1, float /*totalTime*/ = -1) override
         {
             const ESMStore& store = MWBase::Environment::get().getWorld()->getStore();
             const auto magicEffect = store.get<ESM::MagicEffect>().find(key.mId);
@@ -3890,7 +3922,7 @@ namespace MWWorld
         btVector3 aabbMax;
         object->getShapeInstance()->getCollisionShape()->getAabb(btTransform::getIdentity(), aabbMin, aabbMax);
 
-        const auto toLocal = object->getCollisionObject()->getWorldTransform().inverse();
+        const auto toLocal = object->getTransform().inverse();
         const auto localFrom = toLocal(Misc::Convert::toBullet(position));
         const auto localTo = toLocal(Misc::Convert::toBullet(destination));
 
@@ -3914,5 +3946,10 @@ namespace MWWorld
     {
         ESM::EpochTimeStamp currentDate = mCurrentDate->getEpochTimeStamp();
         mRendering->skySetDate(currentDate.mDay, currentDate.mMonth);
+    }
+
+    std::vector<MWWorld::Ptr> World::getAll(const std::string& id)
+    {
+        return mCells.getAll(id);
     }
 }

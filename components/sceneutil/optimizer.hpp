@@ -65,7 +65,7 @@ class Optimizer
 
     public:
 
-        Optimizer() : _mergeAlphaBlending(false) {}
+        Optimizer() : _mergeAlphaBlending(false), _removeAlphaBlending(false) {}
         virtual ~Optimizer() {}
 
         enum OptimizationOptions
@@ -119,6 +119,7 @@ class Optimizer
         };
 
         void setMergeAlphaBlending(bool merge) { _mergeAlphaBlending = merge; }
+        void setRemoveAlphaBlending(bool remove) { _removeAlphaBlending = remove; }
         void setViewPoint(const osg::Vec3f& viewPoint) { _viewPoint = viewPoint; }
 
         /** Reset internal data to initial state - the getPermissibleOptionsMap is cleared.*/
@@ -257,6 +258,7 @@ class Optimizer
 
         osg::Vec3f _viewPoint;
         bool _mergeAlphaBlending;
+        bool _removeAlphaBlending;
 
     public:
 
@@ -273,10 +275,10 @@ class Optimizer
                 FlattenStaticTransformsVisitor(Optimizer* optimizer=0):
                     BaseOptimizerVisitor(optimizer, FLATTEN_STATIC_TRANSFORMS) {}
 
-                virtual void apply(osg::Node& geode);
-                virtual void apply(osg::Drawable& drawable);
-                virtual void apply(osg::Billboard& geode);
-                virtual void apply(osg::Transform& transform);
+                void apply(osg::Node& geode) override;
+                void apply(osg::Drawable& drawable) override;
+                void apply(osg::Billboard& geode) override;
+                void apply(osg::Transform& transform) override;
 
                 bool removeTransforms(osg::Node* nodeWeCannotRemove);
 
@@ -304,7 +306,7 @@ class Optimizer
                 CombineStaticTransformsVisitor(Optimizer* optimizer=0):
                     BaseOptimizerVisitor(optimizer, FLATTEN_STATIC_TRANSFORMS) {}
 
-                virtual void apply(osg::MatrixTransform& transform);
+                void apply(osg::MatrixTransform& transform) override;
 
                 bool removeTransforms(osg::Node* nodeWeCannotRemove);
 
@@ -326,7 +328,7 @@ class Optimizer
                 RemoveEmptyNodesVisitor(Optimizer* optimizer=0):
                     BaseOptimizerVisitor(optimizer, REMOVE_REDUNDANT_NODES) {}
 
-                virtual void apply(osg::Group& group);
+                void apply(osg::Group& group) override;
 
                 void removeEmptyNodes();
 
@@ -343,10 +345,10 @@ class Optimizer
                 RemoveRedundantNodesVisitor(Optimizer* optimizer=0):
                     BaseOptimizerVisitor(optimizer, REMOVE_REDUNDANT_NODES) {}
 
-                virtual void apply(osg::Group& group);
-                virtual void apply(osg::Transform& transform);
-                virtual void apply(osg::LOD& lod);
-                virtual void apply(osg::Switch& switchNode);
+                void apply(osg::Group& group) override;
+                void apply(osg::Transform& transform) override;
+                void apply(osg::LOD& lod) override;
+                void apply(osg::Switch& switchNode) override;
 
                 bool isOperationPermissible(osg::Node& node);
 
@@ -365,9 +367,9 @@ class Optimizer
 
             bool isOperationPermissible(osg::Group& node);
 
-            virtual void apply(osg::Group& group);
-            virtual void apply(osg::LOD& lod);
-            virtual void apply(osg::Switch& switchNode);
+            void apply(osg::Group& group) override;
+            void apply(osg::LOD& lod) override;
+            void apply(osg::Switch& switchNode) override;
         };
 
         class MergeGeometryVisitor : public BaseOptimizerVisitor
@@ -377,11 +379,19 @@ class Optimizer
                 /// default to traversing all children.
                 MergeGeometryVisitor(Optimizer* optimizer=0) :
                     BaseOptimizerVisitor(optimizer, MERGE_GEOMETRY),
-                    _targetMaximumNumberOfVertices(10000), _alphaBlendingActive(false), _mergeAlphaBlending(false) {}
+                    _targetMaximumNumberOfVertices(10000),
+                    _alphaBlendingActive(false),
+                    _mergeAlphaBlending(false),
+                    _removeAlphaBlending(false)
+                    {}
 
                 void setMergeAlphaBlending(bool merge)
                 {
                     _mergeAlphaBlending = merge;
+                }
+                void setRemoveAlphaBlending(bool remove)
+                {
+                    _removeAlphaBlending = remove;
                 }
                 void setViewPoint(const osg::Vec3f& viewPoint)
                 {
@@ -402,8 +412,8 @@ class Optimizer
                 void popStateSet();
                 void checkAlphaBlendingActive();
 
-                virtual void apply(osg::Group& group);
-                virtual void apply(osg::Billboard&) { /* don't do anything*/ }
+                void apply(osg::Group& group) override;
+                void apply(osg::Billboard&) override { /* don't do anything*/ }
 
                 bool mergeGroup(osg::Group& group);
 
@@ -421,6 +431,7 @@ class Optimizer
                 std::vector<osg::StateSet*> _stateSetStack;
                 bool _alphaBlendingActive;
                 bool _mergeAlphaBlending;
+                bool _removeAlphaBlending;
                 osg::Vec3f _viewPoint;
         };
 

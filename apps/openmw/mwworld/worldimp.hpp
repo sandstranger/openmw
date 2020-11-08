@@ -102,6 +102,7 @@ namespace MWWorld
             bool mSky;
             bool mGodMode;
             bool mScriptsEnabled;
+            bool mDiscardMovements;
             std::vector<std::string> mContentFiles;
 
             std::string mUserDataPath;
@@ -176,7 +177,7 @@ namespace MWWorld
              * @param contentLoader -
              */
             void loadContentFiles(const Files::Collections& fileCollections,
-                const std::vector<std::string>& content, ContentLoader& contentLoader);
+                const std::vector<std::string>& content, const std::vector<std::string>& groundcover, ContentLoader& contentLoader);
 
             float feetToGameUnits(float feet);
             float getActivationDistancePlusTelekinesis();
@@ -195,6 +196,7 @@ namespace MWWorld
                 Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue,
                 const Files::Collections& fileCollections,
                 const std::vector<std::string>& contentFiles,
+                const std::vector<std::string>& groundcoverFiles,
                 ToUTF8::Utf8Encoder* encoder, int activationDistanceOverride,
                 const std::string& startCell, const std::string& startupScript,
                 const std::string& resourcePath, const std::string& userDataPath);
@@ -487,6 +489,10 @@ namespace MWWorld
             ///< Write this record to the ESM store, allowing it to override a pre-existing record with the same ID.
             /// \return pointer to created record
 
+            const ESM::Container *createOverrideRecord (const ESM::Container& record) override;
+            ///< Write this record to the ESM store, allowing it to override a pre-existing record with the same ID.
+            /// \return pointer to created record
+
             void update (float duration, bool paused) override;
             void updatePhysics (float duration, bool paused) override;
 
@@ -735,6 +741,8 @@ namespace MWWorld
             bool isAreaOccupiedByOtherActor(const osg::Vec3f& position, const float radius, const MWWorld::ConstPtr& ignore) const override;
 
             void reportStats(unsigned int frameNumber, osg::Stats& stats) const override;
+
+            std::vector<MWWorld::Ptr> getAll(const std::string& id) override;
     };
 }
 
