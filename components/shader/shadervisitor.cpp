@@ -300,7 +300,7 @@ namespace Shader
 
         bool isParticle = dynamic_cast<osgParticle::ParticleSystem *>(reqs.mNode) ? true : false;
 
-        if (isParticle && Settings::Manager::getInt("particle handling", "Shaders") == 0)
+        if (isParticle && Settings::Manager::getBool("particle shading", "Shaders") == false)
             return;
 
         osg::Node& node = *reqs.mNode;
@@ -323,9 +323,6 @@ namespace Shader
         }
 
         defineMap["parallax"] = reqs.mNormalHeight ? "1" : "0";
-
-        if(!isParticle)
-            defineMap["particleHandling"] = "0";
 
         std::string Vs = mDefaultVsTemplate;
         std::string Fs = mDefaultFsTemplate;

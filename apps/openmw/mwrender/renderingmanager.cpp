@@ -317,7 +317,6 @@ namespace MWRender
         globalDefines["groundcoverFadeStart"] = std::to_string(groundcoverDistance * Settings::Manager::getFloat("fade start", "Groundcover"));
         globalDefines["groundcoverFadeEnd"] = std::to_string(groundcoverDistance);
 
-        globalDefines["particleHandling"] = std::to_string(std::max(1, Settings::Manager::getInt("particle handling", "Shaders")));
         globalDefines["underwaterFog"] = Settings::Manager::getBool("underwater fog", "Water");
         static int gammacor = 1000;
         const char *s = getenv("OPENMW_GAMMA");
