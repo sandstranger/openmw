@@ -13,6 +13,7 @@
 #include <components/misc/stringops.hpp>
 #include <components/terrain/world.hpp>
 #include <components/sceneutil/unrefqueue.hpp>
+#include <components/settings/settings.hpp>
 #include <components/esm/loadcell.hpp>
 
 #include "../mwbase/environment.hpp"
@@ -31,11 +32,22 @@ namespace MWWorld
     {
         ListModelsVisitor(std::vector<std::string>& out)
             : mOut(out)
+            , mCurrentGroundcover(0.f)
         {
         }
 
         virtual bool operator()(const MWWorld::Ptr& ptr)
         {
+            if (ptr.getTypeName()==typeid (ESM::Static).name())
+            {
+                const MWWorld::LiveCellRef<ESM::Static> *ref = ptr.get<ESM::Static>();
+                if (ref->mBase->mIsGroundcover)
+                {
+                    if (!mDensityCalculator.isInstanceEnabled())
+                        return true;
+                }
+            }
+
             ptr.getClass().getModelsToPreload(ptr, mOut);
 
             return true;
@@ -44,6 +56,8 @@ namespace MWWorld
         virtual ~ListModelsVisitor() = default;
 
         std::vector<std::string>& mOut;
+        float mCurrentGroundcover;
+        Misc::ResourceHelpers::DensityCalculator mDensityCalculator;
     };
 
     /// Worker thread item: preload models in a cell.
@@ -69,13 +83,13 @@ namespace MWWorld
             cell->forEach(visitor);
         }
 
-        virtual void abort()
+        void abort() override
         {
             mAbort = true;
         }
 
         /// Preload work to be called from the worker thread.
-        virtual void doWork()
+        void doWork() override
         {
             if (mIsExterior)
             {
@@ -177,7 +191,7 @@ namespace MWWorld
             return true;
         }
 
-        virtual void doWork()
+        void doWork() override
         {
             for (unsigned int i=0; i<mTerrainViews.size() && i<mPreloadPositions.size() && !mAbort; ++i)
             {
@@ -186,7 +200,7 @@ namespace MWWorld
             }
         }
 
-        virtual void abort()
+        void abort() override
         {
             mAbort = true;
         }
@@ -213,7 +227,7 @@ namespace MWWorld
         {
         }
 
-        virtual void doWork()
+        void doWork() override
         {
             mResourceSystem->updateCache(mReferenceTime);
         }
@@ -496,7 +510,7 @@ namespace MWWorld
             else if (mTerrainViews.size() < positions.size())
             {
                 for (unsigned int i=mTerrainViews.size(); i<positions.size(); ++i)
-                    mTerrainViews.push_back(mTerrain->createView());
+                    mTerrainViews.emplace_back(mTerrain->createView());
             }
 
             mTerrainPreloadPositions = positions;

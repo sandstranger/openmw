@@ -16,7 +16,6 @@
 
 #include <components/resource/scenemanager.hpp>
 #include <components/resource/keyframemanager.hpp>
-#include <components/resource/resourcesystem.hpp>
 
 #include <components/misc/constants.hpp>
 #include <components/misc/resourcehelpers.hpp>
@@ -36,8 +35,6 @@
 #include <components/sceneutil/util.hpp>
 
 #include <components/settings/settings.hpp>
-
-#include <components/shader/shadermanager.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/world.hpp"
@@ -62,18 +59,18 @@ namespace
             : osg::NodeVisitor(TRAVERSE_ALL_CHILDREN)
         { }
 
-        virtual void apply(osg::Node &node)
+        void apply(osg::Node &node) override
         {
             if (dynamic_cast<osgParticle::ParticleProcessor*>(&node))
-                mToRemove.push_back(&node);
+                mToRemove.emplace_back(&node);
 
             traverse(node);
         }
 
-        virtual void apply(osg::Drawable& drw)
+        void apply(osg::Drawable& drw) override
         {
             if (osgParticle::ParticleSystem* partsys = dynamic_cast<osgParticle::ParticleSystem*>(&drw))
-                mToRemove.push_back(partsys);
+                mToRemove.emplace_back(partsys);
         }
 
         void remove()
@@ -98,7 +95,7 @@ namespace
         {
         }
 
-        virtual void operator()(osg::Node* node, osg::NodeVisitor* nv)
+        void operator()(osg::Node* node, osg::NodeVisitor* nv) override
         {
             unsigned int state = MWBase::Environment::get().getWorld()->getNightDayMode();
             const unsigned int newState = node->asGroup()->getNumChildren() > state ? state : 0;
@@ -123,7 +120,7 @@ namespace
             : osg::NodeVisitor(TRAVERSE_ALL_CHILDREN)
         { }
 
-        virtual void apply(osg::Switch &switchNode)
+        void apply(osg::Switch &switchNode) override
         {
             if (switchNode.getName() == Constants::NightDayLabel)
                 switchNode.addUpdateCallback(new DayNightCallback());
@@ -140,7 +137,7 @@ namespace
         {
         }
 
-        virtual void apply(osg::Switch& node)
+        void apply(osg::Switch& node) override
         {
             if (node.getName() == Constants::HerbalismLabel)
             {
@@ -235,7 +232,7 @@ namespace
         {
         }
 
-        void apply(osg::Node& node)
+        void apply(osg::Node& node) override
         {
             if (SceneUtil::hasUserDescription(&node, "CustomBone"))
             {
@@ -260,12 +257,12 @@ namespace
         {
         }
 
-        virtual void apply(osg::Node &node)
+        void apply(osg::Node &node) override
         {
             traverse(node);
         }
 
-        virtual void apply(osg::Group &group)
+        void apply(osg::Group &group) override
         {
             traverse(group);
 
@@ -277,19 +274,19 @@ namespace
                 if (vfxCallback)
                 {
                     if (vfxCallback->mFinished)
-                        mToRemove.push_back(std::make_pair(group.asNode(), group.getParent(0)));
+                        mToRemove.emplace_back(group.asNode(), group.getParent(0));
                     else
                         mHasMagicEffects = true;
                 }
             }
         }
 
-        virtual void apply(osg::MatrixTransform &node)
+        void apply(osg::MatrixTransform &node) override
         {
             traverse(node);
         }
 
-        virtual void apply(osg::Geometry&)
+        void apply(osg::Geometry&) override
         {
         }
     };
@@ -313,12 +310,12 @@ namespace
         {
         }
 
-        virtual void apply(osg::Node &node)
+        void apply(osg::Node &node) override
         {
             traverse(node);
         }
 
-        virtual void apply(osg::Group &group)
+        void apply(osg::Group &group) override
         {
             traverse(group);
 
@@ -330,19 +327,19 @@ namespace
                 {
                     bool toRemove = mEffectId < 0 || vfxCallback->mParams.mEffectId == mEffectId;
                     if (toRemove)
-                        mToRemove.push_back(std::make_pair(group.asNode(), group.getParent(0)));
+                        mToRemove.emplace_back(group.asNode(), group.getParent(0));
                     else
                         mHasMagicEffects = true;
                 }
             }
         }
 
-        virtual void apply(osg::MatrixTransform &node)
+        void apply(osg::MatrixTransform &node) override
         {
             traverse(node);
         }
 
-        virtual void apply(osg::Geometry&)
+        void apply(osg::Geometry&) override
         {
         }
 
@@ -368,12 +365,12 @@ namespace
         {
         }
 
-        virtual void apply(osg::Node &node)
+        void apply(osg::Node &node) override
         {
             traverse(node);
         }
 
-        virtual void apply(osg::Group &group)
+        void apply(osg::Group &group) override
         {
             osg::Callback* callback = group.getUpdateCallback();
             if (callback)
@@ -390,12 +387,12 @@ namespace
             traverse(group);
         }
 
-        virtual void apply(osg::MatrixTransform &node)
+        void apply(osg::MatrixTransform &node) override
         {
             traverse(node);
         }
 
-        virtual void apply(osg::Geometry&)
+        void apply(osg::Geometry&) override
         {
         }
 
@@ -407,20 +404,20 @@ namespace
     class CleanObjectRootVisitor : public RemoveVisitor
     {
     public:
-        virtual void apply(osg::Drawable& drw)
+        void apply(osg::Drawable& drw) override
         {
             applyDrawable(drw);
         }
 
-        virtual void apply(osg::Group& node)
+        void apply(osg::Group& node) override
         {
             applyNode(node);
         }
-        virtual void apply(osg::MatrixTransform& node)
+        void apply(osg::MatrixTransform& node) override
         {
             applyNode(node);
         }
-        virtual void apply(osg::Node& node)
+        void apply(osg::Node& node) override
         {
             applyNode(node);
         }
@@ -431,7 +428,7 @@ namespace
                 node.setStateSet(nullptr);
 
             if (node.getNodeMask() == 0x1 && node.getNumParents() == 1)
-                mToRemove.push_back(std::make_pair(&node, node.getParent(0)));
+                mToRemove.emplace_back(&node, node.getParent(0));
             else
                 traverse(node);
         }
@@ -449,28 +446,28 @@ namespace
                 osg::Group* parentParent = static_cast<osg::Group*>(*(parent - 1));
                 if (parentGroup->getNumChildren() == 1 && parentGroup->getDataVariance() == osg::Object::STATIC)
                 {
-                    mToRemove.push_back(std::make_pair(parentGroup, parentParent));
+                    mToRemove.emplace_back(parentGroup, parentParent);
                     return;
                 }
             }
 
-            mToRemove.push_back(std::make_pair(&node, parentGroup));
+            mToRemove.emplace_back(&node, parentGroup);
         }
     };
 
     class RemoveTriBipVisitor : public RemoveVisitor
     {
     public:
-        virtual void apply(osg::Drawable& drw)
+        void apply(osg::Drawable& drw) override
         {
             applyImpl(drw);
         }
 
-        virtual void apply(osg::Group& node)
+        void apply(osg::Group& node) override
         {
             traverse(node);
         }
-        virtual void apply(osg::MatrixTransform& node)
+        void apply(osg::MatrixTransform& node) override
         {
             traverse(node);
         }
@@ -482,7 +479,7 @@ namespace
             {
                 osg::Group* parent = static_cast<osg::Group*>(*(getNodePath().end()-2));
                 // Not safe to remove in apply(), since the visitor is still iterating the child list
-                mToRemove.push_back(std::make_pair(&node, parent));
+                mToRemove.emplace_back(&node, parent);
             }
         }
     };
@@ -493,9 +490,8 @@ namespace MWRender
     class TransparencyUpdater : public SceneUtil::StateSetUpdater
     {
     public:
-        TransparencyUpdater(const float alpha, osg::ref_ptr<osg::Uniform> shadowUniform)
+        TransparencyUpdater(const float alpha)
             : mAlpha(alpha)
-            , mShadowUniform(shadowUniform)
         {
         }
 
@@ -505,13 +501,10 @@ namespace MWRender
         }
 
     protected:
-        virtual void setDefaults(osg::StateSet* stateset)
+        void setDefaults(osg::StateSet* stateset) override
         {
             osg::BlendFunc* blendfunc (new osg::BlendFunc);
             stateset->setAttributeAndModes(blendfunc, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
-            // TODO: don't do this anymore once custom shadow renderbin is handling it
-            if (mShadowUniform)
-                stateset->addUniform(mShadowUniform);
 
             stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
             stateset->setRenderBinMode(osg::StateSet::OVERRIDE_RENDERBIN_DETAILS);
@@ -525,7 +518,7 @@ namespace MWRender
             stateset->addUniform(new osg::Uniform("colorMode", 0), osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
         }
 
-        virtual void apply(osg::StateSet* stateset, osg::NodeVisitor* /*nv*/)
+        void apply(osg::StateSet* stateset, osg::NodeVisitor* /*nv*/) override
         {
             osg::Material* material = static_cast<osg::Material*>(stateset->getAttribute(osg::StateAttribute::MATERIAL));
             material->setAlpha(osg::Material::FRONT_AND_BACK, mAlpha);
@@ -533,7 +526,6 @@ namespace MWRender
 
     private:
         float mAlpha;
-        osg::ref_ptr<osg::Uniform> mShadowUniform;
     };
 
     struct Animation::AnimSource
@@ -586,7 +578,7 @@ namespace MWRender
     class ResetAccumRootCallback : public osg::NodeCallback
     {
     public:
-        virtual void operator()(osg::Node* node, osg::NodeVisitor* nv)
+        void operator()(osg::Node* node, osg::NodeVisitor* nv) override
         {
             osg::MatrixTransform* transform = static_cast<osg::MatrixTransform*>(node);
 
@@ -1773,7 +1765,7 @@ namespace MWRender
         {
             if (mTransparencyUpdater == nullptr)
             {
-                mTransparencyUpdater = new TransparencyUpdater(alpha, mResourceSystem->getSceneManager()->getShaderManager().getShadowMapAlphaTestEnableUniform());
+                mTransparencyUpdater = new TransparencyUpdater(alpha);
                 mObjectRoot->addCullCallback(mTransparencyUpdater);
             }
             else

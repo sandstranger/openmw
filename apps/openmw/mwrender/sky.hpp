@@ -69,6 +69,7 @@ namespace MWRender
         float mDLFogFactor;
         float mDLFogOffset;
 
+        float mBaseWindSpeed;
         float mWindSpeed;
         float mCurrentWindSpeed;
         float mNextWindSpeed;
@@ -99,17 +100,17 @@ namespace MWRender
 
     struct MoonState
     {
-        enum Phase
+        enum class Phase
         {
-            Phase_Full = 0,
-            Phase_WaningGibbous,
-            Phase_ThirdQuarter,
-            Phase_WaningCrescent,
-            Phase_New,
-            Phase_WaxingCrescent,
-            Phase_FirstQuarter,
-            Phase_WaxingGibbous,
-            Phase_Unspecified
+            Full = 0,
+            WaningGibbous,
+            ThirdQuarter,
+            WaningCrescent,
+            New,
+            WaxingCrescent,
+            FirstQuarter,
+            WaxingGibbous,
+            Unspecified
         };
 
         float mRotationFromHorizon;
@@ -180,6 +181,8 @@ namespace MWRender
         void setCamera(osg::Camera *camera);
 
         void setRainIntensityUniform(osg::Uniform *uniform);
+
+        float getBaseWindSpeed() const;
 
         osg::Vec2f getSmoothedStormDir() const;
 
@@ -267,6 +270,7 @@ namespace MWRender
         float mRainEntranceSpeed;
         int mRainMaxRaindrops;
         float mWindSpeed;
+        float mBaseWindSpeed;
 
         bool mEnabled;
         bool mSunEnabled;

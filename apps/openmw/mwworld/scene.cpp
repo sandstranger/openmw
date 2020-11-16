@@ -152,7 +152,7 @@ namespace
                         ? btVector3(distanceFromDoor, 0, 0)
                         : btVector3(0, distanceFromDoor, 0);
 
-                const auto& transform = object->getCollisionObject()->getWorldTransform();
+                const auto transform = object->getTransform();
                 const btTransform closedDoorTransform(
                     Misc::Convert::toBullet(makeObjectOsgQuat(ptr.getCellRef().getPosition())),
                     transform.getOrigin()
@@ -187,7 +187,7 @@ namespace
                         *object->getShapeInstance()->getCollisionShape(),
                         object->getShapeInstance()->getAvoidCollisionShape()
                     },
-                    object->getCollisionObject()->getWorldTransform()
+                    object->getTransform()
                 );
             }
         }
@@ -563,7 +563,7 @@ namespace MWWorld
                 if (iter==mActiveCells.end())
                 {
                     refsToLoad += MWBase::Environment::get().getWorld()->getExterior(x, y)->count();
-                    cellsPositionsToLoad.push_back(std::make_pair(x, y));
+                    cellsPositionsToLoad.emplace_back(x, y);
                 }
             }
         }
@@ -961,7 +961,7 @@ namespace MWWorld
         {
         }
 
-        virtual void doWork()
+        void doWork() override
         {
             try
             {
@@ -1027,7 +1027,7 @@ namespace MWWorld
                 {
                     continue;
                 }
-                teleportDoors.push_back(MWWorld::ConstPtr(&door, cellStore));
+                teleportDoors.emplace_back(&door, cellStore);
             }
         }
 

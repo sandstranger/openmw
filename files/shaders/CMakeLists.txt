@@ -9,6 +9,8 @@ set(DDIRRELATIVE resources/shaders)
 set(SHADER_FILES
     particles_vertex.glsl
     particles_fragment.glsl
+    groundcover_vertex.glsl
+    groundcover_fragment.glsl
     water_vertex.glsl
     water_fragment.glsl
     water_nm.png
