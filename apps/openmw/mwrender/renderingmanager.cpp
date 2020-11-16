@@ -249,8 +249,7 @@ namespace MWRender
         globalDefines["preLightEnv"] = Settings::Manager::getBool("apply lighting to environment maps", "Shaders") ? "1" : "0";
         globalDefines["radialFog"] = Settings::Manager::getBool("radial fog", "Shaders") ? "1" : "0";
 
-
-        globalDefines["particleHandling"] = std::to_string(std::max(1, Settings::Manager::getInt("particle handling", "Shaders")));
+	globalDefines["underwaterFog"] = Settings::Manager::getBool("underwater fog", "Water");
         static int gammacor = 1000;
         const char *s = getenv("OPENMW_GAMMA");
         if (s) gammacor = static_cast<int>(atof(s)*1000.0);
