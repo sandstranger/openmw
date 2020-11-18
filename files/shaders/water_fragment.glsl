@@ -2,6 +2,8 @@
 
 #define REFRACTION @refraction_enabled
 
+#define WATER
+
 // Inspired by Blender GLSL Water by martinsh ( https://devlog-martinsh.blogspot.de/2012/07/waterundewater-shader-wip.html )
 
 // tweakables -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -42,6 +44,10 @@ const vec2 WIND_DIR = vec2(0.5f, -0.8f);
 const float WIND_SPEED = 0.2f;
 
 const vec3 WATER_COLOR = vec3(0.090195, 0.115685, 0.12745);
+
+#include "helpsettings.glsl"
+
+uniform float osg_SimulationTime;
 
 // ---------------- rain ripples related stuff ---------------------
 
@@ -131,10 +137,7 @@ uniform sampler2D normalMap;
 uniform sampler2D reflectionMap;
 #if REFRACTION
 uniform sampler2D refractionMap;
-uniform sampler2D refractionDepthMap;
 #endif
-
-uniform float osg_SimulationTime;
 
 uniform float near;
 uniform float far;
@@ -142,9 +145,9 @@ uniform vec3 nodePosition;
 
 uniform float rainIntensity;
 
-#include "shadows_fragment.glsl"
-
 float frustumDepth;
+
+#include "fog.glsl"
 
 float linearizeDepth(float depth)
   {
@@ -159,8 +162,6 @@ void main(void)
     vec3 worldPos = position.xyz + nodePosition.xyz;
     vec2 UV = worldPos.xy / (8192.0*5.0) * 3.0;
     UV.y *= -1.0;
-
-    float shadow = unshadowedLightRatio(linearDepth);
 
     vec2 screenCoords = screenCoordsPassthrough.xy / screenCoordsPassthrough.z;
     screenCoords.y = (1.0-screenCoords.y);
@@ -205,22 +206,19 @@ void main(void)
 
     float radialise = 1.0;
 
-#if @radialFog
-    float radialDepth = distance(position.xyz, cameraPos);
-    // TODO: Figure out how to properly radialise refraction depth and thus underwater fog
-    // while avoiding oddities when the water plane is close to the clipping plane
-    // radialise = radialDepth / linearDepth;
-#endif
-
     vec2 screenCoordsOffset = normal.xy * REFL_BUMP;
 
     // reflection
     vec3 reflection = texture2D(reflectionMap, screenCoords + screenCoordsOffset).rgb;
 
     // specular
-    float specular = pow(max(dot(reflect(vVec, normal), lVec), 0.0),SPEC_HARDNESS) * shadow;
+    float specular = pow(max(dot(reflect(vVec, normal), lVec), 0.0),SPEC_HARDNESS);
 
     vec3 waterColor = WATER_COLOR * sunFade;
+
+#if @radialFog
+        float radialDepth = distance(position.xyz, cameraPos);
+#endif
 
 #if REFRACTION
     // refraction
@@ -244,23 +242,20 @@ void main(void)
     float sunHeight = lVec.z;
     vec3 scatterColour = mix(SCATTER_COLOUR*vec3(1.0,0.4,0.0), SCATTER_COLOUR, clamp(1.0-exp(-sunHeight*SUN_EXT), 0.0, 1.0));
     vec3 lR = reflect(lVec, lNormal);
-    float lightScatter = shadow * clamp(dot(lVec,lNormal)*0.7+0.3, 0.0, 1.0) * clamp(dot(lR, vVec)*2.0-1.2, 0.0, 1.0) * SCATTER_AMOUNT * sunFade * clamp(1.0-exp(-sunHeight), 0.0, 1.0);
+    float lightScatter = clamp(dot(lVec,lNormal)*0.7+0.3, 0.0, 1.0) * clamp(dot(lR, vVec)*2.0-1.2, 0.0, 1.0) * SCATTER_AMOUNT * sunFade * clamp(1.0-exp(-sunHeight), 0.0, 1.0);
     gl_FragData[0].xyz = mix( mix(refraction,  scatterColour,  lightScatter),  reflection,  fresnel) + specular * gl_LightSource[0].specular.xyz + vec3(rainRipple.w) * 0.2;
     gl_FragData[0].w = 1.0;
 #else
     gl_FragData[0].xyz = mix(reflection,  waterColor,  (1.0-fresnel)*0.5) + specular * gl_LightSource[0].specular.xyz + vec3(rainRipple.w) * 0.7;
-    gl_FragData[0].w = clamp(fresnel*6.0 + specular * gl_LightSource[0].specular.w, 0.0, 1.0);     //clamp(fresnel*2.0 + specular * gl_LightSource[0].specular.w, 0.0, 1.0);
+    gl_FragData[0].w = clamp(fresnel*6.0 + specular * gl_LightSource[0].specular.w, 0.0, 1.0);     //
+        //      gl_FragData[0].w = clamp(fresnel*2.0 + specular * gl_LightSource[0].specular.w, 0.0, 1.0);
 #endif
 
-    // fog
 #if @radialFog
-    float fogValue = clamp((radialDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
+    applyFog(false, radialDepth);
 #else
-    float fogValue = clamp((linearDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
+    applyFog(false, linearDepth);
 #endif
-    gl_FragData[0].xyz = mix(gl_FragData[0].xyz,  gl_Fog.color.xyz,  fogValue);
-
-    applyShadowDebugOverlay();
 
 #if (@gamma != 1000)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
