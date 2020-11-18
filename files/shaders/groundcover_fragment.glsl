@@ -1,100 +1,80 @@
 #version 120
 
+#define GRASS
+
 #if @diffuseMap
 uniform sampler2D diffuseMap;
 varying vec2 diffuseMapUV;
 #endif
 
-#if @normalMap
-uniform sampler2D normalMap;
-varying vec2 normalMapUV;
-varying vec4 passTangent;
-#endif
+#include "helpsettings.glsl"
 
-#define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
+varying float depth;
 
-varying float euclideanDepth;
+#if !@radialFog
 varying float linearDepth;
-
-#if !PER_PIXEL_LIGHTING
-centroid varying vec4 lighting;
-centroid varying vec3 shadowDiffuseLighting;
 #endif
-centroid varying vec4 passColor;
-varying vec3 passViewPos;
-varying vec3 passNormal;
 
-#include "shadows_fragment.glsl"
-#include "lighting.glsl"
+#if @underwaterFog
+uniform mat4 osg_ViewMatrixInverse;
+varying vec3 passViewPos;
+#endif
+
+#ifdef ANIMATED_HEIGHT_FOG
+uniform float osg_SimulationTime;
+#endif
+
+centroid varying vec4 lighting;
+
+#include "effects.glsl"
+#include "fog.glsl"
+
+float calc_coverage(float a, float alpha_ref, float falloff_rate)
+{
+    return clamp(falloff_rate * (a - alpha_ref) + alpha_ref, 0.0, 1.0);
+}
 
 void main()
 {
 #if @diffuseMap
-    vec2 adjustedDiffuseUV = diffuseMapUV;
-#endif
-
-#if @normalMap
-    vec4 normalTex = texture2D(normalMap, normalMapUV);
-
-    vec3 normalizedNormal = normalize(passNormal);
-    vec3 normalizedTangent = normalize(passTangent.xyz);
-    vec3 binormal = cross(normalizedTangent, normalizedNormal) * passTangent.w;
-    mat3 tbnTranspose = mat3(normalizedTangent, binormal, normalizedNormal);
-
-    vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
-#endif
-
-#if (!@normalMap && @forcePPL)
-    vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
-#endif
-
-#if @diffuseMap
-    gl_FragData[0] = texture2D(diffuseMap, adjustedDiffuseUV);
+    gl_FragData[0] = texture2D(diffuseMap, diffuseMapUV);
 #else
     gl_FragData[0] = vec4(1.0);
 #endif
 
-    float shadowing = unshadowedLightRatio(linearDepth);
-    if (euclideanDepth > @groundcoverFadeStart)
-        gl_FragData[0].a *= 1.0-smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, euclideanDepth);
+gl_FragData[0].a = calc_coverage(gl_FragData[0].a, 128.0/255.0, 4.0);
 
-#if !PER_PIXEL_LIGHTING
+    if (depth > @groundcoverFadeStart)
+        gl_FragData[0].a *= 1.0-smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, depth);
 
-#if @clamp
-    gl_FragData[0] *= clamp(lighting + vec4(shadowDiffuseLighting * shadowing, 0), vec4(0.0), vec4(1.0));
+if(gl_FragData[0].a != 0.0)
+{
+#ifdef LINEAR_LIGHTING
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(2.2));
+#endif
+
+    gl_FragData[0] *= lighting;
+
+#ifdef LINEAR_LIGHTING
+        gl_FragData[0].xyz = Uncharted2ToneMapping(gl_FragData[0].xyz);
+        gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(2.2+(@gamma.0/1000.0)-1.0)));
+        gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, gl_LightSource[0].diffuse.x));
+#endif
+
+}
+    bool isUnderwater = false;
+#if @underwaterFog
+    isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 && gl_LightSource[0].diffuse.x != 0.0;
+#endif
+
+#if !@radialFog
+    applyFog(isUnderwater, linearDepth);
 #else
-    gl_FragData[0] *= lighting + vec4(shadowDiffuseLighting * shadowing, 0);
+    applyFog(isUnderwater, depth);
 #endif
 
-#else
-    if(gl_FragData[0].a != 0.0)
-        gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor, shadowing, true);
-#endif
-
-    float shininess = gl_FrontMaterial.shininess;
-    vec3 matSpec;
-    if (colorMode == ColorMode_Specular)
-        matSpec = passColor.xyz;
-    else
-        matSpec = gl_FrontMaterial.specular.xyz;
-
-    if (matSpec != vec3(0.0))
-    {
-#if (!@normalMap && !@forcePPL)
-        vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
-#endif
-        gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos.xyz), shininess, matSpec) * shadowing;
-    }
-#if @radialFog
-    float fogValue = clamp((euclideanDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
-#else
-    float fogValue = clamp((linearDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
-#endif
-    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
-
-    applyShadowDebugOverlay();
-
-#if (@gamma != 1000)
+#if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
+
 }
