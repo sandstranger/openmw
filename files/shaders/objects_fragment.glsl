@@ -101,6 +101,7 @@ centroid varying vec4 passColor;
 
 void main()
 {
+
 float shadowpara = 1.0;
 
 #if @diffuseMap
@@ -273,7 +274,7 @@ if(simpleWater)
 }
 
     bool isUnderwater = false;
-#if@underwaterFog
+#if @underwaterFog
     isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 &&  !simpleWater && !skip && !isInterior && !isPlayer;
 #endif
 
@@ -286,13 +287,6 @@ if(simpleWater)
 #if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif  
-/*
-    bool nl = false;
-    for (int i=0; i<8; ++i)
-    {
-        if(gl_LightSource[i].diffuse.x < 0.0)
-            nl = true;
-    }
-    if(nl) gl_FragData[0].x = 1.0;
-*/
+
+gl_FragData[0].x = 1.0;
 }

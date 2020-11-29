@@ -18,18 +18,7 @@ void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 vie
     float illumination = clamp(1.0 / (gl_LightSource[lightIndex].constantAttenuation + gl_LightSource[lightIndex].linearAttenuation * lightDistance + gl_LightSource[lightIndex].quadraticAttenuation * lightDistance * lightDistance), 0.0, 1.0);
 
     ambientOut = ambient * gl_LightSource[lightIndex].ambient.xyz * illumination;
-
-#if defined(PARTICLE)
-    diffuseOut = diffuse.xyz * gl_LightSource[lightIndex].diffuse.xyz * 0.5196 * illumination;
-#else
-    float lambert = dot(viewNormal.xyz, lightDir) * illumination;
-        if (!isGroundcover)
-            lambert = max(lambert, 0.0);
-
-    if (lambert < 0.0)
-        lambert *= -0.3;
-    diffuseOut = diffuse.xyz * gl_LightSource[lightIndex].diffuse.xyz * lambert;
-#endif
+    diffuseOut = diffuse.xyz * gl_LightSource[lightIndex].diffuse.xyz * max(dot(viewNormal.xyz, lightDir), 0.0) * illumination;
 }
 
 #if PER_PIXEL_LIGHTING

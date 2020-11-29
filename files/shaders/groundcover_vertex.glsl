@@ -2,8 +2,6 @@
 
 #define PER_PIXEL_LIGHTING 0
 
-#extension GL_EXT_draw_instanced : enable
-
 #define GRASS
 
 #include "helpsettings.glsl"
@@ -33,15 +31,9 @@ centroid varying vec4 lighting;
   #include "lighting.glsl"
 #endif
 
-#if @groundcoverAnimation || defined(HEIGHT_FOG) || defined(UNDERWATER_DISTORTION)
 uniform mat4 osg_ViewMatrixInverse;
-#endif
-
-#if @groundcoverAnimation || defined(UNDERWATER_DISTORTION)
 uniform float osg_SimulationTime;
-#endif
 
-#if @groundcoverAnimation
 uniform float windSpeed;
 uniform vec3 playerPos;
 attribute float originalCoords;
@@ -85,17 +77,11 @@ vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
 
     return vertex + ret;
 }
-#endif
 
 void main(void)
 {
-vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
-
-#if @groundcoverAnimation
+    vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
     gl_Position = gl_ModelViewProjectionMatrix * grassDisplacement(viewPos.xyz, gl_Vertex);
-#else
-    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-#endif
 
     gl_ClipVertex = viewPos;
     depth = length(viewPos.xyz);

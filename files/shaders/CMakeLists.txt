@@ -17,7 +17,6 @@ set(SHADER_FILES
     terrain_vertex.glsl
     terrain_fragment.glsl
     lighting.glsl
-    parallax.glsl
     s360_fragment.glsl
     s360_vertex.glsl
     shadows_vertex.glsl
