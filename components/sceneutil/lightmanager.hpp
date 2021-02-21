@@ -99,11 +99,6 @@ namespace SceneUtil
 
         unsigned int getLightingMask() const;
 
-        /// Set the first light index that should be used by this manager, typically the number of directional lights in the scene.
-        void setStartLight(int start);
-
-        int getStartLight() const;
-
         /// Internal use only, called automatically by the LightManager's UpdateCallback
         void update();
 
@@ -131,9 +126,10 @@ namespace SceneUtil
         osg::ref_ptr<osg::StateSet> getLightListStateSet(const LightList& lightList, unsigned int frameNum);
 
         void setSunlight(osg::ref_ptr<osg::Light> sun);
+        osg::ref_ptr<osg::Light> getSunlight();
 
-        osg::ref_ptr<osg::Light> mSun;
-        osg::ref_ptr<SunlightBuffer> mBufferSun;
+        osg::ref_ptr<SunlightBuffer> getSunBuffer();
+
     private:
         // Lights collected from the scene graph. Only valid during the cull traversal.
         std::vector<LightSourceTransform> mLights;
@@ -145,11 +141,10 @@ namespace SceneUtil
         typedef std::map<size_t, osg::ref_ptr<osg::StateSet> > LightStateSetMap;
         LightStateSetMap mStateSetCache[2];
 
-        std::vector<osg::ref_ptr<osg::StateAttribute>> mDummies;
-
-        int mStartLight;
-
         unsigned int mLightingMask;
+
+        osg::ref_ptr<SunlightBuffer> mBufferSun;
+        osg::ref_ptr<osg::Light> mSun;
     };
 
     /// To receive lighting, objects must be decorated by a LightListCallback. Light list callbacks must be added via

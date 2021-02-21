@@ -145,7 +145,7 @@ namespace SceneUtil
 
         void apply(osg::State& state) const override
         {
-            auto sun = mLightManager->mSun;
+            auto sun = mLightManager->getSunlight();
 
             if (!sun)
                 return;
@@ -154,7 +154,7 @@ namespace SceneUtil
 
             state.applyModelViewMatrix(state.getInitialViewMatrix());
 
-            auto buf = mLightManager->mBufferSun;
+            auto buf = mLightManager->getSunBuffer();
 
             buf->setValue(SunlightBuffer::Diffuse, sun->getDiffuse());
             buf->setValue(SunlightBuffer::Ambient, sun->getAmbient());
@@ -176,21 +176,14 @@ namespace SceneUtil
     class LightStateAttribute : public osg::StateAttribute
     {
     public:
-        LightStateAttribute() : mIndex(0), mBuffer(nullptr) {}
-        LightStateAttribute(unsigned int index, const std::vector<osg::ref_ptr<osg::Light> >& lights, const osg::ref_ptr<PointLightBuffer>& buffer) : mIndex(index), mLights(lights), mBuffer(buffer) {}
+        LightStateAttribute() : mBuffer(nullptr) {}
+        LightStateAttribute(const std::vector<osg::ref_ptr<osg::Light> >& lights, const osg::ref_ptr<PointLightBuffer>& buffer) : mLights(lights), mBuffer(buffer) {}
 
         LightStateAttribute(const LightStateAttribute& copy,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY)
-            : osg::StateAttribute(copy,copyop), mIndex(copy.mIndex), mLights(copy.mLights), mBuffer(copy.mBuffer) {}
-
-        unsigned int getMember() const override
-        {
-            return mIndex;
-        }
+            : osg::StateAttribute(copy,copyop), mLights(copy.mLights), mBuffer(copy.mBuffer) {}
 
         bool getModeUsage(ModeUsage & usage) const override
         {
-            for (unsigned int i=0; i<mLights.size(); ++i)
-                usage.usesMode(GL_LIGHT0 + mIndex + i);
             return true;
         }
 
@@ -235,7 +228,6 @@ namespace SceneUtil
         }
 
     private:
-        unsigned int mIndex;
         std::vector<osg::ref_ptr<osg::Light>> mLights;
         osg::ref_ptr<PointLightBuffer> mBuffer;
     };
@@ -306,9 +298,9 @@ namespace SceneUtil
     };
 
     LightManager::LightManager()
-        : mStartLight(0)
-        , mLightingMask(~0u)
+        : mLightingMask(~0u)
         , mBufferSun(new SunlightBuffer)
+        , mSun(nullptr)
     {
         auto* stateset = getOrCreateStateSet();
         
@@ -325,8 +317,9 @@ namespace SceneUtil
 
     LightManager::LightManager(const LightManager &copy, const osg::CopyOp &copyop)
         : osg::Group(copy, copyop)
-        , mStartLight(copy.mStartLight)
         , mLightingMask(copy.mLightingMask)
+        , mBufferSun(copy.mBufferSun)
+        , mSun(copy.mSun)
     {
 
     }
@@ -344,6 +337,16 @@ namespace SceneUtil
     void LightManager::setSunlight(osg::ref_ptr<osg::Light> sun)
     {
         mSun = sun;
+    }
+
+    osg::ref_ptr<osg::Light> LightManager::getSunlight()
+    {
+        return mSun;
+    }
+
+    osg::ref_ptr<SunlightBuffer> LightManager::getSunBuffer()
+    {
+        return mBufferSun;
     }
 
     void LightManager::update()
@@ -409,7 +412,7 @@ namespace SceneUtil
             // the first light state attribute handles the actual state setting for all lights
             // it's best to batch these up so that we don't need to touch the modelView matrix more than necessary
             // don't use setAttributeAndModes, that does not support light indices!
-            stateset->setAttribute(new LightStateAttribute(mStartLight, std::move(lights), buffer), osg::StateAttribute::ON);
+            stateset->setAttribute(new LightStateAttribute(std::move(lights), buffer), osg::StateAttribute::ON);
 
             stateSetCache.emplace(hash, stateset);
             return stateset;
@@ -443,16 +446,6 @@ namespace SceneUtil
             }
         }
         return it->second;
-    }
-
-    void LightManager::setStartLight(int start)
-    {
-        mStartLight = start;
-    }
-
-    int LightManager::getStartLight() const
-    {
-        return mStartLight;
     }
 
     static int sLightId = 0;
@@ -545,7 +538,7 @@ namespace SceneUtil
         }
         if (!mLightList.empty())
         {
-            unsigned int maxLights = static_cast<unsigned int> (Settings::Manager::getInt("max lights", "Shaders") - mLightManager->getStartLight());
+            unsigned int maxLights = static_cast<unsigned int>(Settings::Manager::getInt("max lights", "Shaders"));
 
             osg::StateSet* stateset = nullptr;
 

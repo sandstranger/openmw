@@ -216,7 +216,6 @@ namespace MWRender
         osg::ref_ptr<SceneUtil::LightManager> sceneRoot = new SceneUtil::LightManager;
         sceneRoot->setLightingMask(Mask_Lighting);
         mSceneRoot = sceneRoot;
-        sceneRoot->setStartLight(1);
         sceneRoot->setNodeMask(Mask_Scene);
         sceneRoot->setName("Scene Root");
 
