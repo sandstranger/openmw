@@ -248,6 +248,8 @@ namespace MWRender
         float groundcoverDistance = (Constants::CellSizeInUnits * std::max(1, Settings::Manager::getInt("distance", "Groundcover")) - 1024) * 0.93;
         globalDefines["groundcoverFadeStart"] = std::to_string(groundcoverDistance * 0.9f);
         globalDefines["groundcoverFadeEnd"] = std::to_string(groundcoverDistance);
+        
+        globalDefines["maxLights"] = std::to_string(Settings::Manager::getInt("max lights", "Shaders"));
 
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
@@ -354,6 +356,7 @@ namespace MWRender
         mSunLight->setAmbient(osg::Vec4f(0,0,0,1));
         mSunLight->setSpecular(osg::Vec4f(0,0,0,0));
         mSunLight->setConstantAttenuation(1.f);
+        sceneRoot->setSunlight(mSunLight);
         sceneRoot->addChild(source);
 
         sceneRoot->getOrCreateStateSet()->setMode(GL_CULL_FACE, osg::StateAttribute::ON);

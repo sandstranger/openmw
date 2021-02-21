@@ -1,4 +1,5 @@
 #version 120
+#extension GL_ARB_uniform_buffer_object : enable
 
 varying vec2 uv;
 
@@ -26,8 +27,8 @@ varying vec3 passNormal;
 
 #include "vertexcolors.glsl"
 #include "shadows_fragment.glsl"
-#include "lighting.glsl"
 #include "parallax.glsl"
+#include "lighting.glsl"
 
 void main()
 {

@@ -344,6 +344,8 @@ namespace Shader
             program->addShader(fragmentShader);
             program->addBindAttribLocation("aOffset", 6);
             program->addBindAttribLocation("aRotation", 7);
+            program->addBindUniformBlock("PointLightBuffer", 8);
+            program->addBindUniformBlock("SunlightBuffer", 9);
             found = mPrograms.insert(std::make_pair(std::make_pair(vertexShader, fragmentShader), program)).first;
         }
         return found->second;

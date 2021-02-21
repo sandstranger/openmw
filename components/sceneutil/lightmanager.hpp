@@ -16,6 +16,7 @@ namespace osgUtil
 
 namespace SceneUtil
 {
+    class SunlightBuffer;
 
     /// LightSource managed by a LightManager.
     /// @par Typically used for point lights. Spot lights are not supported yet. Directional lights affect the whole scene
@@ -129,6 +130,10 @@ namespace SceneUtil
 
         osg::ref_ptr<osg::StateSet> getLightListStateSet(const LightList& lightList, unsigned int frameNum);
 
+        void setSunlight(osg::ref_ptr<osg::Light> sun);
+
+        osg::ref_ptr<osg::Light> mSun;
+        osg::ref_ptr<SunlightBuffer> mBufferSun;
     private:
         // Lights collected from the scene graph. Only valid during the cull traversal.
         std::vector<LightSourceTransform> mLights;

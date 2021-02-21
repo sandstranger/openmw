@@ -215,6 +215,7 @@ namespace MWRender
         light->setConstantAttenuation(1.f);
         light->setLinearAttenuation(0.f);
         light->setQuadraticAttenuation(0.f);
+        lightManager->setSunlight(light);
 
         osg::ref_ptr<osg::LightSource> lightSource = new osg::LightSource;
         lightSource->setLight(light);

@@ -644,6 +644,7 @@ void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, R
     osg::ref_ptr<osg::Program> program (new osg::Program);
     program->addShader(vertexShader);
     program->addShader(fragmentShader);
+    program->addBindUniformBlock("SunlightBuffer", 9);
     shaderStateset->setAttributeAndModes(program, osg::StateAttribute::ON);
 
     node->setStateSet(shaderStateset);
