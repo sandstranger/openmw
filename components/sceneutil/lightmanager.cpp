@@ -299,26 +299,32 @@ namespace SceneUtil
 
     LightManager::LightManager()
         : mLightingMask(~0u)
-        , mBufferSun(new SunlightBuffer)
         , mSun(nullptr)
+        , mSunBuffer(new SunlightBuffer)
+        , mSunAttr(new SunlightStateAttribute(this))
     {
         auto* stateset = getOrCreateStateSet();
         
         osg::ref_ptr<osg::UniformBufferObject> ubo = new osg::UniformBufferObject;
-        mBufferSun->getData()->setBufferObject(ubo);
-        osg::ref_ptr<osg::UniformBufferBinding> ubb = new osg::UniformBufferBinding(9 , mBufferSun->getData().get(), 0, mBufferSun->blockSize());
+        mSunBuffer->getData()->setBufferObject(ubo);
+        osg::ref_ptr<osg::UniformBufferBinding> ubb = new osg::UniformBufferBinding(9 , mSunBuffer->getData().get(), 0, mSunBuffer->blockSize());
         stateset->setAttributeAndModes(ubb.get(), osg::StateAttribute::ON);
-        stateset->setAttribute(new SunlightStateAttribute(this), osg::StateAttribute::ON);
+        stateset->setAttribute(mSunAttr, osg::StateAttribute::ON);
 
         stateset->addUniform(new osg::Uniform("PointLightCount", 0));
 
         setUpdateCallback(new LightManagerUpdateCallback);
     }
 
+    LightManager::~LightManager()
+    {
+        getOrCreateStateSet()->removeAttribute(mSunAttr);
+    }
+
     LightManager::LightManager(const LightManager &copy, const osg::CopyOp &copyop)
         : osg::Group(copy, copyop)
         , mLightingMask(copy.mLightingMask)
-        , mBufferSun(copy.mBufferSun)
+        , mSunBuffer(copy.mSunBuffer)
         , mSun(copy.mSun)
     {
 
@@ -346,7 +352,7 @@ namespace SceneUtil
 
     osg::ref_ptr<SunlightBuffer> LightManager::getSunBuffer()
     {
-        return mBufferSun;
+        return mSunBuffer;
     }
 
     void LightManager::update()
