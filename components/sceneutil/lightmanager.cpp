@@ -297,11 +297,47 @@ namespace SceneUtil
         }
     };
 
+    class SunlightCallback : public osg::NodeCallback
+    {
+    public:
+        SunlightCallback(LightManager* lightManager) : mLightManager(lightManager) {}
+
+        void operator()(osg::Node* node, osg::NodeVisitor* nv) override
+        {
+            osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
+
+            if (mLastFrameNumber != cv->getTraversalNumber())
+            {
+                mLastFrameNumber = cv->getTraversalNumber();
+
+                auto sun = mLightManager->getSunlight();
+
+                if (!sun)
+                    return;
+
+                auto buf = mLightManager->getSunBuffer();
+
+                buf->setValue(SunlightBuffer::Diffuse, sun->getDiffuse());
+                buf->setValue(SunlightBuffer::Ambient, sun->getAmbient());
+                buf->setValue(SunlightBuffer::Specular, sun->getSpecular());
+                buf->setValue(SunlightBuffer::Direction, sun->getPosition() * *cv->getCurrentRenderStage()->getInitialViewMatrix());                           
+
+                if (buf->isDirty())
+                    buf->dirty();
+            }
+
+            traverse(node, nv);
+        }
+
+    private:
+        LightManager* mLightManager;
+        int mLastFrameNumber;
+    };
+
     LightManager::LightManager()
         : mLightingMask(~0u)
         , mSun(nullptr)
         , mSunBuffer(new SunlightBuffer)
-        , mSunAttr(new SunlightStateAttribute(this))
     {
         auto* stateset = getOrCreateStateSet();
         
@@ -309,16 +345,11 @@ namespace SceneUtil
         mSunBuffer->getData()->setBufferObject(ubo);
         osg::ref_ptr<osg::UniformBufferBinding> ubb = new osg::UniformBufferBinding(9 , mSunBuffer->getData().get(), 0, mSunBuffer->blockSize());
         stateset->setAttributeAndModes(ubb.get(), osg::StateAttribute::ON);
-        stateset->setAttribute(mSunAttr, osg::StateAttribute::ON);
 
         stateset->addUniform(new osg::Uniform("PointLightCount", 0));
 
+        addCullCallback(new SunlightCallback(this));
         setUpdateCallback(new LightManagerUpdateCallback);
-    }
-
-    LightManager::~LightManager()
-    {
-        getOrCreateStateSet()->removeAttribute(mSunAttr);
     }
 
     LightManager::LightManager(const LightManager &copy, const osg::CopyOp &copyop)

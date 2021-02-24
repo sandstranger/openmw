@@ -17,7 +17,6 @@ namespace osgUtil
 namespace SceneUtil
 {
     class SunlightBuffer;
-    class SunlightStateAttribute;
 
     /// LightSource managed by a LightManager.
     /// @par Typically used for point lights. Spot lights are not supported yet. Directional lights affect the whole scene
@@ -92,8 +91,6 @@ namespace SceneUtil
 
         LightManager(const LightManager& copy, const osg::CopyOp& copyop);
 
-        ~LightManager();
-
         /// @param mask This mask is compared with the current Camera's cull mask to determine if lighting is desired.
         /// By default, it's ~0u i.e. always on.
         /// If you have some views that do not require lighting, then set the Camera's cull mask to not include
@@ -148,7 +145,6 @@ namespace SceneUtil
 
         osg::ref_ptr<osg::Light> mSun;
         osg::ref_ptr<SunlightBuffer> mSunBuffer;
-        osg::ref_ptr<SunlightStateAttribute> mSunAttr;
     };
 
     /// To receive lighting, objects must be decorated by a LightListCallback. Light list callbacks must be added via
