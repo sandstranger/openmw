@@ -18,6 +18,7 @@
 #include <components/settings/settings.hpp>
 #include <components/sceneutil/visitor.hpp>
 #include <components/sceneutil/shadow.hpp>
+#include <components/sceneutil/lightmanager.hpp>
 #include <components/files/memorystream.hpp>
 
 #include "../mwbase/environment.hpp"
@@ -202,24 +203,15 @@ osg::ref_ptr<osg::Camera> LocalMap::createOrthographicCamera(float x, float y, f
     lightmodel->setAmbientIntensity(osg::Vec4(0.3f, 0.3f, 0.3f, 1.f));
     stateset->setAttributeAndModes(lightmodel, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
 
-    osg::ref_ptr<osg::Light> light = new osg::Light;
-    light->setPosition(osg::Vec4(-0.3f, -0.3f, 0.7f, 0.f));
-    light->setDiffuse(osg::Vec4(0.7f, 0.7f, 0.7f, 1.f));
-    light->setAmbient(osg::Vec4(0,0,0,1));
-    light->setSpecular(osg::Vec4(0,0,0,0));
-    light->setLightNum(0);
-    light->setConstantAttenuation(1.f);
-    light->setLinearAttenuation(0.f);
-    light->setQuadraticAttenuation(0.f);
-
-    osg::ref_ptr<osg::LightSource> lightSource = new osg::LightSource;
-    lightSource->setLight(light);
-
-    lightSource->setStateSetModes(*stateset, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
-
     SceneUtil::ShadowManager::disableShadowsForStateSet(stateset);
 
-    camera->addChild(lightSource);
+    osg::ref_ptr<SceneUtil::SunlightStateAttribute> sun = new SceneUtil::SunlightStateAttribute;
+    sun->setDirection(osg::Vec4(-0.3f, -0.3f, 0.7f, 0.f));
+    sun->setDiffuse(osg::Vec4(0.7f, 0.7f, 0.7f, 1.f));
+    sun->setAmbient(osg::Vec4(0,0,0,1));
+    sun->setSpecular(osg::Vec4(0,0,0,0));
+    sun->setStateSet(stateset, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
+
     camera->setStateSet(stateset);
     camera->setViewport(0, 0, mMapResolution, mMapResolution);
     camera->setUpdateCallback(new CameraLocalUpdateCallback(this));

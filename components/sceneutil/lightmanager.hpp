@@ -8,6 +8,7 @@
 #include <osg/Group>
 #include <osg/NodeVisitor>
 #include <osg/observer_ptr>
+#include <osg/BufferIndexBinding>
 
 namespace osgUtil
 {
@@ -17,6 +18,29 @@ namespace osgUtil
 namespace SceneUtil
 {
     class SunlightBuffer;
+
+    // Used to override sun for static light sources. 
+    class SunlightStateAttribute : public osg::StateAttribute
+    {
+    public:
+        SunlightStateAttribute();
+        SunlightStateAttribute(const SunlightStateAttribute& copy,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
+        
+        int compare(const StateAttribute &sa) const override;
+
+        META_StateAttribute(NifOsg, SunlightStateAttribute, osg::StateAttribute::LIGHT)
+
+        void setDiffuse(const osg::Vec4& value);
+        void setAmbient(const osg::Vec4& value);
+        void setSpecular(const osg::Vec4& value);
+        void setDirection(const osg::Vec4& value);
+
+        void setStateSet(osg::StateSet* stateset, int mode=osg::StateAttribute::ON);
+
+    private:
+        osg::ref_ptr<SunlightBuffer> mBuffer;
+        osg::ref_ptr<osg::UniformBufferBinding> mUbb;
+    };
 
     /// LightSource managed by a LightManager.
     /// @par Typically used for point lights. Spot lights are not supported yet. Directional lights affect the whole scene

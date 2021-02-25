@@ -1,7 +1,6 @@
 #include "lightmanager.hpp"
 
 #include <osg/BufferObject>
-#include <osg/BufferIndexBinding>
 
 #include <osgUtil/CullVisitor>
 
@@ -127,50 +126,48 @@ namespace SceneUtil
         return &cacheVector[contextid];
     }
 
-    class SunlightStateAttribute : public osg::StateAttribute
+    SunlightStateAttribute::SunlightStateAttribute()
+        : mBuffer(new SunlightBuffer)
     {
-    public:
-        SunlightStateAttribute() : mLightManager(nullptr){}
-        SunlightStateAttribute(LightManager* lightManager) : mLightManager(lightManager) {}
+        osg::ref_ptr<osg::UniformBufferObject> ubo = new osg::UniformBufferObject;
+        mBuffer->getData()->setBufferObject(ubo);
+        mUbb = new osg::UniformBufferBinding(9 , mBuffer->getData().get(), 0, mBuffer->blockSize());
+    }
 
-        SunlightStateAttribute(const SunlightStateAttribute& copy,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY)
-            : osg::StateAttribute(copy,copyop), mLightManager(copy.mLightManager) {}
+    SunlightStateAttribute::SunlightStateAttribute(const SunlightStateAttribute &copy, const osg::CopyOp &copyop)
+        : osg::StateAttribute(copy, copyop), mBuffer(copy.mBuffer) {}
 
-        int compare(const StateAttribute &sa) const override
-        {
-            throw std::runtime_error("SunlightStateAttribute::compare: unimplemented");
-        }
+    int SunlightStateAttribute::compare(const StateAttribute &sa) const
+    {
+        throw std::runtime_error("LightStateAttribute::compare: unimplemented");
+    }
 
-        META_StateAttribute(NifOsg, SunlightStateAttribute, osg::StateAttribute::LIGHT)
+    void SunlightStateAttribute::setDiffuse(const osg::Vec4& value)
+    {
+        mBuffer->setValue(SunlightBuffer::Diffuse, value);
+    }
 
-        void apply(osg::State& state) const override
-        {
-            auto sun = mLightManager->getSunlight();
+    void SunlightStateAttribute::setAmbient(const osg::Vec4& value)
+    {
+        mBuffer->setValue(SunlightBuffer::Ambient, value);
+    }
 
-            if (!sun)
-                return;
+    void SunlightStateAttribute::setSpecular(const osg::Vec4& value)
+    {
+        mBuffer->setValue(SunlightBuffer::Specular, value);
+    }
 
-            osg::Matrix modelViewMatrix = state.getModelViewMatrix();
+    void SunlightStateAttribute::setDirection(const osg::Vec4& value)
+    {
+        mBuffer->setValue(SunlightBuffer::Direction, value);
+    }
 
-            state.applyModelViewMatrix(state.getInitialViewMatrix());
-
-            auto buf = mLightManager->getSunBuffer();
-
-            buf->setValue(SunlightBuffer::Diffuse, sun->getDiffuse());
-            buf->setValue(SunlightBuffer::Ambient, sun->getAmbient());
-            buf->setValue(SunlightBuffer::Specular, sun->getSpecular());
-            buf->setValue(SunlightBuffer::Direction, sun->getPosition() * state.getModelViewMatrix());                           
-
-            if (buf->isDirty())
-                buf->dirty();
-
-            state.applyModelViewMatrix(modelViewMatrix);
-        }
-
-    private:
-        LightManager* mLightManager;
-    };
-
+    void SunlightStateAttribute::setStateSet(osg::StateSet* stateset, int mode)
+    {
+        stateset->setAttributeAndModes(mUbb, mode);
+        stateset->setAssociatedModes(this, mode);
+        mBuffer->dirty();
+    }
 
     // Resets the modelview matrix to just the view matrix before applying lights.
     class LightStateAttribute : public osg::StateAttribute
@@ -181,11 +178,6 @@ namespace SceneUtil
 
         LightStateAttribute(const LightStateAttribute& copy,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY)
             : osg::StateAttribute(copy,copyop), mLights(copy.mLights), mBuffer(copy.mBuffer) {}
-
-        bool getModeUsage(ModeUsage & usage) const override
-        {
-            return true;
-        }
 
         int compare(const StateAttribute &sa) const override
         {
@@ -331,7 +323,7 @@ namespace SceneUtil
 
     private:
         LightManager* mLightManager;
-        int mLastFrameNumber;
+        unsigned int mLastFrameNumber;
     };
 
     LightManager::LightManager()
@@ -346,7 +338,7 @@ namespace SceneUtil
         osg::ref_ptr<osg::UniformBufferBinding> ubb = new osg::UniformBufferBinding(9 , mSunBuffer->getData().get(), 0, mSunBuffer->blockSize());
         stateset->setAttributeAndModes(ubb.get(), osg::StateAttribute::ON);
 
-        stateset->addUniform(new osg::Uniform("PointLightCount", 0));
+        stateset->addUniform(new osg::Uniform("PointLightCount", osg::StateAttribute::ON));
 
         addCullCallback(new SunlightCallback(this));
         setUpdateCallback(new LightManagerUpdateCallback);
@@ -355,10 +347,9 @@ namespace SceneUtil
     LightManager::LightManager(const LightManager &copy, const osg::CopyOp &copyop)
         : osg::Group(copy, copyop)
         , mLightingMask(copy.mLightingMask)
-        , mSunBuffer(copy.mSunBuffer)
         , mSun(copy.mSun)
+        , mSunBuffer(copy.mSunBuffer)
     {
-
     }
 
     void LightManager::setLightingMask(unsigned int mask)
