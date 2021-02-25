@@ -216,6 +216,7 @@ namespace MWRender
         osg::ref_ptr<SceneUtil::LightManager> sceneRoot = new SceneUtil::LightManager;
         sceneRoot->setLightingMask(Mask_Lighting);
         mSceneRoot = sceneRoot;
+        sceneRoot->setStartLight(1);
         sceneRoot->setNodeMask(Mask_Scene);
         sceneRoot->setName("Scene Root");
 
@@ -234,7 +235,11 @@ namespace MWRender
         mShadowManager.reset(new SceneUtil::ShadowManager(sceneRoot, mRootNode, shadowCastingTraversalMask, indoorShadowCastingTraversalMask, mResourceSystem->getSceneManager()->getShaderManager()));
 
         Shader::ShaderManager::DefineMap shadowDefines = mShadowManager->getShadowDefines();
+        Shader::ShaderManager::DefineMap lightDefines = SceneUtil::LightManager::getLightDefines();
         Shader::ShaderManager::DefineMap globalDefines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
+
+        for (auto itr = lightDefines.begin(); itr != lightDefines.end(); itr++)
+            globalDefines[itr->first] = itr->second;
 
         for (auto itr = shadowDefines.begin(); itr != shadowDefines.end(); itr++)
             globalDefines[itr->first] = itr->second;
@@ -248,8 +253,6 @@ namespace MWRender
         globalDefines["groundcoverFadeStart"] = std::to_string(groundcoverDistance * 0.9f);
         globalDefines["groundcoverFadeEnd"] = std::to_string(groundcoverDistance);
         
-        globalDefines["maxLights"] = std::to_string(Settings::Manager::getInt("max lights", "Shaders"));
-
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
 

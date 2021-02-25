@@ -1,3 +1,4 @@
+#if @uniformBufferObject
 struct Sunlight
 {
     vec4 diffuse;
@@ -10,3 +11,4 @@ layout(std140) uniform SunlightBuffer
 {
     Sunlight Sun;
 };
+#endif

@@ -31,6 +31,7 @@
 #include <components/compiler/extensions0.hpp>
 
 #include <components/sceneutil/workqueue.hpp>
+#include <components/sceneutil/lightmanager.hpp>
 
 #include <components/files/configurationmanager.hpp>
 
@@ -854,6 +855,14 @@ void OMW::Engine::go()
     // Setup viewer
     mViewer = new osgViewer::Viewer;
     mViewer->setReleaseContextAtEndOfFrameHint(false);
+
+    if (SceneUtil::LightManager::usingFFP())
+    {
+        auto warn = Misc::StringUtils::format("GL_ARB_uniform_buffer_object not supported:  Falling back to FFP %zu light limit. Can not set lights to %i."
+                                              , SceneUtil::LightManager::getMaxLights()
+                                              , Settings::Manager::getInt("max lights", "Shaders"));
+        Log(Debug::Warning) << warn;
+    }
 
 #if OSG_VERSION_GREATER_OR_EQUAL(3,5,5)
     // Do not try to outsmart the OS thread scheduler (see bug #4785).

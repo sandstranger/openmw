@@ -1,3 +1,9 @@
+#if @uniformBufferObject
+
+#include "sun.glsl"
+
+#define getLight PointLights
+
 struct PointLight
 {
     vec4 diffuse;
@@ -10,21 +16,22 @@ uniform int PointLightCount;
 
 layout(std140) uniform PointLightBuffer
 {
-    PointLight PointLights[@maxLights];
+    PointLight PointLights[@lightCount];
 };
 
-#include "sun.glsl"
+#else
+#define getLight gl_LightSource
+#endif
 
 void lightSun(out vec3 ambientOut, out vec3 diffuseOut, vec3 viewPos, vec3 viewNormal)
 {
-    vec3 lightDir = Sun.direction.xyz - viewPos * Sun.direction.w;
+    vec3 lightDir = @sunDirection.xyz;
     float lightDistance = length(lightDir);
     lightDir = normalize(lightDir);
-    float illumination = 1.0;
 
-    ambientOut = Sun.ambient.xyz * illumination;
+    ambientOut = @sunAmbient.xyz;
 
-    float lambert = dot(viewNormal.xyz, lightDir) * illumination;
+    float lambert = dot(viewNormal.xyz, lightDir);
 #ifndef GROUNDCOVER
     lambert = max(lambert, 0.0);
 #else
@@ -36,22 +43,21 @@ void lightSun(out vec3 ambientOut, out vec3 diffuseOut, vec3 viewPos, vec3 viewN
     }
     lambert *= clamp(-8.0 * (1.0 - 0.3) * eyeCosine + 1.0, 0.3, 1.0);
 #endif
-    diffuseOut = Sun.diffuse.xyz * lambert;
+    diffuseOut = @sunDiffuse.xyz * lambert;
 }
 
 void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 viewPos, vec3 viewNormal)
 {
-    vec3 lightDir = PointLights[lightIndex].position.xyz - viewPos * PointLights[lightIndex].position.w;
-
+    vec3 lightDir = getLight[lightIndex].position.xyz - viewPos;
     float lightDistance = length(lightDir);
     lightDir = normalize(lightDir);
-    
-    float illumination = clamp(1.0 / (PointLights[lightIndex].attenuation.x + PointLights[lightIndex].attenuation.y * lightDistance + PointLights[lightIndex].attenuation.z * lightDistance * lightDistance), 0.0, 1.0);
-    // vtasteks attenuation tweak
-    //float illumination = clamp(1.0 / (PointLights[lightIndex].attenuation.x * 0.1 + 0.01 * PointLights[lightIndex].attenuation.y * lightDistance * lightDistance) - 0.054, 0.0, 1.0);
-    //illumination = clamp(illumination * illumination, 0.0, 1.0);
 
-    ambientOut = PointLights[lightIndex].ambient.xyz * illumination;
+#if @uniformBufferObject
+    float illumination = clamp(1.0 / (getLight[lightIndex].attenuation.x + getLight[lightIndex].attenuation.y * lightDistance + getLight[lightIndex].attenuation.z * lightDistance * lightDistance), 0.0, 1.0);
+#else
+    float illumination = clamp(1.0 / (getLight[lightIndex].constantAttenuation + getLight[lightIndex].linearAttenuation * lightDistance + getLight[lightIndex].quadraticAttenuation * lightDistance * lightDistance), 0.0, 1.0);
+#endif
+    ambientOut = getLight[lightIndex].ambient.xyz * illumination;
 
     float lambert = dot(viewNormal.xyz, lightDir) * illumination;
 #ifndef GROUNDCOVER
@@ -65,7 +71,7 @@ void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 vie
     }
     lambert *= clamp(-8.0 * (1.0 - 0.3) * eyeCosine + 1.0, 0.3, 1.0);
 #endif
-    diffuseOut = PointLights[lightIndex].diffuse.xyz * lambert;
+    diffuseOut = getLight[lightIndex].diffuse.xyz * lambert;
 }
 
 #if PER_PIXEL_LIGHTING
@@ -85,12 +91,16 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
     diffuseLight = -diffuseOut;
 #endif
     ambientLight = gl_LightModel.ambient.xyz;
-    
-    lightSun(ambientOut, diffuseOut, viewPos, viewNormal);
+
+    //lightSun(ambientOut, diffuseOut, viewPos, viewNormal);
     ambientLight += ambientOut;
     diffuseLight += diffuseOut;
 
+#if @uniformBufferObject
     for (int i=0; i<PointLightCount; ++i)
+#else
+    for (int i=0; i<@lightCount; ++i)
+#endif
     {
         perLight(ambientOut, diffuseOut, i, viewPos, viewNormal);
         ambientLight += ambientOut;
@@ -100,11 +110,11 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
 
 vec3 getSpecular(vec3 viewNormal, vec3 viewDirection, float shininess, vec3 matSpec)
 {
-    vec3 lightDir = normalize(Sun.direction.xyz);
+    vec3 lightDir = normalize(@sunDirection.xyz);
     float NdotL = dot(viewNormal, lightDir);
     if (NdotL <= 0.0)
         return vec3(0.0);
     vec3 halfVec = normalize(lightDir - viewDirection);
     float NdotH = dot(viewNormal, halfVec);
-    return pow(max(NdotH, 0.0), max(1e-4, shininess)) * Sun.specular.xyz * matSpec;
+    return pow(max(NdotH, 0.0), max(1e-4, shininess)) * @sunSpecular.xyz * matSpec;
 }

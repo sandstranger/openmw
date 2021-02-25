@@ -9,6 +9,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/fstream.hpp>
 
+#include <components/sceneutil/lightmanager.hpp>
 #include <components/debug/debuglog.hpp>
 #include <components/misc/stringops.hpp>
 
@@ -344,8 +345,11 @@ namespace Shader
             program->addShader(fragmentShader);
             program->addBindAttribLocation("aOffset", 6);
             program->addBindAttribLocation("aRotation", 7);
-            program->addBindUniformBlock("PointLightBuffer", 8);
-            program->addBindUniformBlock("SunlightBuffer", 9);
+            if (!SceneUtil::LightManager::usingFFP())
+            {
+                program->addBindUniformBlock("PointLightBuffer", 8);
+                program->addBindUniformBlock("SunlightBuffer", 9);
+            }
             found = mPrograms.insert(std::make_pair(std::make_pair(vertexShader, fragmentShader), program)).first;
         }
         return found->second;

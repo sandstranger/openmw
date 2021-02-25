@@ -10,6 +10,8 @@
 #include <osg/observer_ptr>
 #include <osg/BufferIndexBinding>
 
+#include <components/shader/shadermanager.hpp>
+
 namespace osgUtil
 {
     class CullVisitor;
@@ -30,10 +32,7 @@ namespace SceneUtil
 
         META_StateAttribute(NifOsg, SunlightStateAttribute, osg::StateAttribute::LIGHT)
 
-        void setDiffuse(const osg::Vec4& value);
-        void setAmbient(const osg::Vec4& value);
-        void setSpecular(const osg::Vec4& value);
-        void setDirection(const osg::Vec4& value);
+        void setFromLight(const osg::Light* light);
 
         void setStateSet(osg::StateSet* stateset, int mode=osg::StateAttribute::ON);
 
@@ -108,6 +107,10 @@ namespace SceneUtil
     class LightManager : public osg::Group
     {
     public:
+    
+        static bool usingFFP();
+        static size_t getMaxLights();
+        static Shader::ShaderManager::DefineMap getLightDefines();
 
         META_Node(SceneUtil, LightManager)
 
@@ -122,6 +125,11 @@ namespace SceneUtil
         void setLightingMask (unsigned int mask);
 
         unsigned int getLightingMask() const;
+
+        /// Set the first light index that should be used by this manager, typically the number of directional lights in the scene.
+        void setStartLight(int start);
+
+        int getStartLight() const;
 
         /// Internal use only, called automatically by the LightManager's UpdateCallback
         void update();
@@ -164,6 +172,10 @@ namespace SceneUtil
         // < Light list hash , StateSet >
         typedef std::map<size_t, osg::ref_ptr<osg::StateSet> > LightStateSetMap;
         LightStateSetMap mStateSetCache[2];
+
+        std::vector<osg::ref_ptr<osg::StateAttribute>> mDummies;
+
+        int mStartLight;
 
         unsigned int mLightingMask;
 
