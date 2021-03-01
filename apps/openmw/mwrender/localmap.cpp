@@ -20,6 +20,8 @@
 #include <components/sceneutil/shadow.hpp>
 #include <components/sceneutil/lightmanager.hpp>
 #include <components/files/memorystream.hpp>
+#include <components/resource/scenemanager.hpp>
+#include <components/resource/resourcesystem.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/world.hpp"
@@ -220,11 +222,14 @@ osg::ref_ptr<osg::Camera> LocalMap::createOrthographicCamera(float x, float y, f
 
     SceneUtil::ShadowManager::disableShadowsForStateSet(stateset);
 
-    // override sun, will have no effect if FFP lighting is enabled
-    osg::ref_ptr<SceneUtil::SunlightStateAttribute> sun = new SceneUtil::SunlightStateAttribute;
-    sun->setFromLight(light);
-    sun->setStateSet(stateset, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
-    
+    // override sun for local map 
+    if (!MWBase::Environment::get().getResourceSystem()->getSceneManager()->getFFPLighting())
+    {
+        osg::ref_ptr<SceneUtil::SunlightStateAttribute> sun = new SceneUtil::SunlightStateAttribute;
+        sun->setFromLight(light);
+        sun->setStateSet(stateset, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
+    }
+
     camera->addChild(lightSource);
     camera->setStateSet(stateset);
     camera->setViewport(0, 0, mMapResolution, mMapResolution);

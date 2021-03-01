@@ -10,11 +10,18 @@
 #include <boost/filesystem/fstream.hpp>
 
 #include <components/sceneutil/lightmanager.hpp>
+#include <components/resource/scenemanager.hpp>
 #include <components/debug/debuglog.hpp>
 #include <components/misc/stringops.hpp>
 
 namespace Shader
 {
+
+    ShaderManager::ShaderManager(Resource::SceneManager* sceneManager)
+        : mSceneManager(sceneManager)
+    {
+
+    }
 
     void ShaderManager::setShaderPath(const std::string &path)
     {
@@ -345,7 +352,7 @@ namespace Shader
             program->addShader(fragmentShader);
             program->addBindAttribLocation("aOffset", 6);
             program->addBindAttribLocation("aRotation", 7);
-            if (!SceneUtil::LightManager::usingFFP())
+            if (!mSceneManager->getFFPLighting())
             {
                 program->addBindUniformBlock("PointLightBuffer", 8);
                 program->addBindUniformBlock("SunlightBuffer", 9);

@@ -1,4 +1,4 @@
-#if @uniformBufferObject
+#if !@ffpLighting
 struct Sunlight
 {
     vec4 diffuse;

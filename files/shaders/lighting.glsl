@@ -1,4 +1,4 @@
-#if @uniformBufferObject
+#if !@ffpLighting
 
 #include "sun.glsl"
 
@@ -12,21 +12,22 @@ struct PointLight
     vec4 attenuation;
 };
 
+uniform mat4 osg_ViewMatrix;
 uniform int PointLightCount;
+uniform int PointLightIndex[@maxLights];
 
 layout(std140) uniform PointLightBuffer
 {
-    PointLight PointLights[@lightCount];
+    PointLight PointLights[@maxLights];
 };
 
 #else
 #define getLight gl_LightSource
 #endif
 
-void lightSun(out vec3 ambientOut, out vec3 diffuseOut, vec3 viewPos, vec3 viewNormal)
+void perLightSun(out vec3 ambientOut, out vec3 diffuseOut, vec3 viewPos, vec3 viewNormal)
 {
     vec3 lightDir = @sunDirection.xyz;
-    float lightDistance = length(lightDir);
     lightDir = normalize(lightDir);
 
     ambientOut = @sunAmbient.xyz;
@@ -46,17 +47,15 @@ void lightSun(out vec3 ambientOut, out vec3 diffuseOut, vec3 viewPos, vec3 viewN
     diffuseOut = @sunDiffuse.xyz * lambert;
 }
 
-void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 viewPos, vec3 viewNormal)
+void perLightPoint(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 viewPos, vec3 viewNormal)
 {
     vec3 lightDir = getLight[lightIndex].position.xyz - viewPos;
+    //vec3 lightDir = (osg_ViewMatrix * vec4(getLight[lightIndex].position, 1.0)).xyz - viewPos;
+
     float lightDistance = length(lightDir);
     lightDir = normalize(lightDir);
 
-#if @uniformBufferObject
     float illumination = clamp(1.0 / (getLight[lightIndex].attenuation.x + getLight[lightIndex].attenuation.y * lightDistance + getLight[lightIndex].attenuation.z * lightDistance * lightDistance), 0.0, 1.0);
-#else
-    float illumination = clamp(1.0 / (getLight[lightIndex].constantAttenuation + getLight[lightIndex].linearAttenuation * lightDistance + getLight[lightIndex].quadraticAttenuation * lightDistance * lightDistance), 0.0, 1.0);
-#endif
     ambientOut = getLight[lightIndex].ambient.xyz * illumination;
 
     float lambert = dot(viewNormal.xyz, lightDir) * illumination;
@@ -82,7 +81,7 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
 {
     vec3 ambientOut, diffuseOut;
     // This light gets added a second time in the loop to fix Mesa users' slowdown, so we need to negate its contribution here.
-    lightSun(ambientOut, diffuseOut, viewPos, viewNormal); // TODO: I don't understand what this is for, still needed?
+    perLightSun(ambientOut, diffuseOut, viewPos, viewNormal);
 
 #if PER_PIXEL_LIGHTING
     diffuseLight = diffuseOut * shadowing - diffuseOut;
@@ -92,17 +91,18 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
 #endif
     ambientLight = gl_LightModel.ambient.xyz;
 
-    //lightSun(ambientOut, diffuseOut, viewPos, viewNormal);
+#if !@ffpLighting
+    perLightSun(ambientOut, diffuseOut, viewPos, viewNormal);
     ambientLight += ambientOut;
     diffuseLight += diffuseOut;
-
-#if @uniformBufferObject
     for (int i=0; i<PointLightCount; ++i)
-#else
-    for (int i=0; i<@lightCount; ++i)
-#endif
     {
-        perLight(ambientOut, diffuseOut, i, viewPos, viewNormal);
+        perLightPoint(ambientOut, diffuseOut, i, viewPos, viewNormal);
+#else
+    for (int i=0; i<@maxLights; ++i)
+    {
+        perLightPoint(ambientOut, diffuseOut, i, viewPos, viewNormal);
+#endif
         ambientLight += ambientOut;
         diffuseLight += diffuseOut;
     }
