@@ -12,9 +12,7 @@ struct PointLight
     vec4 attenuation;
 };
 
-uniform mat4 osg_ViewMatrix;
 uniform int PointLightCount;
-uniform int PointLightIndex[@maxLights];
 
 layout(std140) uniform PointLightBuffer
 {
@@ -50,7 +48,6 @@ void perLightSun(out vec3 ambientOut, out vec3 diffuseOut, vec3 viewPos, vec3 vi
 void perLightPoint(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 viewPos, vec3 viewNormal)
 {
     vec3 lightDir = getLight[lightIndex].position.xyz - viewPos;
-    //vec3 lightDir = (osg_ViewMatrix * vec4(getLight[lightIndex].position, 1.0)).xyz - viewPos;
 
     float lightDistance = length(lightDir);
     lightDir = normalize(lightDir);
@@ -96,13 +93,11 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
     ambientLight += ambientOut;
     diffuseLight += diffuseOut;
     for (int i=0; i<PointLightCount; ++i)
-    {
-        perLightPoint(ambientOut, diffuseOut, i, viewPos, viewNormal);
 #else
     for (int i=0; i<@maxLights; ++i)
+#endif
     {
         perLightPoint(ambientOut, diffuseOut, i, viewPos, viewNormal);
-#endif
         ambientLight += ambientOut;
         diffuseLight += diffuseOut;
     }
