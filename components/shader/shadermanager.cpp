@@ -352,7 +352,7 @@ namespace Shader
             program->addShader(fragmentShader);
             program->addBindAttribLocation("aOffset", 6);
             program->addBindAttribLocation("aRotation", 7);
-            if (!mSceneManager->getFFPLighting())
+            if (mSceneManager && !mSceneManager->getFFPLighting())
             {
                 program->addBindUniformBlock("PointLightBuffer", 8);
                 program->addBindUniformBlock("SunlightBuffer", 9);

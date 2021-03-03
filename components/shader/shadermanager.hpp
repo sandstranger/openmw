@@ -25,7 +25,7 @@ namespace Shader
     {
     public:
 
-        ShaderManager(Resource::SceneManager* sceneManager);
+        ShaderManager(Resource::SceneManager* sceneManager = nullptr);
 
         void setShaderPath(const std::string& path);
 
