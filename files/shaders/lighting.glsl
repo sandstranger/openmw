@@ -52,7 +52,12 @@ void perLightPoint(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec
     float lightDistance = length(lightDir);
     lightDir = normalize(lightDir);
 
+#if @ffpLighting
+    float illumination = clamp(1.0 / (getLight[lightIndex].constantAttenuation + getLight[lightIndex].linearAttenuation * lightDistance + getLight[lightIndex].quadraticAttenuation * lightDistance * lightDistance), 0.0, 1.0);
+#else 
     float illumination = clamp(1.0 / (getLight[lightIndex].attenuation.x + getLight[lightIndex].attenuation.y * lightDistance + getLight[lightIndex].attenuation.z * lightDistance * lightDistance), 0.0, 1.0);
+#endif
+
     ambientOut = getLight[lightIndex].ambient.xyz * illumination;
 
     float lambert = dot(viewNormal.xyz, lightDir) * illumination;
