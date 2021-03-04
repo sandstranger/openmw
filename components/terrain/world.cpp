@@ -49,38 +49,17 @@ World::World(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSyst
     mResourceSystem->addResourceManager(mTextureManager.get());
 }
 
-World::World(osg::Group* parent, Storage* storage, int nodeMask)
-    : mStorage(storage)
-    , mParent(parent)
-    , mCompositeMapCamera(nullptr)
-    , mCompositeMapRenderer(nullptr)
-    , mResourceSystem(nullptr)
-    , mTextureManager(nullptr)
-    , mChunkManager(nullptr)
-    , mCellBorder(nullptr)
-    , mBorderVisible(false)
-    , mHeightCullCallback(nullptr)
-{
-    mTerrainRoot = new osg::Group;
-    mTerrainRoot->setNodeMask(nodeMask);
-
-    mParent->addChild(mTerrainRoot);
-}
-
 World::~World()
 {
-    if (mResourceSystem && mChunkManager)
-        mResourceSystem->removeResourceManager(mChunkManager.get());
-    if (mResourceSystem && mTextureManager)
-        mResourceSystem->removeResourceManager(mTextureManager.get());
+    mResourceSystem->removeResourceManager(mChunkManager.get());
+    mResourceSystem->removeResourceManager(mTextureManager.get());
 
     mParent->removeChild(mTerrainRoot);
 
-    if (mCompositeMapCamera && mCompositeMapRenderer)
-    {
-        mCompositeMapCamera->removeChild(mCompositeMapRenderer);
-        mCompositeMapCamera->getParent(0)->removeChild(mCompositeMapCamera);
-    }
+    mCompositeMapCamera->removeChild(mCompositeMapRenderer);
+    mCompositeMapCamera->getParent(0)->removeChild(mCompositeMapCamera);
+
+    delete mStorage;
 }
 
 void World::setWorkQueue(SceneUtil::WorkQueue* workQueue)
@@ -129,20 +108,16 @@ float World::getHeightAt(const osg::Vec3f &worldPos)
 
 void World::updateTextureFiltering()
 {
-    if (mTextureManager)
-        mTextureManager->updateTextureFiltering();
+    mTextureManager->updateTextureFiltering();
 }
 
 void World::clearAssociatedCaches()
 {
-    if (mChunkManager)
-        mChunkManager->clearCache();
+    mChunkManager->clearCache();
 }
 
 osg::Callback* World::getHeightCullCallback(float highz, unsigned int mask)
 {
-    if (!mHeightCullCallback) return nullptr;
-
     mHeightCullCallback->setHighZ(highz);
     mHeightCullCallback->setCullMask(mask);
     return mHeightCullCallback;

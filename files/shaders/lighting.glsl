@@ -8,6 +8,7 @@ void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 vie
     float illumination = clamp(1.0 / (gl_LightSource[lightIndex].constantAttenuation + gl_LightSource[lightIndex].linearAttenuation * lightDistance + gl_LightSource[lightIndex].quadraticAttenuation * lightDistance * lightDistance), 0.0, 1.0);
 
     ambientOut = gl_LightSource[lightIndex].ambient.xyz * illumination;
+<<<<<<< HEAD
 
     float lambert = dot(viewNormal.xyz, lightDir) * illumination;
 #ifndef GROUNDCOVER
@@ -22,6 +23,9 @@ void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 vie
     lambert *= clamp(-8.0 * (1.0 - 0.3) * eyeCosine + 1.0, 0.3, 1.0);
 #endif
     diffuseOut = gl_LightSource[lightIndex].diffuse.xyz * lambert;
+=======
+    diffuseOut = gl_LightSource[lightIndex].diffuse.xyz * max(dot(viewNormal, lightDir), 0.0) * illumination;
+>>>>>>> parent of b164f1aa1 (Merge pull request #3023 from akortunov/grass_intsancing)
 }
 
 #if PER_PIXEL_LIGHTING

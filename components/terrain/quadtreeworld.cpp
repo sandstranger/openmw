@@ -90,6 +90,8 @@ private:
     osg::Vec4i mActiveGrid;
 };
 
+const float MIN_SIZE = 1/8.f;
+
 class RootNode : public QuadTreeNode
 {
 public:
@@ -248,23 +250,11 @@ QuadTreeWorld::QuadTreeWorld(osg::Group *parent, osg::Group *compileRoot, Resour
     , mLodFactor(lodFactor)
     , mVertexLodMod(vertexLodMod)
     , mViewDistance(std::numeric_limits<float>::max())
-    , mMinSize(1/8.f)
 {
     mChunkManager->setCompositeMapSize(compMapResolution);
     mChunkManager->setCompositeMapLevel(compMapLevel);
     mChunkManager->setMaxCompositeGeometrySize(maxCompGeometrySize);
     mChunkManagers.push_back(mChunkManager.get());
-}
-
-QuadTreeWorld::QuadTreeWorld(osg::Group *parent, Storage *storage, int nodeMask, float lodFactor, float chunkSize)
-    : TerrainGrid(parent, storage, nodeMask)
-    , mViewDataMap(new ViewDataMap)
-    , mQuadTreeBuilt(false)
-    , mLodFactor(lodFactor)
-    , mVertexLodMod(0)
-    , mViewDistance(std::numeric_limits<float>::max())
-    , mMinSize(chunkSize)
-{
 }
 
 QuadTreeWorld::~QuadTreeWorld()
@@ -435,7 +425,7 @@ void QuadTreeWorld::accept(osg::NodeVisitor &nv)
     if (needsUpdate)
     {
         vd->reset();
-        DefaultLodCallback lodCallback(mLodFactor, mMinSize, mViewDistance, mActiveGrid);
+        DefaultLodCallback lodCallback(mLodFactor, MIN_SIZE, mViewDistance, mActiveGrid);
         mRootNode->traverseNodes(vd, nv.getViewPoint(), &lodCallback);
     }
 
@@ -448,7 +438,7 @@ void QuadTreeWorld::accept(osg::NodeVisitor &nv)
         entry.mRenderingNode->accept(nv);
     }
 
-    if (mHeightCullCallback && isCullVisitor)
+    if (isCullVisitor)
         updateWaterCullingView(mHeightCullCallback, vd, static_cast<osgUtil::CullVisitor*>(&nv), mStorage->getCellWorldSize(), !isGridEmpty());
 
     vd->markUnchanged();
@@ -467,7 +457,7 @@ void QuadTreeWorld::ensureQuadTreeBuilt()
     if (mQuadTreeBuilt)
         return;
 
-    QuadTreeBuilder builder(mStorage, mMinSize);
+    QuadTreeBuilder builder(mStorage, MIN_SIZE);
     builder.build();
 
     mRootNode = builder.getRootNode();
@@ -501,7 +491,7 @@ void QuadTreeWorld::preload(View *view, const osg::Vec3f &viewPoint, const osg::
     ViewData* vd = static_cast<ViewData*>(view);
     vd->setViewPoint(viewPoint);
     vd->setActiveGrid(grid);
-    DefaultLodCallback lodCallback(mLodFactor, mMinSize, mViewDistance, grid);
+    DefaultLodCallback lodCallback(mLodFactor, MIN_SIZE, mViewDistance, grid);
     mRootNode->traverseNodes(vd, viewPoint, &lodCallback);
 
     if (!progressTotal)
@@ -525,15 +515,14 @@ bool QuadTreeWorld::storeView(const View* view, double referenceTime)
 
 void QuadTreeWorld::reportStats(unsigned int frameNumber, osg::Stats *stats)
 {
-    if (mCompositeMapRenderer)
-        stats->setAttribute(frameNumber, "Composite", mCompositeMapRenderer->getCompileSetSize());
+    stats->setAttribute(frameNumber, "Composite", mCompositeMapRenderer->getCompileSetSize());
 }
 
 void QuadTreeWorld::loadCell(int x, int y)
 {
     // fallback behavior only for undefined cells (every other is already handled in quadtree)
     float dummy;
-    if (mChunkManager && !mStorage->getMinMaxHeights(1, osg::Vec2f(x+0.5, y+0.5), dummy, dummy))
+    if (!mStorage->getMinMaxHeights(1, osg::Vec2f(x+0.5, y+0.5), dummy, dummy))
         TerrainGrid::loadCell(x,y);
     else
         World::loadCell(x,y);
@@ -543,7 +532,7 @@ void QuadTreeWorld::unloadCell(int x, int y)
 {
     // fallback behavior only for undefined cells (every other is already handled in quadtree)
     float dummy;
-    if (mChunkManager && !mStorage->getMinMaxHeights(1, osg::Vec2f(x+0.5, y+0.5), dummy, dummy))
+    if (!mStorage->getMinMaxHeights(1, osg::Vec2f(x+0.5, y+0.5), dummy, dummy))
         TerrainGrid::unloadCell(x,y);
     else
         World::unloadCell(x,y);
