@@ -1853,6 +1853,20 @@ float SkyManager::getBaseWindSpeed() const
     return mBaseWindSpeed;
 }
 
+osg::Vec2f SkyManager::getSmoothedStormDir() const
+{
+    if (!mCreated) return osg::Vec2f(0.0, 0.0);
+
+    return MWBase::Environment::get().getWorld()->getSmoothedStormDirection();
+}
+
+float SkyManager::getBaseWindSpeed() const
+{
+    if (!mCreated) return 0.f;
+
+    return mBaseWindSpeed;
+}
+
 void SkyManager::sunEnable()
 {
     if (!mCreated) return;

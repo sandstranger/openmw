@@ -244,7 +244,7 @@ public:
         setCullCallback(new InheritViewPointCallback);
         setComputeNearFarMode(osg::CullSettings::DO_NOT_COMPUTE_NEAR_FAR);
 
-        setCullMask(Mask_Effect|Mask_Scene|Mask_Object|Mask_Static|Mask_Terrain|Mask_Actor|Mask_ParticleSystem|Mask_Sky|Mask_Sun|Mask_Player|Mask_Lighting);
+        setCullMask(Mask_Effect|Mask_Scene|Mask_Object|Mask_Static|Mask_Terrain|Mask_Actor|Mask_ParticleSystem|Mask_Sky|Mask_Sun|Mask_Player|Mask_Lighting|Mask_Groundcover);
         setNodeMask(Mask_RenderToTexture);
         setViewport(0, 0, rttSize, rttSize);
 
@@ -273,7 +273,7 @@ public:
 
         attach(osg::Camera::COLOR_BUFFER, mRefractionTexture);
 
-        mRefractionDepthTexture = new osg::Texture2D;
+        /*mRefractionDepthTexture = new osg::Texture2D;
         mRefractionDepthTexture->setTextureSize(rttSize, rttSize);
         mRefractionDepthTexture->setSourceFormat(GL_DEPTH_COMPONENT);
         mRefractionDepthTexture->setInternalFormat(GL_DEPTH_COMPONENT24);
@@ -283,7 +283,7 @@ public:
         mRefractionDepthTexture->setFilter(osg::Texture::MIN_FILTER, osg::Texture::LINEAR);
         mRefractionDepthTexture->setFilter(osg::Texture::MAG_FILTER, osg::Texture::LINEAR);
 
-        attach(osg::Camera::DEPTH_BUFFER, mRefractionDepthTexture);
+        attach(osg::Camera::DEPTH_BUFFER, mRefractionDepthTexture);*/
 
         if (Settings::Manager::getFloat("refraction scale", "Water") != 1) // TODO: to be removed with issue #5709
             SceneUtil::ShadowManager::disableShadowsForStateSet(getOrCreateStateSet());
@@ -313,15 +313,15 @@ public:
         return mRefractionTexture.get();
     }
 
-    osg::Texture2D* getRefractionDepthTexture() const
+/*    osg::Texture2D* getRefractionDepthTexture() const
     {
         return mRefractionDepthTexture.get();
-    }
+    }*/
 
 private:
     osg::ref_ptr<ClipCullNode> mClipCullNode;
     osg::ref_ptr<osg::Texture2D> mRefractionTexture;
-    osg::ref_ptr<osg::Texture2D> mRefractionDepthTexture;
+    //osg::ref_ptr<osg::Texture2D> mRefractionDepthTexture;
     osg::ref_ptr<osg::Node> mScene;
 };
 
@@ -362,6 +362,7 @@ public:
         osg::ref_ptr<osg::FrontFace> frontFace (new osg::FrontFace);
         frontFace->setMode(osg::FrontFace::CLOCKWISE);
         getOrCreateStateSet()->setAttributeAndModes(frontFace, osg::StateAttribute::ON);
+        getOrCreateStateSet()->addUniform(new osg::Uniform("skip", true));
 
         mClipCullNode = new ClipCullNode;
         osg::Camera::addChild(mClipCullNode);
@@ -620,9 +621,9 @@ void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, R
     if (refraction)
     {
         shaderStateset->setTextureAttributeAndModes(2, refraction->getRefractionTexture(), osg::StateAttribute::ON);
-        shaderStateset->setTextureAttributeAndModes(3, refraction->getRefractionDepthTexture(), osg::StateAttribute::ON);
+        //shaderStateset->setTextureAttributeAndModes(3, refraction->getRefractionDepthTexture(), osg::StateAttribute::ON);
         shaderStateset->addUniform(new osg::Uniform("refractionMap", 2));
-        shaderStateset->addUniform(new osg::Uniform("refractionDepthMap", 3));
+        //shaderStateset->addUniform(new osg::Uniform("refractionDepthMap", 3));
         shaderStateset->setRenderBinDetails(MWRender::RenderBin_Default, "RenderBin");
     }
     else

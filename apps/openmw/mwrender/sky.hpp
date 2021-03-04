@@ -69,6 +69,7 @@ namespace MWRender
         float mDLFogFactor;
         float mDLFogOffset;
 
+        float mBaseWindSpeed;
         float mWindSpeed;
         float mBaseWindSpeed;
         float mCurrentWindSpeed;
@@ -183,6 +184,8 @@ namespace MWRender
         void setRainIntensityUniform(osg::Uniform *uniform);
 
         float getBaseWindSpeed() const;
+
+        osg::Vec2f getSmoothedStormDir() const;
 
     private:
         void create();

@@ -6,12 +6,15 @@
 
 #include <osgUtil/TangentSpaceGenerator>
 
+#include <osgParticle/ParticleSystem>
+
 #include <components/debug/debuglog.hpp>
 #include <components/misc/stringops.hpp>
 #include <components/resource/imagemanager.hpp>
 #include <components/vfs/manager.hpp>
 #include <components/sceneutil/riggeometry.hpp>
 #include <components/sceneutil/morphgeometry.hpp>
+#include <components/settings/settings.hpp>
 
 #include "shadermanager.hpp"
 
@@ -300,6 +303,11 @@ namespace Shader
             return;
         }
 
+        bool isParticle = dynamic_cast<osgParticle::ParticleSystem *>(reqs.mNode) ? true : false;
+
+        if (isParticle && Settings::Manager::getBool("particle shading", "Shaders") == false)
+            return;
+
         osg::Node& node = *reqs.mNode;
         osg::StateSet* writableStateSet = nullptr;
         if (mAllowedToModifyStateSets)
@@ -321,12 +329,20 @@ namespace Shader
 
         defineMap["parallax"] = reqs.mNormalHeight ? "1" : "0";
 
+        std::string Vs = mDefaultVsTemplate;
+        std::string Fs = mDefaultFsTemplate;
+        if(isParticle)
+        {
+            Vs = "particles_vertex.glsl";
+            Fs = "particles_fragment.glsl";
+        }
+
         writableStateSet->addUniform(new osg::Uniform("colorMode", reqs.mColorMode));
 
         defineMap["translucentFramebuffer"] = mTranslucentFramebuffer ? "1" : "0";
 
-        osg::ref_ptr<osg::Shader> vertexShader (mShaderManager.getShader(mDefaultVsTemplate, defineMap, osg::Shader::VERTEX));
-        osg::ref_ptr<osg::Shader> fragmentShader (mShaderManager.getShader(mDefaultFsTemplate, defineMap, osg::Shader::FRAGMENT));
+        osg::ref_ptr<osg::Shader> vertexShader (mShaderManager.getShader(Vs, defineMap, osg::Shader::VERTEX));
+        osg::ref_ptr<osg::Shader> fragmentShader (mShaderManager.getShader(Fs, defineMap, osg::Shader::FRAGMENT));
 
         if (vertexShader && fragmentShader)
         {
