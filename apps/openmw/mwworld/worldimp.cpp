@@ -2,6 +2,7 @@
 
 #include <osg/Group>
 #include <osg/ComputeBoundsVisitor>
+#include <osg/Timer>
 
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 #include <BulletCollision/CollisionShapes/btCompoundShape.h>
@@ -139,6 +140,7 @@ namespace MWWorld
         Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue,
         const Files::Collections& fileCollections,
         const std::vector<std::string>& contentFiles,
+        const std::vector<std::string>& groundcoverFiles,
         ToUTF8::Utf8Encoder* encoder, int activationDistanceOverride,
         const std::string& startCell, const std::string& startupScript,
         const std::string& resourcePath, const std::string& userDataPath)
@@ -151,7 +153,7 @@ namespace MWWorld
       mLevitationEnabled(true), mGoToJail(false), mDaysInPrison(0),
       mPlayerTraveling(false), mPlayerInJail(false), mSpellPreloadTimer(0.f)
     {
-        mEsm.resize(contentFiles.size());
+        mEsm.resize(contentFiles.size() + groundcoverFiles.size());
         Loading::Listener* listener = MWBase::Environment::get().getWindowManager()->getLoadingScreen();
         listener->loadingOn();
 
@@ -164,7 +166,7 @@ namespace MWWorld
         gameContentLoader.addLoader(".omwaddon", &esmLoader);
         gameContentLoader.addLoader(".project", &esmLoader);
 
-        loadContentFiles(fileCollections, contentFiles, gameContentLoader);
+        loadContentFiles(fileCollections, contentFiles, groundcoverFiles, gameContentLoader);
 
         listener->loadingOff();
 
@@ -301,7 +303,7 @@ namespace MWWorld
         if (mPlayer)
         {
             mPlayer->clear();
-            mPlayer->setCell(0);
+            mPlayer->setCell(nullptr);
             mPlayer->getPlayer().getRefData() = RefData();
             mPlayer->set(mStore.get<ESM::NPC>().find ("player"));
         }
@@ -654,13 +656,19 @@ namespace MWWorld
     {
         if (!cell)
             cell = mWorldScene->getCurrentCell();
+        return getCellName(cell->getCell());
+    }
 
-        if (!cell->getCell()->isExterior() || !cell->getCell()->mName.empty())
-            return cell->getCell()->mName;
+    std::string World::getCellName(const ESM::Cell* cell) const
+    {
+        if (cell)
+        {
+            if (!cell->isExterior() || !cell->mName.empty())
+                return cell->mName;
 
-        if (const ESM::Region* region = mStore.get<ESM::Region>().search (cell->getCell()->mRegion))
-            return region->mName;
-
+            if (const ESM::Region* region = mStore.get<ESM::Region>().search (cell->mRegion))
+                return region->mName;
+        }
         return mStore.get<ESM::GameSetting>().find ("sDefaultCellname")->mValue.getString();
     }
 
@@ -889,6 +897,7 @@ namespace MWWorld
         {
             mRendering->notifyWorldSpaceChanged();
             mProjectileManager->clear();
+            mDiscardMovements = true;
         }
     }
 
@@ -1008,7 +1017,7 @@ namespace MWWorld
 
             if (!facedObject.isEmpty() && !facedObject.getClass().allowTelekinesis(facedObject)
                 && mDistanceToFacedObject > getMaxActivationDistance() && !MWBase::Environment::get().getWindowManager()->isGuiMode())
-                return 0;
+                return nullptr;
         }
         return facedObject;
     }
@@ -1178,7 +1187,7 @@ namespace MWWorld
                     haveToMove = false;
 
                     newPtr = currCell->moveTo(ptr, newCell);
-                    newPtr.getRefData().setBaseNode(0);
+                    newPtr.getRefData().setBaseNode(nullptr);
                 }
                 else if (!currCellActive && !newCellActive)
                     newPtr = currCell->moveTo(ptr, newCell);
@@ -1249,6 +1258,18 @@ namespace MWWorld
         return moveObjectImp(ptr, x, y, z, true, moveToActive);
     }
 
+    MWWorld::Ptr World::moveObjectBy(const Ptr& ptr, osg::Vec3f vec)
+    {
+        auto* actor = mPhysics->getActor(ptr);
+        if (actor)
+        {
+            actor->adjustPosition(vec);
+            return ptr;
+        }
+        osg::Vec3f newpos = ptr.getRefData().getPosition().asVec3() + vec;
+        return moveObject(ptr, newpos.x(), newpos.y(), newpos.z());
+    }
+
     void World::scaleObject (const Ptr& ptr, float scale)
     {
         if (mPhysics->getActor(ptr))
@@ -1261,7 +1282,7 @@ namespace MWWorld
             mWorldScene->removeFromPagedRefs(ptr);
         }
 
-        if(ptr.getRefData().getBaseNode() != 0)
+        if(ptr.getRefData().getBaseNode() != nullptr)
             mWorldScene->updateObjectScale(ptr);
 
         if (mPhysics->getActor(ptr))
@@ -1309,7 +1330,7 @@ namespace MWWorld
         mRendering->pagingBlacklistObject(mStore.find(ptr.getCellRef().getRefId()), ptr);
         mWorldScene->removeFromPagedRefs(ptr);
 
-        if(ptr.getRefData().getBaseNode() != 0)
+        if(ptr.getRefData().getBaseNode() != nullptr)
         {
             const auto order = flags & MWBase::RotationFlag_inverseOrder
                 ? RotationOrder::inverse : RotationOrder::direct;
@@ -1322,6 +1343,12 @@ namespace MWWorld
 
     void World::adjustPosition(const Ptr &ptr, bool force)
     {
+        if (ptr.isEmpty())
+        {
+            Log(Debug::Warning) << "Unable to adjust position for empty object";
+            return;
+        }
+
         osg::Vec3f pos (ptr.getRefData().getPosition().asVec3());
 
         if(!ptr.getRefData().getBaseNode())
@@ -1330,22 +1357,21 @@ namespace MWWorld
             return;
         }
 
-        float terrainHeight = -std::numeric_limits<float>::max();
-        if (ptr.getCell()->isExterior())
-            terrainHeight = getTerrainHeightAt(pos);
+        if (!ptr.isInCell())
+        {
+            Log(Debug::Warning) << "Unable to adjust position for object '" << ptr.getCellRef().getRefId() << "' - it has no cell";
+            return;
+        }
 
-        if (pos.z() < terrainHeight)
-            pos.z() = terrainHeight;
-
-        pos.z() += 20; // place slightly above. will snap down to ground with code below
+        const float terrainHeight = ptr.getCell()->isExterior() ? getTerrainHeightAt(pos) : -std::numeric_limits<float>::max();
+        pos.z() = std::max(pos.z(), terrainHeight) + 20; // place slightly above terrain. will snap down to ground with code below
 
         // We still should trace down dead persistent actors - they do not use the "swimdeath" animation.
         bool swims = ptr.getClass().isActor() && isSwimming(ptr) && !(ptr.getClass().isPersistent(ptr) && ptr.getClass().getCreatureStats(ptr).isDeathAnimationFinished());
         if (force || !ptr.getClass().isActor() || (!isFlying(ptr) && !swims && isActorCollisionEnabled(ptr)))
         {
             osg::Vec3f traced = mPhysics->traceDown(ptr, pos, Constants::CellSizeInUnits);
-            if (traced.z() < pos.z())
-                pos.z() = traced.z();
+            pos.z() = std::min(pos.z(), traced.z());
         }
 
         moveObject(ptr, ptr.getCell(), pos.x(), pos.y(), pos.z());
@@ -1394,7 +1420,7 @@ namespace MWWorld
 
     void World::rotateWorldObject (const Ptr& ptr, osg::Quat rotate)
     {
-        if(ptr.getRefData().getBaseNode() != 0)
+        if(ptr.getRefData().getBaseNode() != nullptr)
         {
             mRendering->pagingBlacklistObject(mStore.find(ptr.getCellRef().getRefId()), ptr);
             mWorldScene->removeFromPagedRefs(ptr);
@@ -1447,17 +1473,11 @@ namespace MWWorld
         ipos.pos[1] = spawnPoint.y();
         ipos.pos[2] = spawnPoint.z();
 
-        if (!referenceObject.getClass().isActor())
-        {
-            ipos.rot[0] = referenceObject.getRefData().getPosition().rot[0];
-            ipos.rot[1] = referenceObject.getRefData().getPosition().rot[1];
-        }
-        else
+        if (referenceObject.getClass().isActor())
         {
             ipos.rot[0] = 0;
             ipos.rot[1] = 0;
         }
-        ipos.rot[2] = referenceObject.getRefData().getPosition().rot[2];
 
         MWWorld::Ptr placed = copyObjectToCell(ptr, referenceCell, ipos, ptr.getRefData().getCount(), false);
         adjustPosition(placed, true); // snap to ground
@@ -1494,26 +1514,37 @@ namespace MWWorld
         mPhysics->updateAnimatedCollisionShape(ptr);
     }
 
-    void World::doPhysics(float duration)
+    void World::doPhysics(float duration, osg::Timer_t frameStart, unsigned int frameNumber, osg::Stats& stats)
     {
         mPhysics->stepSimulation();
         processDoors(duration);
 
         mProjectileManager->update(duration);
 
-        const auto results = mPhysics->applyQueuedMovement(duration, mDiscardMovements);
+        const auto& results = mPhysics->applyQueuedMovement(duration, mDiscardMovements, frameStart, frameNumber, stats);
+        mProjectileManager->processHits();
         mDiscardMovements = false;
 
-        for(const auto& result : results)
+        for(const auto& actor : results)
         {
             // Handle player last, in case a cell transition occurs
-            if(result.first != getPlayerPtr())
-                moveObjectImp(result.first, result.second.x(), result.second.y(), result.second.z(), false);
+            if(actor != getPlayerPtr())
+            {
+                auto* physactor = mPhysics->getActor(actor);
+                assert(physactor);
+                const auto position = physactor->getSimulationPosition();
+                moveObjectImp(actor, position.x(), position.y(), position.z(), false);
+            }
         }
 
-        const auto player = results.find(getPlayerPtr());
+        const auto player = std::find(results.begin(), results.end(), getPlayerPtr());
         if (player != results.end())
-            moveObjectImp(player->first, player->second.x(), player->second.y(), player->second.z(), false);
+        {
+            auto* physactor = mPhysics->getActor(*player);
+            assert(physactor);
+            const auto position = physactor->getSimulationPosition();
+            moveObjectImp(*player, position.x(), position.y(), position.z(), false);
+        }
     }
 
     void World::updateNavigator()
@@ -1577,21 +1608,28 @@ namespace MWWorld
         float minRot = door.getCellRef().getPosition().rot[2];
         float maxRot = minRot + osg::DegreesToRadians(90.f);
 
-        float diff = duration * osg::DegreesToRadians(90.f);
-        float targetRot = std::min(std::max(minRot, oldRot + diff * (state == MWWorld::DoorState::Opening ? 1 : -1)), maxRot);
+        float diff = duration * osg::DegreesToRadians(90.f) * (state == MWWorld::DoorState::Opening ? 1 : -1);
+        float targetRot = std::min(std::max(minRot, oldRot + diff), maxRot);
         rotateObject(door, objPos.rot[0], objPos.rot[1], targetRot, MWBase::RotationFlag_none);
 
         bool reached = (targetRot == maxRot && state != MWWorld::DoorState::Idle) || targetRot == minRot;
 
         /// \todo should use convexSweepTest here
         bool collisionWithActor = false;
-        std::vector<MWWorld::Ptr> collisions = mPhysics->getCollisions(door, MWPhysics::CollisionType_Door, MWPhysics::CollisionType_Actor);
-        for (MWWorld::Ptr& ptr : collisions)
+        for (auto& [ptr, point, normal] : mPhysics->getCollisionsPoints(door, MWPhysics::CollisionType_Door, MWPhysics::CollisionType_Actor))
         {
+
             if (ptr.getClass().isActor())
             {
+                auto localPoint = objPos.asVec3() - point;
+                osg::Vec3f direction = osg::Quat(diff, osg::Vec3f(0, 0, 1)) * localPoint - localPoint;
+                direction.normalize();
+                mPhysics->reportCollision(Misc::Convert::toBullet(point), Misc::Convert::toBullet(normal));
+                if (direction * normal < 0) // door is turning away from actor
+                    continue;
+
                 collisionWithActor = true;
-                
+
                 // Collided with actor, ask actor to try to avoid door
                 if(ptr != getPlayerPtr() )
                 {
@@ -1823,11 +1861,18 @@ namespace MWWorld
         }
     }
 
-    void World::updatePhysics (float duration, bool paused)
+    void World::updatePhysics (float duration, bool paused, osg::Timer_t frameStart, unsigned int frameNumber, osg::Stats& stats)
     {
         if (!paused)
         {
-            doPhysics (duration);
+            doPhysics (duration, frameStart, frameNumber, stats);
+        }
+        else
+        {
+            // zero the async stats if we are paused
+            stats.setAttribute(frameNumber, "physicsworker_time_begin", 0);
+            stats.setAttribute(frameNumber, "physicsworker_time_taken", 0);
+            stats.setAttribute(frameNumber, "physicsworker_time_end", 0);
         }
     }
 
@@ -2283,8 +2328,12 @@ namespace MWWorld
         if (stats.isDead())
             return false;
 
+        const bool isPlayer = ptr == getPlayerConstPtr();
+        if (!(isPlayer && mGodMode) && stats.isParalyzed())
+            return false;
+
         if (ptr.getClass().canFly(ptr))
-            return !stats.isParalyzed();
+            return true;
 
         if(stats.getMagicEffects().get(ESM::MagicEffect::Levitate).getMagnitude() > 0
                 && isLevitationEnabled())
@@ -2513,12 +2562,12 @@ namespace MWWorld
 
     void World::screenshot(osg::Image* image, int w, int h)
     {
-        mRendering->screenshotFramebuffer(image, w, h);
+        mRendering->screenshot(image, w, h);
     }
 
-    bool World::screenshot360(osg::Image* image, std::string settingStr)
+    bool World::screenshot360(osg::Image* image)
     {
-        return mRendering->screenshot360(image,settingStr);
+        return mRendering->screenshot360(image);
     }
 
     void World::activateDoor(const MWWorld::Ptr& door)
@@ -2894,7 +2943,7 @@ namespace MWWorld
         mRendering->rebuildPtr(getPlayerPtr());
     }
 
-    bool World::getGodModeState()
+    bool World::getGodModeState() const
     {
         return mGodMode;
     }
@@ -2918,7 +2967,7 @@ namespace MWWorld
     }
 
     void World::loadContentFiles(const Files::Collections& fileCollections,
-        const std::vector<std::string>& content, ContentLoader& contentLoader)
+        const std::vector<std::string>& content, const std::vector<std::string>& groundcover, ContentLoader& contentLoader)
     {
         int idx = 0;
         for (const std::string &file : content)
@@ -2932,6 +2981,24 @@ namespace MWWorld
             else
             {
                 std::string message = "Failed loading " + file + ": the content file does not exist";
+                throw std::runtime_error(message);
+            }
+            idx++;
+        }
+
+        ESM::GroundcoverIndex = idx;
+
+        for (const std::string &file : groundcover)
+        {
+            boost::filesystem::path filename(file);
+            const Files::MultiDirCollection& col = fileCollections.getCollection(filename.extension().string());
+            if (col.doesExist(file))
+            {
+                contentLoader.load(col.getPath(file), idx);
+            }
+            else
+            {
+                std::string message = "Failed loading " + file + ": the groundcover file does not exist";
                 throw std::runtime_error(message);
             }
             idx++;
@@ -2955,7 +3022,7 @@ namespace MWWorld
             // Check mana
             bool godmode = (isPlayer && mGodMode);
             MWMechanics::DynamicStat<float> magicka = stats.getMagicka();
-            if (magicka.getCurrent() < spell->mData.mCost && !godmode)
+            if (spell->mData.mCost > 0 && magicka.getCurrent() < spell->mData.mCost && !godmode)
             {
                 message = "#{sMagicInsufficientSP}";
                 fail = true;

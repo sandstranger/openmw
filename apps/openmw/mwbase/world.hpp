@@ -10,6 +10,8 @@
 
 #include <components/esm/cellid.hpp>
 
+#include <osg/Timer>
+
 #include "../mwworld/ptr.hpp"
 #include "../mwworld/doorstate.hpp"
 
@@ -178,11 +180,12 @@ namespace MWBase
             virtual char getGlobalVariableType (const std::string& name) const = 0;
             ///< Return ' ', if there is no global variable with this name.
 
-            virtual std::string getCellName (const MWWorld::CellStore *cell = 0) const = 0;
+            virtual std::string getCellName (const MWWorld::CellStore *cell = nullptr) const = 0;
             ///< Return name of the cell.
             ///
             /// \note If cell==0, the cell the player is currently in will be used instead to
             /// generate a name.
+            virtual std::string getCellName(const ESM::Cell* cell) const = 0;
 
             virtual void removeRefScript (MWWorld::RefData *ref) = 0;
             //< Remove the script attached to ref from mLocalScripts
@@ -282,6 +285,9 @@ namespace MWBase
             ///< @return an updated Ptr in case the Ptr's cell changes
 
             virtual MWWorld::Ptr moveObject(const MWWorld::Ptr &ptr, MWWorld::CellStore* newCell, float x, float y, float z, bool movePhysics=true) = 0;
+            ///< @return an updated Ptr
+
+            virtual MWWorld::Ptr moveObjectBy(const MWWorld::Ptr &ptr, osg::Vec3f vec) = 0;
             ///< @return an updated Ptr
 
             virtual void scaleObject (const MWWorld::Ptr& ptr, float scale) = 0;
@@ -391,7 +397,7 @@ namespace MWBase
             /// \return pointer to created record
 
             virtual void update (float duration, bool paused) = 0;
-            virtual void updatePhysics (float duration, bool paused) = 0;
+            virtual void updatePhysics (float duration, bool paused, osg::Timer_t frameStart, unsigned int frameNumber, osg::Stats& stats) = 0;
 
             virtual void updateWindowManager () = 0;
 
@@ -492,7 +498,7 @@ namespace MWBase
 
             /// \todo this does not belong here
             virtual void screenshot (osg::Image* image, int w, int h) = 0;
-            virtual bool screenshot360 (osg::Image* image, std::string settingStr) = 0;
+            virtual bool screenshot360 (osg::Image* image) = 0;
 
             /// Find default position inside exterior cell specified by name
             /// \return false if exterior with given name not exists, true otherwise
@@ -514,7 +520,7 @@ namespace MWBase
             /// Returns true if levitation spell effect is allowed.
             virtual bool isLevitationEnabled() const = 0;
 
-            virtual bool getGodModeState() = 0;
+            virtual bool getGodModeState() const = 0;
 
             virtual bool toggleGodMode() = 0;
 

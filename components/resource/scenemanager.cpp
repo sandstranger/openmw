@@ -25,6 +25,7 @@
 #include <components/sceneutil/util.hpp>
 #include <components/sceneutil/controller.hpp>
 #include <components/sceneutil/optimizer.hpp>
+#include <components/sceneutil/visitor.hpp>
 
 #include <components/shader/shadervisitor.hpp>
 #include <components/shader/shadermanager.hpp>
@@ -110,6 +111,10 @@ namespace
 
 namespace Resource
 {
+    void TemplateMultiRef::addRef(const osg::Node* node)
+    {
+        mObjects.emplace_back(node);
+    }
 
     class SharedStateManager : public osgDB::SharedStateManager
     {
@@ -220,6 +225,7 @@ namespace Resource
         , mClampLighting(true)
         , mAutoUseNormalMaps(false)
         , mAutoUseSpecularMaps(false)
+        , mApplyLightingToEnvMaps(false)
         , mInstanceCache(new MultiObjectCache)
         , mSharedStateManager(new SharedStateManager)
         , mImageManager(imageManager)
@@ -242,10 +248,12 @@ namespace Resource
         return mForceShaders;
     }
 
-    void SceneManager::recreateShaders(osg::ref_ptr<osg::Node> node, const std::string& shaderPrefix)
+    void SceneManager::recreateShaders(osg::ref_ptr<osg::Node> node, const std::string& shaderPrefix, bool translucentFramebuffer, bool forceShadersForNode)
     {
-        osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor(createShaderVisitor(shaderPrefix));
+        osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor(createShaderVisitor(shaderPrefix, translucentFramebuffer));
         shaderVisitor->setAllowedToModifyStateSets(false);
+        if (forceShadersForNode)
+            shaderVisitor->setForceShaders(true);
         node->accept(*shaderVisitor);
     }
 
@@ -282,6 +290,11 @@ namespace Resource
     void SceneManager::setSpecularMapPattern(const std::string &pattern)
     {
         mSpecularMapPattern = pattern;
+    }
+
+    void SceneManager::setApplyLightingToEnvMaps(bool apply)
+    {
+        mApplyLightingToEnvMaps = apply;
     }
 
     SceneManager::~SceneManager()
@@ -332,17 +345,9 @@ namespace Resource
         Resource::ImageManager* mImageManager;
     };
 
-    std::string getFileExtension(const std::string& file)
-    {
-        size_t extPos = file.find_last_of('.');
-        if (extPos != std::string::npos && extPos+1 < file.size())
-            return file.substr(extPos+1);
-        return std::string();
-    }
-
     osg::ref_ptr<osg::Node> load (Files::IStreamPtr file, const std::string& normalizedFilename, Resource::ImageManager* imageManager, Resource::NifFileManager* nifFileManager)
     {
-        std::string ext = getFileExtension(normalizedFilename);
+        std::string ext = Resource::getFileExtension(normalizedFilename);
         if (ext == "nif")
             return NifOsg::Loader::load(nifFileManager->get(normalizedFilename), imageManager);
         else
@@ -369,6 +374,14 @@ namespace Resource
                 errormsg << "Error loading " << normalizedFilename << ": " << result.message() << " code " << result.status() << std::endl;
                 throw std::runtime_error(errormsg.str());
             }
+
+            // Recognize and hide collision node
+            unsigned int hiddenNodeMask = 0;
+            SceneUtil::FindByNameVisitor nameFinder("Collision");
+            result.getNode()->accept(nameFinder);
+            if (nameFinder.mFoundNode)
+                nameFinder.mFoundNode->setNodeMask(hiddenNodeMask);
+
             return result.getNode();
         }
     }
@@ -386,7 +399,8 @@ namespace Resource
             {
                 const char* reserved[] = {"Head", "Neck", "Chest", "Groin", "Right Hand", "Left Hand", "Right Wrist", "Left Wrist", "Shield Bone", "Right Forearm", "Left Forearm", "Right Upper Arm",
                                           "Left Upper Arm", "Right Foot", "Left Foot", "Right Ankle", "Left Ankle", "Right Knee", "Left Knee", "Right Upper Leg", "Left Upper Leg", "Right Clavicle",
-                                          "Left Clavicle", "Weapon Bone", "Tail", "Bip01", "Root Bone", "BoneOffset", "AttachLight", "Arrow", "Camera"};
+                                          "Left Clavicle", "Weapon Bone", "Tail", "Bip01", "Root Bone", "BoneOffset", "AttachLight", "Arrow", "Camera", "Collision", "Right_Wrist", "Left_Wrist",
+                                          "Shield_Bone", "Right_Forearm", "Left_Forearm", "Right_Upper_Arm", "Left_Clavicle", "Weapon_Bone", "Root_Bone"};
 
                 reservedNames = std::vector<std::string>(reserved, reserved + sizeof(reserved)/sizeof(reserved[0]));
 
@@ -486,7 +500,7 @@ namespace Resource
             }
             catch (std::exception& e)
             {
-                static const char * const sMeshTypes[] = { "nif", "osg", "osgt", "osgb", "osgx", "osg2" };
+                static const char * const sMeshTypes[] = { "nif", "osg", "osgt", "osgb", "osgx", "osg2", "dae" };
 
                 for (unsigned int i=0; i<sizeof(sMeshTypes)/sizeof(sMeshTypes[0]); ++i)
                 {
@@ -555,20 +569,6 @@ namespace Resource
         mInstanceCache->addEntryToObjectCache(normalized, node.get());
         return node;
     }
-
-    class TemplateRef : public osg::Object
-    {
-    public:
-        TemplateRef(const Object* object)
-            : mObject(object) {}
-        TemplateRef() {}
-        TemplateRef(const TemplateRef& copy, const osg::CopyOp&) : mObject(copy.mObject) {}
-
-        META_Object(Resource, TemplateRef)
-
-    private:
-        osg::ref_ptr<const Object> mObject;
-    };
 
     osg::ref_ptr<osg::Node> SceneManager::createInstance(const std::string& name)
     {
@@ -761,7 +761,7 @@ namespace Resource
         stats->setAttribute(frameNumber, "Node Instance", mInstanceCache->getCacheSize());
     }
 
-    Shader::ShaderVisitor *SceneManager::createShaderVisitor(const std::string& shaderPrefix)
+    Shader::ShaderVisitor *SceneManager::createShaderVisitor(const std::string& shaderPrefix, bool translucentFramebuffer)
     {
         Shader::ShaderVisitor* shaderVisitor = new Shader::ShaderVisitor(*mShaderManager.get(), *mImageManager, shaderPrefix+"_vertex.glsl", shaderPrefix+"_fragment.glsl");
         shaderVisitor->setForceShaders(mForceShaders);
@@ -770,7 +770,16 @@ namespace Resource
         shaderVisitor->setNormalHeightMapPattern(mNormalHeightMapPattern);
         shaderVisitor->setAutoUseSpecularMaps(mAutoUseSpecularMaps);
         shaderVisitor->setSpecularMapPattern(mSpecularMapPattern);
+        shaderVisitor->setApplyLightingToEnvMaps(mApplyLightingToEnvMaps);
+        shaderVisitor->setTranslucentFramebuffer(translucentFramebuffer);
         return shaderVisitor;
     }
 
+    std::string getFileExtension(const std::string& file)
+    {
+        size_t extPos = file.find_last_of('.');
+        if (extPos != std::string::npos && extPos+1 < file.size())
+            return file.substr(extPos+1);
+        return std::string();
+    }
 }

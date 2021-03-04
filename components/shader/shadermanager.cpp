@@ -342,6 +342,8 @@ namespace Shader
             osg::ref_ptr<osg::Program> program (new osg::Program);
             program->addShader(vertexShader);
             program->addShader(fragmentShader);
+            program->addBindAttribLocation("aOffset", 6);
+            program->addBindAttribLocation("aRotation", 7);
             found = mPrograms.insert(std::make_pair(std::make_pair(vertexShader, fragmentShader), program)).first;
         }
         return found->second;
@@ -382,16 +384,6 @@ namespace Shader
         }
         for (auto program : mPrograms)
             program.second->releaseGLObjects(state);
-    }
-
-    const osg::ref_ptr<osg::Uniform> ShaderManager::getShadowMapAlphaTestEnableUniform()
-    {
-        return mShadowMapAlphaTestEnableUniform;
-    }
-
-    const osg::ref_ptr<osg::Uniform> ShaderManager::getShadowMapAlphaTestDisableUniform()
-    {
-        return mShadowMapAlphaTestDisableUniform;
     }
 
 }

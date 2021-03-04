@@ -120,6 +120,9 @@ MWWorld::InventoryStore::InventoryStore (const InventoryStore& store)
 
 MWWorld::InventoryStore& MWWorld::InventoryStore::operator= (const InventoryStore& store)
 {
+    if (this == &store)
+        return *this;
+
     mListener = store.mListener;
     mInventoryListener = store.mInventoryListener;
     mMagicEffects = store.mMagicEffects;
@@ -556,6 +559,14 @@ void MWWorld::InventoryStore::autoEquip (const MWWorld::Ptr& actor)
     }
 }
 
+MWWorld::ContainerStoreIterator MWWorld::InventoryStore::getPreferredShield(const MWWorld::Ptr& actor)
+{
+    TSlots slots;
+    initSlots (slots);
+    autoEquipArmor(actor, slots);
+    return slots[Slot_CarriedLeft];
+}
+
 const MWMechanics::MagicEffects& MWWorld::InventoryStore::getMagicEffects() const
 {
     return mMagicEffects;
@@ -710,33 +721,9 @@ MWWorld::ContainerStoreIterator MWWorld::InventoryStore::getSelectedEnchantItem(
     return mSelectedEnchantItem;
 }
 
-int MWWorld::InventoryStore::remove(const std::string& itemId, int count, const Ptr& actor)
+int MWWorld::InventoryStore::remove(const Ptr& item, int count, const Ptr& actor, bool equipReplacement, bool resolve)
 {
-    return remove(itemId, count, actor, false);
-}
-
-int MWWorld::InventoryStore::remove(const Ptr& item, int count, const Ptr& actor)
-{
-    return remove(item, count, actor, false);
-}
-
-int MWWorld::InventoryStore::remove(const std::string& itemId, int count, const Ptr& actor, bool equipReplacement)
-{
-    int toRemove = count;
-
-    for (ContainerStoreIterator iter(begin()); iter != end() && toRemove > 0; ++iter)
-        if (Misc::StringUtils::ciEqual(iter->getCellRef().getRefId(), itemId))
-            toRemove -= remove(*iter, toRemove, actor, equipReplacement);
-
-    flagAsModified();
-
-    // number of removed items
-    return count - toRemove;
-}
-
-int MWWorld::InventoryStore::remove(const Ptr& item, int count, const Ptr& actor, bool equipReplacement)
-{
-    int retCount = ContainerStore::remove(item, count, actor);
+    int retCount = ContainerStore::remove(item, count, actor, equipReplacement, resolve);
 
     bool wasEquipped = false;
     if (!item.getRefData().getCount())
@@ -778,7 +765,7 @@ int MWWorld::InventoryStore::remove(const Ptr& item, int count, const Ptr& actor
     return retCount;
 }
 
-MWWorld::ContainerStoreIterator MWWorld::InventoryStore::unequipSlot(int slot, const MWWorld::Ptr& actor, bool fireEvent)
+MWWorld::ContainerStoreIterator MWWorld::InventoryStore::unequipSlot(int slot, const MWWorld::Ptr& actor, bool applyUpdates)
 {
     if (slot<0 || slot>=static_cast<int> (mSlots.size()))
         throw std::runtime_error ("slot number out of range");
@@ -810,10 +797,11 @@ MWWorld::ContainerStoreIterator MWWorld::InventoryStore::unequipSlot(int slot, c
             }
         }
 
-        if (fireEvent)
+        if (applyUpdates)
+        {
             fireEquipmentChangedEvent(actor);
-
-        updateMagicEffects(actor);
+            updateMagicEffects(actor);
+        }
 
         return retval;
     }
@@ -1012,7 +1000,7 @@ void MWWorld::InventoryStore::writeState(ESM::InventoryState &state) const
         std::vector<std::pair<float, float> > params;
         for (std::vector<EffectParams>::const_iterator pIt = it->second.begin(); pIt != it->second.end(); ++pIt)
         {
-            params.push_back(std::make_pair(pIt->mRandom, pIt->mMultiplier));
+            params.emplace_back(pIt->mRandom, pIt->mMultiplier);
         }
 
         state.mPermanentMagicEffectMagnitudes[it->first] = params;

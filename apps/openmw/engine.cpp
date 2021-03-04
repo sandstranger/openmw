@@ -38,6 +38,8 @@
 
 #include <components/detournavigator/navigator.hpp>
 
+#include <components/misc/frameratelimiter.hpp>
+
 #include "mwinput/inputmanagerimp.hpp"
 
 #include "mwgui/windowmanagerimp.hpp"
@@ -94,6 +96,7 @@ namespace
         Script,
         Mechanics,
         Physics,
+        PhysicsWorker,
         World,
         Gui,
 
@@ -123,6 +126,9 @@ namespace
 
     template <>
     const UserStats UserStatsValue<UserStatsType::Physics>::sValue {"Phys", "physics"};
+
+    template <>
+    const UserStats UserStatsValue<UserStatsType::PhysicsWorker>::sValue {" -Async", "physicsworker"};
 
     template <>
     const UserStats UserStatsValue<UserStatsType::World>::sValue {"World", "world"};
@@ -173,6 +179,8 @@ namespace
 
             ~ScopedProfile()
             {
+                if (!mStats.collectStats("engine"))
+                    return;
                 const osg::Timer_t end = mTimer.tick();
                 const UserStats& stats = UserStatsValue<sType>::sValue;
 
@@ -203,6 +211,10 @@ namespace
             profiler.addUserStatsLine(v.mLabel, textColor, barColor, v.mTaken, multiplier,
                                       average, averageInInverseSpace, v.mBegin, v.mEnd, maxValue);
         });
+        // the forEachUserStatsValue loop is "run" at compile time, hence the settings manager is not available.
+        // Unconditionnally add the async physics stats, and then remove it at runtime if necessary
+        if (Settings::Manager::getInt("async num threads", "Physics") == 0)
+            profiler.removeUserStatsLine(" -Async");
     }
 }
 
@@ -318,7 +330,7 @@ bool OMW::Engine::frame(float frametime)
 
             if (mEnvironment.getStateManager()->getState() != MWBase::StateManager::State_NoGame)
             {
-                mEnvironment.getWorld()->updatePhysics(frametime, guiActive);
+                mEnvironment.getWorld()->updatePhysics(frametime, guiActive, frameStart, frameNumber, *stats);
             }
         }
 
@@ -372,14 +384,12 @@ OMW::Engine::Engine(Files::ConfigurationManager& configurationManager)
   , mGrab(true)
   , mExportFonts(false)
   , mRandomSeed(0)
-  , mScriptContext (0)
+  , mScriptContext (nullptr)
   , mFSStrict (false)
   , mScriptBlacklistUse (true)
   , mNewGame (false)
   , mCfgMgr(configurationManager)
 {
-    MWClass::registerClasses();
-
     SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0"); // We use only gamepads
 
     Uint32 flags = SDL_INIT_VIDEO|SDL_INIT_NOPARACHUTE|SDL_INIT_GAMECONTROLLER|SDL_INIT_JOYSTICK|SDL_INIT_SENSOR;
@@ -452,6 +462,11 @@ void OMW::Engine::setCell (const std::string& cellName)
 void OMW::Engine::addContentFile(const std::string& file)
 {
     mContentFiles.push_back(file);
+}
+
+void OMW::Engine::addGroundcoverFile(const std::string& file)
+{
+    mGroundcoverFiles.emplace_back(file);
 }
 
 void OMW::Engine::setSkipMenu (bool skipMenu, bool newGame)
@@ -583,8 +598,8 @@ void OMW::Engine::createWindow(Settings::Manager& settings)
             Log(Debug::Warning) << "Warning: Framebuffer only has a " << traits->green << " bit green channel.";
         if (traits->blue < 8)
             Log(Debug::Warning) << "Warning: Framebuffer only has a " << traits->blue << " bit blue channel.";
-        if (traits->depth < 8)
-            Log(Debug::Warning) << "Warning: Framebuffer only has " << traits->red << " bits of depth precision.";
+        if (traits->depth < 24)
+            Log(Debug::Warning) << "Warning: Framebuffer only has " << traits->depth << " bits of depth precision.";
 
         traits->alpha = 0; // set to 0 to stop ScreenCaptureHandler reading the alpha channel
     }
@@ -715,7 +730,7 @@ void OMW::Engine::prepareEngine (Settings::Manager & settings)
 
     // Create the world
     mEnvironment.setWorld( new MWWorld::World (mViewer, rootNode, mResourceSystem.get(), mWorkQueue.get(),
-        mFileCollections, mContentFiles, mEncoder, mActivationDistanceOverride, mCellName,
+        mFileCollections, mContentFiles, mGroundcoverFiles, mEncoder, mActivationDistanceOverride, mCellName,
         mStartupScript, mResDir.string(), mCfgMgr.getUserDataPath().string()));
     mEnvironment.getWorld()->setupPlayer();
 
@@ -743,6 +758,7 @@ void OMW::Engine::prepareEngine (Settings::Manager & settings)
     // Create dialog system
     mEnvironment.setJournal (new MWDialogue::Journal);
     mEnvironment.setDialogueManager (new MWDialogue::DialogueManager (mExtensions, mTranslationDataStorage));
+    mEnvironment.setResourceSystem(mResourceSystem.get());
 
     // scripts
     if (mCompileAll)
@@ -830,6 +846,8 @@ void OMW::Engine::go()
     std::string settingspath;
     settingspath = loadSettings (settings);
 
+    MWClass::registerClasses();
+
     // Create encoder
     mEncoder = new ToUTF8::Utf8Encoder(mEncoding);
 
@@ -854,15 +872,28 @@ void OMW::Engine::go()
 
     prepareEngine (settings);
 
+    std::ofstream stats;
+    if (const auto path = std::getenv("OPENMW_OSG_STATS_FILE"))
+    {
+        stats.open(path, std::ios_base::out);
+        if (stats.is_open())
+            Log(Debug::Info) << "Stats will be written to: " << path;
+        else
+            Log(Debug::Warning) << "Failed to open file for stats: " << path;
+    }
+
     // Setup profiler
-    osg::ref_ptr<Resource::Profiler> statshandler = new Resource::Profiler;
+    osg::ref_ptr<Resource::Profiler> statshandler = new Resource::Profiler(stats.is_open());
 
     initStatsHandler(*statshandler);
 
     mViewer->addEventHandler(statshandler);
 
-    osg::ref_ptr<Resource::StatsHandler> resourceshandler = new Resource::StatsHandler;
+    osg::ref_ptr<Resource::StatsHandler> resourceshandler = new Resource::StatsHandler(stats.is_open());
     mViewer->addEventHandler(resourceshandler);
+
+    if (stats.is_open())
+        Resource::CollectStatistics(mViewer);
 
     // Start the game
     if (!mSaveGameFile.empty())
@@ -888,22 +919,16 @@ void OMW::Engine::go()
         mEnvironment.getWindowManager()->executeInConsole(mStartupScript);
     }
 
-    std::ofstream stats;
-    if (const auto path = std::getenv("OPENMW_OSG_STATS_FILE"))
-    {
-        stats.open(path, std::ios_base::out);
-        if (!stats)
-            Log(Debug::Warning) << "Failed to open file for stats: " << path;
-    }
-
     // Start the main rendering loop
-    osg::Timer frameTimer;
     double simulationTime = 0.0;
+    Misc::FrameRateLimiter frameRateLimiter = Misc::makeFrameRateLimiter(mEnvironment.getFrameRateLimit());
+    const std::chrono::steady_clock::duration maxSimulationInterval(std::chrono::milliseconds(200));
     while (!mViewer->done() && !mEnvironment.getStateManager()->hasQuitRequest())
     {
-        double dt = frameTimer.time_s();
-        frameTimer.setStartTick();
-        dt = std::min(dt, 0.2);
+        const double dt = std::chrono::duration_cast<std::chrono::duration<double>>(std::min(
+            frameRateLimiter.getLastFrameDuration(),
+            maxSimulationInterval
+        )).count();
 
         mViewer->advance(simulationTime);
 
@@ -939,7 +964,7 @@ void OMW::Engine::go()
             }
         }
 
-        mEnvironment.limitFrameRate(frameTimer.time_s());
+        frameRateLimiter.limit();
     }
 
     // Save user settings

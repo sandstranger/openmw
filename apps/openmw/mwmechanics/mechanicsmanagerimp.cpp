@@ -971,7 +971,7 @@ namespace MWMechanics
         {
             const OwnerMap& owners = it->second;
             for (OwnerMap::const_iterator ownerIt = owners.begin(); ownerIt != owners.end(); ++ownerIt)
-                result.push_back(std::make_pair(ownerIt->first.first, ownerIt->second));
+                result.emplace_back(ownerIt->first.first, ownerIt->second);
             return result;
         }
     }
@@ -1652,6 +1652,11 @@ namespace MWMechanics
     std::list<int> MechanicsManager::getActorsFollowingIndices(const MWWorld::Ptr& actor)
     {
         return mActors.getActorsFollowingIndices(actor);
+    }
+
+    std::map<int, MWWorld::Ptr> MechanicsManager::getActorsFollowingByIndex(const MWWorld::Ptr& actor)
+    {
+        return mActors.getActorsFollowingByIndex(actor);
     }
 
     std::list<MWWorld::Ptr> MechanicsManager::getActorsFighting(const MWWorld::Ptr& actor) {

@@ -73,7 +73,7 @@ CONFIGURATIONS=()
 TEST_FRAMEWORK=""
 GOOGLE_INSTALL_ROOT=""
 INSTALL_PREFIX="."
-BULLET_DOUBLE=""
+BULLET_DOUBLE=true
 BULLET_DBL=""
 BULLET_DBL_DISPLAY="Single precision"
 
@@ -913,7 +913,7 @@ printf "LZ4 1.9.2... "
 		printf "Exists. "
 	elif [ -z $SKIP_EXTRACT ]; then
 		rm -rf LZ4_1.9.2
-		eval 7z x -y lz4_win${BITS}_v1_9_2.7z -o./LZ4_1.9.2 $STRIP
+		eval 7z x -y lz4_win${BITS}_v1_9_2.7z -o$(real_pwd)/LZ4_1.9.2 $STRIP
 	fi
 	export LZ4DIR="$(real_pwd)/LZ4_1.9.2"
 	add_cmake_opts -DLZ4_INCLUDE_DIR="${LZ4DIR}/include" \

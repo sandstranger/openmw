@@ -19,10 +19,9 @@
 #include <components/sceneutil/attach.hpp>
 #include <components/sceneutil/visitor.hpp>
 #include <components/sceneutil/skeleton.hpp>
+#include <components/sceneutil/keyframe.hpp>
 
 #include <components/settings/settings.hpp>
-
-#include <components/nifosg/nifloader.hpp> // TextKeyMapHolder
 
 #include <components/vfs/manager.hpp>
 
@@ -525,7 +524,7 @@ void NpcAnimation::updateNpcBase()
 
     if(!is1stPerson)
     {
-        const std::string base = "meshes\\xbase_anim.nif";
+        const std::string base = Settings::Manager::getString("xbaseanim", "Models");
         if (smodel != base && !isWerewolf)
             addAnimSource(base, smodel);
 
@@ -539,7 +538,7 @@ void NpcAnimation::updateNpcBase()
     }
     else
     {
-        const std::string base = "meshes\\xbase_anim.1st.nif";
+        const std::string base = Settings::Manager::getString("xbaseanim1st", "Models");
         if (smodel != base && !isWerewolf)
             addAnimSource(base, smodel);
 
@@ -864,7 +863,7 @@ bool NpcAnimation::addOrReplaceIndividualPart(ESM::PartReferenceType type, int g
                 for (unsigned int i=0; i<node->getUserDataContainer()->getNumUserObjects(); ++i)
                 {
                     osg::Object* obj = node->getUserDataContainer()->getUserObject(i);
-                    if (NifOsg::TextKeyMapHolder* keys = dynamic_cast<NifOsg::TextKeyMapHolder*>(obj))
+                    if (SceneUtil::TextKeyMapHolder* keys = dynamic_cast<SceneUtil::TextKeyMapHolder*>(obj))
                     {
                         for (const auto &key : keys->mTextKeys)
                         {

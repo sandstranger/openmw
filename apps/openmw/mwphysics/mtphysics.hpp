@@ -9,6 +9,8 @@
 
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 
+#include <osg/Timer>
+
 #include "physicssystem.hpp"
 #include "ptrholder.hpp"
 
@@ -30,7 +32,9 @@ namespace MWPhysics
             /// @param timeAccum accumulated time from previous run to interpolate movements
             /// @param actorsData per actor data needed to compute new positions
             /// @return new position of each actor
-            const PtrPositionList& moveActors(int numSteps, float timeAccum, std::vector<ActorFrameData>&& actorsData, CollisionMap& standingCollisions, bool skip);
+            const std::vector<MWWorld::Ptr>& moveActors(int numSteps, float timeAccum, std::vector<ActorFrameData>&& actorsData, osg::Timer_t frameStart, unsigned int frameNumber, osg::Stats& stats);
+
+            const std::vector<MWWorld::Ptr>& resetSimulation(const ActorMap& actors);
 
             // Thread safe wrappers
             void rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, btCollisionWorld::RayResultCallback& resultCallback) const;
@@ -42,23 +46,22 @@ namespace MWPhysics
             void setCollisionFilterMask(btCollisionObject* collisionObject, int collisionFilterMask);
             void addCollisionObject(btCollisionObject* collisionObject, int collisionFilterGroup, int collisionFilterMask);
             void removeCollisionObject(btCollisionObject* collisionObject);
-            void updateSingleAabb(std::weak_ptr<PtrHolder> ptr);
+            void updateSingleAabb(std::weak_ptr<PtrHolder> ptr, bool immediate=false);
             bool getLineOfSight(const std::weak_ptr<Actor>& actor1, const std::weak_ptr<Actor>& actor2);
 
         private:
             void syncComputation();
             void worker();
             void updateActorsPositions();
-            void udpateActorsAabbs();
             bool hasLineOfSight(const Actor* actor1, const Actor* actor2);
             void refreshLOSCache();
             void updateAabbs();
             void updatePtrAabb(const std::weak_ptr<PtrHolder>& ptr);
+            void updateStats(osg::Timer_t frameStart, unsigned int frameNumber, osg::Stats& stats);
 
             std::unique_ptr<WorldFrameData> mWorldFrameData;
             std::vector<ActorFrameData> mActorsFrameData;
-            PtrPositionList mMovementResults;
-            PtrPositionList mPreviousMovementResults;
+            std::vector<MWWorld::Ptr> mMovedActors;
             const float mPhysicsDt;
             float mTimeAccum;
             std::shared_ptr<btCollisionWorld> mCollisionWorld;
@@ -88,6 +91,12 @@ namespace MWPhysics
             mutable std::shared_mutex mLOSCacheMutex;
             mutable std::mutex mUpdateAabbMutex;
             std::condition_variable_any mHasJob;
+
+            unsigned int mFrameNumber;
+            const osg::Timer* mTimer;
+            osg::Timer_t mTimeBegin;
+            osg::Timer_t mTimeEnd;
+            osg::Timer_t mFrameStart;
     };
 
 }

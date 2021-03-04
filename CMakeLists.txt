@@ -4,9 +4,17 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # for link time optimization, remove if cmake version is >= 3.9
-if(POLICY CMP0069)
-    cmake_policy(SET CMP0069 NEW)
+if(POLICY CMP0069) # LTO
+  cmake_policy(SET CMP0069 NEW)
 endif()
+
+# for position-independent executable, remove if cmake version is >= 3.14
+if(POLICY CMP0083)
+  cmake_policy(SET CMP0083 NEW)
+endif()
+
+# Detect OS
+include(cmake/OSIdentity.cmake)
 
 # Apps and tools
 option(BUILD_OPENMW             "Build OpenMW" ON)
@@ -21,7 +29,7 @@ option(BUILD_NIFTEST            "Build nif file tester" ON)
 option(BUILD_DOCS               "Build documentation." OFF )
 option(BUILD_WITH_CODE_COVERAGE "Enable code coverage with gconv" OFF)
 option(BUILD_UNITTESTS          "Enable Unittests with Google C++ Unittest" OFF)
-option(BULLET_USE_DOUBLES       "Use double precision for Bullet" OFF)
+option(BULLET_USE_DOUBLES       "Use double precision for Bullet" ON)
 
 set(OpenGL_GL_PREFERENCE LEGACY)  # Use LEGACY as we use GL2; GLNVD is for GL3 and up.
 
@@ -49,7 +57,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/)
 
 if (ANDROID)
     set(CMAKE_FIND_ROOT_PATH ${OPENMW_DEPENDENCIES_DIR} "${CMAKE_FIND_ROOT_PATH}")
-    set (OSG_PLUGINS_DIR CACHE STRING "")
 endif()
 
 # Version
@@ -92,16 +99,42 @@ endif(EXISTS ${PROJECT_SOURCE_DIR}/.git)
 
 # Macros
 include(OpenMWMacros)
+include(WholeArchive)
 
 # doxygen main page
 
 configure_file ("${OpenMW_SOURCE_DIR}/docs/mainpage.hpp.cmake" "${OpenMW_BINARY_DIR}/docs/mainpage.hpp")
 
-option(MYGUI_STATIC "Link static build of Mygui into the binaries" FALSE)
 option(BOOST_STATIC "Link static build of Boost into the binaries" FALSE)
 option(SDL2_STATIC "Link static build of SDL into the binaries" FALSE)
-option(OSG_STATIC "Link static build of OpenSceneGraph into the binaries" FALSE)
 option(QT_STATIC "Link static build of QT into the binaries" FALSE)
+
+option(OPENMW_USE_SYSTEM_BULLET "Use system provided bullet physics library" ON)
+
+option(OPENMW_USE_SYSTEM_OSG "Use system provided OpenSceneGraph libraries" ON)
+if(OPENMW_USE_SYSTEM_OSG)
+    set(_osg_static_default OFF)
+else()
+    set(_osg_static_default ON)
+endif()
+option(OSG_STATIC "Link static build of OpenSceneGraph into the binaries" ${_osg_static_default})
+
+option(OPENMW_USE_SYSTEM_MYGUI "Use system provided mygui library" ON)
+if(OPENMW_USE_SYSTEM_MYGUI)
+    set(_mygui_static_default OFF)
+else()
+    set(_mygui_static_default ON)
+endif()
+option(MYGUI_STATIC "Link static build of Mygui into the binaries" ${_mygui_static_default})
+
+option(OPENMW_USE_SYSTEM_RECASTNAVIGATION "Use system provided recastnavigation library" OFF)
+if(OPENMW_USE_SYSTEM_RECASTNAVIGATION)
+    set(_recastnavigation_static_default OFF)
+    find_package(RecastNavigation REQUIRED)
+else()
+    set(_recastnavigation_static_default ON)
+endif()
+option(RECASTNAVIGATION_STATIC "Build recastnavigation static libraries" ${_recastnavigation_static_default})
 
 option(OPENMW_UNITY_BUILD "Use fewer compilation units to speed up compile time" FALSE)
 option(OPENMW_LTO_BUILD "Build OpenMW with Link-Time Optimization (Needs ~2GB of RAM)" OFF)
@@ -164,6 +197,28 @@ if (USE_QT)
     # Instruct CMake to run moc automatically when needed.
     #set(CMAKE_AUTOMOC ON)
 endif()
+
+set(USED_OSG_COMPONENTS
+    osgDB
+    osgViewer
+    osgText
+    osgGA
+    osgParticle
+    osgUtil
+    osgFX
+    osgShadow
+    osgAnimation)
+set(USED_OSG_PLUGINS
+    osgdb_bmp
+    osgdb_dds
+    osgdb_freetype
+    osgdb_jpeg
+    osgdb_osg
+    osgdb_png
+    osgdb_serializers_osg
+    osgdb_tga)
+
+add_subdirectory(extern)
 
 # Sound setup
 
@@ -240,6 +295,15 @@ if (WIN32)
     add_definitions(-DNOMINMAX -DWIN32_LEAN_AND_MEAN)
 endif()
 
+if(OPENMW_USE_SYSTEM_BULLET)
+    set(REQUIRED_BULLET_VERSION 286) # Bullet 286 required due to runtime bugfixes for btCapsuleShape
+    if (DEFINED ENV{TRAVIS_BRANCH} OR DEFINED ENV{APPVEYOR})
+        set(REQUIRED_BULLET_VERSION 283) # but for build testing, 283 is fine
+    endif()
+
+    find_package(Bullet ${REQUIRED_BULLET_VERSION} REQUIRED COMPONENTS BulletCollision LinearMath)
+endif()
+
 if (NOT WIN32 AND BUILD_WIZARD) # windows users can just run the morrowind installer
     find_package(LIBUNSHIELD REQUIRED) # required only for non win32 when building openmw-wizard
     set(OPENMW_USE_UNSHIELD TRUE)
@@ -258,35 +322,17 @@ if(NOT HAVE_STDINT_H)
     message(FATAL_ERROR "stdint.h was not found" )
 endif()
 
+if(OPENMW_USE_SYSTEM_OSG)
+    find_package(OpenSceneGraph 3.3.4 REQUIRED ${USED_OSG_COMPONENTS})
+    if(OSG_STATIC)
+        find_package(OSGPlugins REQUIRED COMPONENTS ${USED_OSG_PLUGINS})
+    endif()
+endif()
 
-find_package(OpenSceneGraph 3.3.4 REQUIRED osgDB osgViewer osgText osgGA osgParticle osgUtil osgFX osgShadow)
-include_directories(SYSTEM ${OPENSCENEGRAPH_INCLUDE_DIRS})
-
-set(USED_OSG_PLUGINS
-                    osgdb_bmp
-                    osgdb_dds
-                    osgdb_freetype
-                    osgdb_jpeg
-                    osgdb_osg
-                    osgdb_png
-                    osgdb_serializers_osg
-                    osgdb_tga
-                  )
-
-set(OSGPlugins_LIB_DIR "")
-foreach(OSGDB_LIB ${OSGDB_LIBRARY})
-	# Skip library type names
-	if(EXISTS ${OSGDB_LIB} AND NOT IS_DIRECTORY ${OSGDB_LIB})
-		get_filename_component(OSG_LIB_DIR ${OSGDB_LIB} DIRECTORY)
-		list(APPEND OSGPlugins_LIB_DIR "${OSG_LIB_DIR}/osgPlugins-${OPENSCENEGRAPH_VERSION}")
-	endif()
-endforeach(OSGDB_LIB)
+include_directories(BEFORE SYSTEM ${OPENSCENEGRAPH_INCLUDE_DIRS})
 
 if(OSG_STATIC)
     add_definitions(-DOSG_LIBRARY_STATIC)
-
-    find_package(OSGPlugins REQUIRED COMPONENTS ${USED_OSG_PLUGINS})
-    list(APPEND OPENSCENEGRAPH_LIBRARIES ${OSGPlugins_LIBRARIES})
 endif()
 
 set(BOOST_COMPONENTS system filesystem program_options iostreams)
@@ -301,25 +347,23 @@ IF(BOOST_STATIC)
     set(Boost_USE_STATIC_LIBS   ON)
 endif()
 
-set(REQUIRED_BULLET_VERSION 286) # Bullet 286 required due to runtime bugfixes for btCapsuleShape
-if (DEFINED ENV{TRAVIS_BRANCH} OR DEFINED ENV{APPVEYOR})
-    set(REQUIRED_BULLET_VERSION 283) # but for build testing, 283 is fine
-endif()
-
 set(Boost_NO_BOOST_CMAKE ON)
 
 find_package(Boost 1.6.2 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
-find_package(MyGUI 3.2.2 REQUIRED)
+if(OPENMW_USE_SYSTEM_MYGUI)
+    find_package(MyGUI 3.2.2 REQUIRED)
+endif()
 find_package(SDL2 2.0.9 REQUIRED)
 find_package(OpenAL REQUIRED)
-find_package(Bullet ${REQUIRED_BULLET_VERSION} REQUIRED COMPONENTS BulletCollision LinearMath)
 
-include_directories("."
-    SYSTEM
+include_directories(
+    BEFORE SYSTEM
+    "."
     ${SDL2_INCLUDE_DIR}
     ${Boost_INCLUDE_DIR}
     ${MyGUI_INCLUDE_DIRS}
     ${OPENAL_INCLUDE_DIR}
+    ${OPENGL_INCLUDE_DIR}
     ${BULLET_INCLUDE_DIRS}
 )
 
@@ -436,14 +480,10 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     if (CMAKE_CXX_COMPILER_ID STREQUAL GNU AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0 OR CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 5.0)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
     endif()
-elseif (MSVC)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:MULTIPLE")
 endif (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID STREQUAL Clang)
 
 # Extern
-set(RECASTNAVIGATION_STATIC ON CACHE BOOL "Build recastnavigation static libraries")
 
-add_subdirectory (extern/recastnavigation EXCLUDE_FROM_ALL)
 add_subdirectory (extern/osg-ffmpeg-videoplayer)
 add_subdirectory (extern/oics)
 if (BUILD_OPENCS)
@@ -582,6 +622,12 @@ if (WIN32)
     if (MSVC_VERSION GREATER 1800)
         set(WARNINGS_DISABLE ${WARNINGS_DISABLE} 5026 5027
             5031 # #pragma warning(pop): likely mismatch, popping warning state pushed in different file (config_begin.hpp, config_end.hpp)
+        )
+    endif()
+    
+    if( "${MyGUI_VERSION}" VERSION_LESS_EQUAL "3.4.0" )
+        set(WARNINGS_DISABLE ${WARNINGS_DISABLE}
+        4866 # compiler may not enforce left-to-right evaluation order for call
         )
     endif()
 
@@ -838,11 +884,7 @@ elseif(NOT APPLE)
 
         # Install binaries
         IF(BUILD_OPENMW)
-            IF(ANDROID)
-                INSTALL(PROGRAMS "${INSTALL_SOURCE}/libopenmw.so" DESTINATION "${BINDIR}" )
-            ELSE(ANDROID)
-                INSTALL(PROGRAMS "${INSTALL_SOURCE}/openmw" DESTINATION "${BINDIR}" )
-            ENDIF(ANDROID)
+            INSTALL(PROGRAMS "$<TARGET_FILE:openmw>" DESTINATION "${BINDIR}" )
         ENDIF(BUILD_OPENMW)
         IF(BUILD_LAUNCHER)
             INSTALL(PROGRAMS "${INSTALL_SOURCE}/openmw-launcher" DESTINATION "${BINDIR}" )

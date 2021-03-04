@@ -340,17 +340,9 @@ namespace MWWorld
 
         if ((*iter)->getCell()->isExterior())
         {
-            const ESM::Land* land =
-                MWBase::Environment::get().getWorld()->getStore().get<ESM::Land>().search(
-                    (*iter)->getCell()->getGridX(),
-                    (*iter)->getCell()->getGridY()
-                );
-            if (land && land->mDataTypes&ESM::Land::DATA_VHGT)
-            {
-                if (const auto heightField = mPhysics->getHeightField(cellX, cellY))
-                    navigator->removeObject(DetourNavigator::ObjectId(heightField));
-                mPhysics->removeHeightField(cellX, cellY);
-            }
+            if (const auto heightField = mPhysics->getHeightField(cellX, cellY))
+                navigator->removeObject(DetourNavigator::ObjectId(heightField));
+            mPhysics->removeHeightField(cellX, cellY);
         }
 
         if ((*iter)->getCell()->hasWater())
@@ -397,7 +389,7 @@ namespace MWWorld
             if (!test && cell->getCell()->isExterior())
             {
                 osg::ref_ptr<const ESMTerrain::LandObject> land = mRendering.getLandManager()->getLand(cellX, cellY);
-                const ESM::Land::LandData* data = land ? land->getData(ESM::Land::DATA_VHGT) : 0;
+                const ESM::Land::LandData* data = land ? land->getData(ESM::Land::DATA_VHGT) : nullptr;
                 if (data)
                 {
                     mPhysics->addHeightField (data->mHeights, cellX, cellY, worldsize / (verts-1), verts, data->mMinHeight, data->mMaxHeight, land.get());
@@ -563,7 +555,7 @@ namespace MWWorld
                 if (iter==mActiveCells.end())
                 {
                     refsToLoad += MWBase::Environment::get().getWorld()->getExterior(x, y)->count();
-                    cellsPositionsToLoad.push_back(std::make_pair(x, y));
+                    cellsPositionsToLoad.emplace_back(x, y);
                 }
             }
         }
@@ -755,7 +747,7 @@ namespace MWWorld
 
     Scene::Scene (MWRender::RenderingManager& rendering, MWPhysics::PhysicsSystem *physics,
                   DetourNavigator::Navigator& navigator)
-    : mCurrentCell (0), mCellChanged (false), mPhysics(physics), mRendering(rendering), mNavigator(navigator)
+    : mCurrentCell (nullptr), mCellChanged (false), mPhysics(physics), mRendering(rendering), mNavigator(navigator)
     , mCellLoadingThreshold(1024.f)
     , mPreloadDistance(Settings::Manager::getInt("preload distance", "Cells"))
     , mPreloadEnabled(Settings::Manager::getBool("preload enabled", "Cells"))
@@ -1027,7 +1019,7 @@ namespace MWWorld
                 {
                     continue;
                 }
-                teleportDoors.push_back(MWWorld::ConstPtr(&door, cellStore));
+                teleportDoors.emplace_back(&door, cellStore);
             }
         }
 

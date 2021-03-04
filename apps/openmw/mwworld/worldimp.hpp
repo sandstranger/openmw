@@ -157,7 +157,7 @@ namespace MWWorld
             void processDoors(float duration);
             ///< Run physics simulation and modify \a world accordingly.
 
-            void doPhysics(float duration);
+            void doPhysics(float duration, osg::Timer_t frameStart, unsigned int frameNumber, osg::Stats& stats);
             ///< Run physics simulation and modify \a world accordingly.
 
             void updateNavigator();
@@ -177,7 +177,7 @@ namespace MWWorld
              * @param contentLoader -
              */
             void loadContentFiles(const Files::Collections& fileCollections,
-                const std::vector<std::string>& content, ContentLoader& contentLoader);
+                const std::vector<std::string>& content, const std::vector<std::string>& groundcover, ContentLoader& contentLoader);
 
             float feetToGameUnits(float feet);
             float getActivationDistancePlusTelekinesis();
@@ -196,6 +196,7 @@ namespace MWWorld
                 Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue,
                 const Files::Collections& fileCollections,
                 const std::vector<std::string>& contentFiles,
+                const std::vector<std::string>& groundcoverFiles,
                 ToUTF8::Utf8Encoder* encoder, int activationDistanceOverride,
                 const std::string& startCell, const std::string& startupScript,
                 const std::string& resourcePath, const std::string& userDataPath);
@@ -275,11 +276,12 @@ namespace MWWorld
             char getGlobalVariableType (const std::string& name) const override;
             ///< Return ' ', if there is no global variable with this name.
 
-            std::string getCellName (const MWWorld::CellStore *cell = 0) const override;
+            std::string getCellName (const MWWorld::CellStore *cell = nullptr) const override;
             ///< Return name of the cell.
             ///
             /// \note If cell==0, the cell the player is currently in will be used instead to
             /// generate a name.
+            std::string getCellName(const ESM::Cell* cell) const override;
 
             void removeRefScript (MWWorld::RefData *ref) override;
             //< Remove the script attached to ref from mLocalScripts
@@ -378,6 +380,9 @@ namespace MWWorld
             ///< @return an updated Ptr in case the Ptr's cell changes
 
             MWWorld::Ptr moveObject (const Ptr& ptr, CellStore* newCell, float x, float y, float z, bool movePhysics=true) override;
+            ///< @return an updated Ptr
+
+            MWWorld::Ptr moveObjectBy(const Ptr& ptr, osg::Vec3f vec) override;
             ///< @return an updated Ptr
 
             void scaleObject (const Ptr& ptr, float scale) override;
@@ -493,7 +498,7 @@ namespace MWWorld
             /// \return pointer to created record
 
             void update (float duration, bool paused) override;
-            void updatePhysics (float duration, bool paused) override;
+            void updatePhysics (float duration, bool paused, osg::Timer_t frameStart, unsigned int frameNumber, osg::Stats& stats) override;
 
             void updateWindowManager () override;
 
@@ -594,7 +599,7 @@ namespace MWWorld
 
             /// \todo this does not belong here
             void screenshot (osg::Image* image, int w, int h) override;
-            bool screenshot360 (osg::Image* image, std::string settingStr) override;
+            bool screenshot360 (osg::Image* image) override;
 
             /// Find center of exterior cell above land surface
             /// \return false if exterior with given name not exists, true otherwise
@@ -616,7 +621,7 @@ namespace MWWorld
             /// Returns true if levitation spell effect is allowed.
             bool isLevitationEnabled() const override;
 
-            bool getGodModeState() override;
+            bool getGodModeState() const override;
 
             bool toggleGodMode() override;
 

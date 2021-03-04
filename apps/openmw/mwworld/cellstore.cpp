@@ -37,7 +37,7 @@ namespace
         for (typename MWWorld::CellRefList<T>::List::iterator iter (containerList.mList.begin());
              iter!=containerList.mList.end(); ++iter)
         {
-            MWWorld::Ptr container (&*iter, 0);
+            MWWorld::Ptr container (&*iter, nullptr);
 
             if (container.getRefData().getCustomData() == nullptr)
                 continue;
@@ -687,7 +687,11 @@ namespace MWWorld
             case ESM::REC_NPC_: mNpcs.load(ref, deleted, store); break;
             case ESM::REC_PROB: mProbes.load(ref, deleted, store); break;
             case ESM::REC_REPA: mRepairs.load(ref, deleted, store); break;
-            case ESM::REC_STAT: mStatics.load(ref, deleted, store); break;
+            case ESM::REC_STAT:
+            {
+                if (ref.mRefNum.fromGroundcoverFile()) return;
+                mStatics.load(ref, deleted, store); break;
+            }
             case ESM::REC_WEAP: mWeapons.load(ref, deleted, store); break;
             case ESM::REC_BODY: mBodyParts.load(ref, deleted, store); break;
 
@@ -916,6 +920,13 @@ namespace MWWorld
             ESM::CellId movedTo;
             refnum.load(reader, true, "MVRF");
             movedTo.load(reader);
+
+            if (refnum.hasContentFile())
+            {
+                auto iter = contentFileMap.find(refnum.mContentFile);
+                if (iter != contentFileMap.end())
+                    refnum.mContentFile = iter->second;
+            }
 
             // Search for the reference. It might no longer exist if its content file was removed.
             Ptr movedRef = searchViaRefNum(refnum);
