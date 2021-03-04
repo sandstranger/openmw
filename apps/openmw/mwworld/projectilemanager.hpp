@@ -56,6 +56,8 @@ namespace MWWorld
 
         void update(float dt);
 
+        void processHits();
+
         /// Removes all current projectiles. Should be called when switching to a new worldspace.
         void clear();
 
@@ -76,6 +78,7 @@ namespace MWWorld
             std::shared_ptr<MWRender::EffectAnimationTime> mEffectAnimationTime;
 
             int mActorId;
+            int mProjectileId;
 
             // TODO: this will break when the game is saved and reloaded, since there is currently
             // no way to write identifiers for non-actors to a savegame.
@@ -88,6 +91,8 @@ namespace MWWorld
 
             // MW-id of an arrow projectile
             std::string mIdArrow;
+
+            bool mToDelete;
         };
 
         struct MagicBoltState : public State

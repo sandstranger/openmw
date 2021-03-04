@@ -151,7 +151,13 @@ add_component_dir (fallback
     fallback validate
     )
 
-if(NOT WIN32 AND NOT ANDROID)
+if(WIN32)
+    add_component_dir (crashcatcher
+        windows_crashcatcher
+        windows_crashmonitor
+        windows_crashshm
+    )
+elseif(NOT ANDROID)
     add_component_dir (crashcatcher
         crashcatcher
     )
@@ -175,6 +181,7 @@ add_component_dir(detournavigator
     settings
     navigator
     findrandompointaroundcircle
+    raycast
     )
 
 set (ESM_UI ${CMAKE_SOURCE_DIR}/files/ui/contentselector.ui
@@ -230,7 +237,6 @@ target_link_libraries(components
     ${OSGGA_LIBRARIES}
     ${OSGSHADOW_LIBRARIES}
     ${OSGANIMATION_LIBRARIES}
-    ${BULLET_LIBRARIES}
     ${SDL2_LIBRARIES}
     ${OPENGL_gl_LIBRARY}
     ${MyGUI_LIBRARIES}
@@ -239,6 +245,12 @@ target_link_libraries(components
     RecastNavigation::Detour
     RecastNavigation::Recast
     )
+
+if (BULLET_USE_DOUBLES AND (UBUNTU_FOUND OR DEBIAN_FOUND) AND OPENMW_USE_SYSTEM_BULLET)
+    target_link_libraries(components BulletCollision-float64 LinearMath-float64)
+else()
+    target_link_libraries(components ${BULLET_LIBRARIES})
+endif()
 
 if (WIN32)
     target_link_libraries(components

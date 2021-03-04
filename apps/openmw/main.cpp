@@ -138,7 +138,7 @@ bool parseOptions (int argc, char** argv, OMW::Engine& engine, Files::Configurat
 
     if (variables.count ("help"))
     {
-        std::cout << desc << std::endl;
+        getRawStdout() << desc << std::endl;
         return false;
     }
 
@@ -147,7 +147,7 @@ bool parseOptions (int argc, char** argv, OMW::Engine& engine, Files::Configurat
         cfgMgr.readConfiguration(variables, desc, true);
 
         Version::Version v = Version::getOpenmwVersion(variables["resources"].as<Files::EscapePath>().mPath.string());
-        std::cout << v.describe() << std::endl;
+        getRawStdout() << v.describe() << std::endl;
         return false;
     }
 
@@ -156,13 +156,13 @@ bool parseOptions (int argc, char** argv, OMW::Engine& engine, Files::Configurat
     cfgMgr.mergeComposingVariables(variables, composingVariables, desc);
 
     Version::Version v = Version::getOpenmwVersion(variables["resources"].as<Files::EscapePath>().mPath.string());
-    std::cout << v.describe() << std::endl;
+    Log(Debug::Info) << v.describe();
 
     engine.setGrabMouse(!variables["no-grab"].as<bool>());
 
     // Font encoding settings
     std::string encoding(variables["encoding"].as<Files::EscapeHashString>().toStdString());
-    std::cout << ToUTF8::encodingUsingMessage(encoding) << std::endl;
+    Log(Debug::Info) << ToUTF8::encodingUsingMessage(encoding);
     engine.setEncoding(ToUTF8::calculateEncoding(encoding));
 
     // directory settings
@@ -230,6 +230,54 @@ bool parseOptions (int argc, char** argv, OMW::Engine& engine, Files::Configurat
     return true;
 }
 
+namespace
+{
+    class OSGLogHandler : public osg::NotifyHandler
+    {
+        void notify(osg::NotifySeverity severity, const char* msg) override
+        {
+            // Copy, because osg logging is not thread safe.
+            std::string msgCopy(msg);
+            if (msgCopy.empty())
+                return;
+
+            Debug::Level level;
+            switch (severity)
+            {
+            case osg::ALWAYS:
+            case osg::FATAL:
+                level = Debug::Error;
+                break;
+            case osg::WARN:
+            case osg::NOTICE:
+                level = Debug::Warning;
+                break;
+            case osg::INFO:
+                level = Debug::Info;
+                break;
+            case osg::DEBUG_INFO:
+            case osg::DEBUG_FP:
+            default:
+                level = Debug::Debug;
+            }
+            std::string_view s(msgCopy);
+            if (s.size() < 1024)
+                Log(level) << (s.back() == '\n' ? s.substr(0, s.size() - 1) : s);
+            else
+            {
+                while (!s.empty())
+                {
+                    size_t lineSize = 1;
+                    while (lineSize < s.size() && s[lineSize - 1] != '\n')
+                        lineSize++;
+                    Log(level) << s.substr(0, s[lineSize - 1] == '\n' ? lineSize - 1 : lineSize);
+                    s = s.substr(lineSize);
+                }
+            }
+        }
+    };
+}
+
 int runApplication(int argc, char *argv[])
 {
 #ifdef __APPLE__
@@ -238,6 +286,7 @@ int runApplication(int argc, char *argv[])
     setenv("OSG_GL_TEXTURE_STORAGE", "OFF", 0);
 #endif
 
+    osg::setNotifyHandler(new OSGLogHandler());
     Files::ConfigurationManager cfgMgr;
     std::unique_ptr<OMW::Engine> engine;
     engine.reset(new OMW::Engine(cfgMgr));

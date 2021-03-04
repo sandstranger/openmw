@@ -37,7 +37,7 @@ namespace
         for (typename MWWorld::CellRefList<T>::List::iterator iter (containerList.mList.begin());
              iter!=containerList.mList.end(); ++iter)
         {
-            MWWorld::Ptr container (&*iter, 0);
+            MWWorld::Ptr container (&*iter, nullptr);
 
             if (container.getRefData().getCustomData() == nullptr)
                 continue;
@@ -929,6 +929,13 @@ namespace MWWorld
             ESM::CellId movedTo;
             refnum.load(reader, true, "MVRF");
             movedTo.load(reader);
+
+            if (refnum.hasContentFile())
+            {
+                auto iter = contentFileMap.find(refnum.mContentFile);
+                if (iter != contentFileMap.end())
+                    refnum.mContentFile = iter->second;
+            }
 
             // Search for the reference. It might no longer exist if its content file was removed.
             Ptr movedRef = searchViaRefNum(refnum);

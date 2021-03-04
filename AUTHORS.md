@@ -49,6 +49,7 @@ Programmers
     Cédric Mocquillon
     Chris Boyce (slothlife)
     Chris Robinson (KittyCat)
+    Coleman Smith (olcoal)
     Cory F. Cohen (cfcohen)
     Cris Mihalache (Mirceam)
     crussell187
@@ -122,7 +123,6 @@ Programmers
     Lordrea
     Łukasz Gołębiewski (lukago)
     Lukasz Gromanowski (lgro)
-    Manuel Edelmann (vorenon)
     Marc Bouvier (CramitDeFrog)
     Marcin Hulist (Gohan)
     Mark Siewert (mark76)
@@ -215,6 +215,7 @@ Programmers
     Yohaulticetl
     Yuri Krupenin
     zelurker
+    Noah Gooder
 
 Documentation
 -------------

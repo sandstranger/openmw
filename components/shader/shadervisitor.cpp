@@ -43,6 +43,7 @@ namespace Shader
         , mAutoUseNormalMaps(false)
         , mAutoUseSpecularMaps(false)
         , mApplyLightingToEnvMaps(false)
+        , mTranslucentFramebuffer(false)
         , mShaderManager(shaderManager)
         , mImageManager(imageManager)
         , mDefaultVsTemplate(defaultVsTemplate)
@@ -149,7 +150,7 @@ namespace Shader
                                 mRequirements.back().mShaderRequired = true;
                             }
                         }
-                        else
+                        else if (!mTranslucentFramebuffer)
                             Log(Debug::Error) << "ShaderVisitor encountered unknown texture " << texture;
                     }
                 }
@@ -297,7 +298,10 @@ namespace Shader
     void ShaderVisitor::createProgram(const ShaderRequirements &reqs)
     {
         if (!reqs.mShaderRequired && !mForceShaders)
+        {
+            ensureFFP(*reqs.mNode);
             return;
+        }
 
         bool isParticle = dynamic_cast<osgParticle::ParticleSystem *>(reqs.mNode) ? true : false;
 
@@ -335,6 +339,8 @@ namespace Shader
 
         writableStateSet->addUniform(new osg::Uniform("colorMode", reqs.mColorMode));
 
+        defineMap["translucentFramebuffer"] = mTranslucentFramebuffer ? "1" : "0";
+
         osg::ref_ptr<osg::Shader> vertexShader (mShaderManager.getShader(Vs, defineMap, osg::Shader::VERTEX));
         osg::ref_ptr<osg::Shader> fragmentShader (mShaderManager.getShader(Fs, defineMap, osg::Shader::FRAGMENT));
 
@@ -347,6 +353,19 @@ namespace Shader
                 writableStateSet->addUniform(new osg::Uniform(texIt->second.c_str(), texIt->first), osg::StateAttribute::ON);
             }
         }
+    }
+
+    void ShaderVisitor::ensureFFP(osg::Node& node)
+    {
+        if (!node.getStateSet() || !node.getStateSet()->getAttribute(osg::StateAttribute::PROGRAM))
+            return;
+        osg::StateSet* writableStateSet = nullptr;
+        if (mAllowedToModifyStateSets)
+            writableStateSet = node.getStateSet();
+        else
+            writableStateSet = getWritableStateSet(node);
+
+        writableStateSet->removeAttribute(osg::StateAttribute::PROGRAM);
     }
 
     bool ShaderVisitor::adjustGeometry(osg::Geometry& sourceGeometry, const ShaderRequirements& reqs)
@@ -396,6 +415,8 @@ namespace Shader
 
             createProgram(reqs);
         }
+        else
+            ensureFFP(geometry);
 
         if (needPop)
             popRequirements();
@@ -430,6 +451,8 @@ namespace Shader
                     morph->setSourceGeometry(sourceGeometry);
             }
         }
+        else
+            ensureFFP(drawable);
 
         if (needPop)
             popRequirements();
@@ -468,6 +491,11 @@ namespace Shader
     void ShaderVisitor::setApplyLightingToEnvMaps(bool apply)
     {
         mApplyLightingToEnvMaps = apply;
+    }
+
+    void ShaderVisitor::setTranslucentFramebuffer(bool translucent)
+    {
+        mTranslucentFramebuffer = translucent;
     }
 
 }

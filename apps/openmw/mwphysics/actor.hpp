@@ -60,15 +60,15 @@ namespace MWPhysics
          * Set mWorldPosition to the position in the Ptr's RefData. This is used by the physics simulation to account for 
          * when an object is "instantly" moved/teleported as opposed to being moved by the physics simulation.
          */
-        void updatePosition();
+        void updateWorldPosition();
         osg::Vec3f getWorldPosition() const;
 
         /**
         * Used by the physics simulation to store the simulation result. Used in conjunction with mWorldPosition
         * to account for e.g. scripted movements
         */
-        void setNextPosition(const osg::Vec3f& position);
-        osg::Vec3f getNextPosition() const;
+        void setSimulationPosition(const osg::Vec3f& position);
+        osg::Vec3f getSimulationPosition() const;
 
         void updateCollisionObjectPosition();
 
@@ -82,6 +82,9 @@ namespace MWPhysics
          */
         osg::Vec3f getOriginalHalfExtents() const;
 
+        /// Returns the mesh translation, scaled and rotated as necessary
+        osg::Vec3f getScaledMeshTranslation() const;
+
         /**
          * Returns the position of the collision body
          * @note The collision shape's origin is in its center, so the position returned can be described as center of the actor collision box in world space.
@@ -90,9 +93,10 @@ namespace MWPhysics
 
         /**
           * Store the current position into mPreviousPosition, then move to this position.
+          * Returns true if the new position is different.
           */
-        void setPosition(const osg::Vec3f& position);
-        void resetPosition();
+        bool setPosition(const osg::Vec3f& position);
+        void updatePosition();
         void adjustPosition(const osg::Vec3f& offset);
 
         osg::Vec3f getPosition() const;
@@ -172,9 +176,12 @@ namespace MWPhysics
         osg::Vec3f mScale;
         osg::Vec3f mRenderingScale;
         osg::Vec3f mWorldPosition;
-        osg::Vec3f mNextPosition;
+        osg::Vec3f mSimulationPosition;
         osg::Vec3f mPosition;
         osg::Vec3f mPreviousPosition;
+        osg::Vec3f mPositionOffset;
+        bool mWorldPositionChanged;
+        bool mSkipSimulation;
         btTransform mLocalTransform;
         mutable std::mutex mPositionMutex;
 

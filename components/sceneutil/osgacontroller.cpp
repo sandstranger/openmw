@@ -17,6 +17,7 @@
 #include <osgAnimation/UpdateMatrixTransform>
 
 #include <components/debug/debuglog.hpp>
+#include <components/misc/stringops.hpp>
 #include <components/resource/animation.hpp>
 #include <components/sceneutil/controller.hpp>
 #include <components/sceneutil/keyframe.hpp>
@@ -31,7 +32,7 @@ namespace SceneUtil
     void LinkVisitor::link(osgAnimation::UpdateMatrixTransform* umt)
     {
         const osgAnimation::ChannelList& channels = mAnimation->getChannels();
-        for (const osg::ref_ptr<osgAnimation::Channel> channel: channels)
+        for (const auto& channel: channels)
         {
             const std::string& channelName = channel->getName();
             const std::string& channelTargetName = channel->getTargetName();
@@ -83,7 +84,7 @@ namespace SceneUtil
         {
             osgAnimation::UpdateMatrixTransform* umt = dynamic_cast<osgAnimation::UpdateMatrixTransform*>(cb);
             if (umt)
-                if (node.getName() != "root") link(umt);
+                if (Misc::StringUtils::lowerCase(node.getName()) != "bip01") link(umt);
             cb = cb->getNestedCallback();
         }
 
@@ -102,10 +103,14 @@ namespace SceneUtil
     }
 
     OsgAnimationController::OsgAnimationController(const OsgAnimationController &copy, const osg::CopyOp &copyop) : SceneUtil::KeyframeController(copy, copyop)
-    , mMergedAnimationTracks(copy.mMergedAnimationTracks)
     , mEmulatedAnimations(copy.mEmulatedAnimations)
     {
         mLinker = nullptr;
+        for (const auto& mergedAnimationTrack : copy.mMergedAnimationTracks)
+        {
+            Resource::Animation* copiedAnimationTrack = static_cast<Resource::Animation*>(mergedAnimationTrack.get()->clone(copyop));
+            mMergedAnimationTracks.emplace_back(copiedAnimationTrack);
+        }
     }
 
     osg::Vec3f OsgAnimationController::getTranslation(float time) const
@@ -117,7 +122,7 @@ namespace SceneUtil
         //Find the correct animation based on time
         for (const EmulatedAnimation& emulatedAnimation : mEmulatedAnimations)
         {
-            if (time > emulatedAnimation.mStartTime && time < emulatedAnimation.mStopTime)
+            if (time >= emulatedAnimation.mStartTime && time <= emulatedAnimation.mStopTime)
             {
                 newTime = time - emulatedAnimation.mStartTime;
                 animationName = emulatedAnimation.mName;
@@ -125,15 +130,15 @@ namespace SceneUtil
         }
 
         //Find the root transform track in animation
-        for (const osg::ref_ptr<Resource::Animation> mergedAnimationTrack : mMergedAnimationTracks)
+        for (const auto& mergedAnimationTrack : mMergedAnimationTracks)
         {
             if (mergedAnimationTrack->getName() != animationName) continue;
 
             const osgAnimation::ChannelList& channels = mergedAnimationTrack->getChannels();
 
-            for (const osg::ref_ptr<osgAnimation::Channel> channel: channels)
+            for (const auto& channel: channels)
             {
-                if (channel->getTargetName() != "root" || channel->getName() != "transform") continue;
+                if (channel->getTargetName() != "bip01" || channel->getName() != "transform") continue;
 
                 if ( osgAnimation::MatrixLinearSampler* templateSampler = dynamic_cast<osgAnimation::MatrixLinearSampler*> (channel->getSampler()) )
                 {
@@ -150,7 +155,7 @@ namespace SceneUtil
 
     void OsgAnimationController::update(float time, std::string animationName)
     {
-        for (const osg::ref_ptr<Resource::Animation> mergedAnimationTrack : mMergedAnimationTracks)
+        for (const auto& mergedAnimationTrack : mMergedAnimationTracks)
         {
             if (mergedAnimationTrack->getName() == animationName) mergedAnimationTrack->update(time);
         }
@@ -162,7 +167,7 @@ namespace SceneUtil
         {
             if (mNeedToLink)
             {
-                for (const osg::ref_ptr<Resource::Animation> mergedAnimationTrack : mMergedAnimationTracks)
+                for (const auto& mergedAnimationTrack : mMergedAnimationTracks)
                 {
                     if (!mLinker.valid()) mLinker = new LinkVisitor();
                     mLinker->setAnimation(mergedAnimationTrack);

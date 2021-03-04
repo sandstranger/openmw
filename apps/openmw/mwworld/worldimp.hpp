@@ -276,11 +276,12 @@ namespace MWWorld
             char getGlobalVariableType (const std::string& name) const override;
             ///< Return ' ', if there is no global variable with this name.
 
-            std::string getCellName (const MWWorld::CellStore *cell = 0) const override;
+            std::string getCellName (const MWWorld::CellStore *cell = nullptr) const override;
             ///< Return name of the cell.
             ///
             /// \note If cell==0, the cell the player is currently in will be used instead to
             /// generate a name.
+            std::string getCellName(const ESM::Cell* cell) const override;
 
             void removeRefScript (MWWorld::RefData *ref) override;
             //< Remove the script attached to ref from mLocalScripts
@@ -379,6 +380,9 @@ namespace MWWorld
             ///< @return an updated Ptr in case the Ptr's cell changes
 
             MWWorld::Ptr moveObject (const Ptr& ptr, CellStore* newCell, float x, float y, float z, bool movePhysics=true) override;
+            ///< @return an updated Ptr
+
+            MWWorld::Ptr moveObjectBy(const Ptr& ptr, osg::Vec3f vec) override;
             ///< @return an updated Ptr
 
             void scaleObject (const Ptr& ptr, float scale) override;
@@ -595,7 +599,7 @@ namespace MWWorld
 
             /// \todo this does not belong here
             void screenshot (osg::Image* image, int w, int h) override;
-            bool screenshot360 (osg::Image* image, std::string settingStr) override;
+            bool screenshot360 (osg::Image* image) override;
 
             /// Find center of exterior cell above land surface
             /// \return false if exterior with given name not exists, true otherwise
@@ -617,7 +621,7 @@ namespace MWWorld
             /// Returns true if levitation spell effect is allowed.
             bool isLevitationEnabled() const override;
 
-            bool getGodModeState() override;
+            bool getGodModeState() const override;
 
             bool toggleGodMode() override;
 

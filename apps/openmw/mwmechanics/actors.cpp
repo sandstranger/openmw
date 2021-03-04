@@ -142,6 +142,29 @@ void getRestorationPerHourOfSleep (const MWWorld::Ptr& ptr, float& health, float
     magicka = fRestMagicMult * stats.getAttribute(ESM::Attribute::Intelligence).getModified();
 }
 
+template<class T>
+void forEachFollowingPackage(MWMechanics::Actors::PtrActorMap& actors, const MWWorld::Ptr& actor, const MWWorld::Ptr& player, T&& func)
+{
+    for(auto& iter : actors)
+    {
+        const MWWorld::Ptr &iteratedActor = iter.first;
+        if (iteratedActor == player || iteratedActor == actor)
+            continue;
+
+        const MWMechanics::CreatureStats &stats = iteratedActor.getClass().getCreatureStats(iteratedActor);
+        if (stats.isDead())
+            continue;
+
+        // An actor counts as following if AiFollow is the current AiPackage,
+        // or there are only Combat and Wander packages before the AiFollow package
+        for (const auto& package : stats.getAiSequence())
+        {
+            if(!func(iter, package))
+                break;
+        }
+    }
+}
+
 }
 
 namespace MWMechanics
@@ -928,29 +951,29 @@ namespace MWMechanics
             if (actor.getClass().hasInventoryStore(actor))
                 actor.getClass().getInventoryStore(actor).purgeEffect(ESM::MagicEffect::Poison);
         }
-        else if (effects.get(ESM::MagicEffect::CureParalyzation).getModifier() > 0)
+        if (effects.get(ESM::MagicEffect::CureParalyzation).getModifier() > 0)
         {
             creatureStats.getActiveSpells().purgeEffect(ESM::MagicEffect::Paralyze);
             creatureStats.getSpells().purgeEffect(ESM::MagicEffect::Paralyze);
             if (actor.getClass().hasInventoryStore(actor))
                 actor.getClass().getInventoryStore(actor).purgeEffect(ESM::MagicEffect::Paralyze);
         }
-        else if (effects.get(ESM::MagicEffect::CureCommonDisease).getModifier() > 0)
+        if (effects.get(ESM::MagicEffect::CureCommonDisease).getModifier() > 0)
         {
             creatureStats.getSpells().purgeCommonDisease();
         }
-        else if (effects.get(ESM::MagicEffect::CureBlightDisease).getModifier() > 0)
+        if (effects.get(ESM::MagicEffect::CureBlightDisease).getModifier() > 0)
         {
             creatureStats.getSpells().purgeBlightDisease();
         }
-        else if (effects.get(ESM::MagicEffect::CureCorprusDisease).getModifier() > 0)
+        if (effects.get(ESM::MagicEffect::CureCorprusDisease).getModifier() > 0)
         {
             creatureStats.getActiveSpells().purgeCorprusDisease();
             creatureStats.getSpells().purgeCorprusDisease();
             if (actor.getClass().hasInventoryStore(actor))
                 actor.getClass().getInventoryStore(actor).purgeEffect(ESM::MagicEffect::Corprus, true);
         }
-        else if (effects.get(ESM::MagicEffect::RemoveCurse).getModifier() > 0)
+        if (effects.get(ESM::MagicEffect::RemoveCurse).getModifier() > 0)
         {
             creatureStats.getSpells().purgeCurses();
         }
@@ -1406,6 +1429,13 @@ namespace MWMechanics
                         // For non-hostile NPCs, unequip whatever is in the left slot in favor of a light.
                         if (heldIter != inventoryStore.end() && heldIter->getTypeName() != typeid(ESM::Light).name())
                             inventoryStore.unequipItem(*heldIter, ptr);
+                    }
+                    else if (heldIter == inventoryStore.end() || heldIter->getTypeName() == typeid(ESM::Light).name())
+                    {
+                        // For hostile NPCs, see if they have anything better to equip first
+                        auto shield = inventoryStore.getPreferredShield(ptr);
+                        if(shield != inventoryStore.end())
+                            inventoryStore.equip(MWWorld::InventoryStore::Slot_CarriedLeft, shield, ptr);
                     }
 
                     heldIter = inventoryStore.getSlot(MWWorld::InventoryStore::Slot_CarriedLeft);
@@ -2512,26 +2542,14 @@ namespace MWMechanics
     std::list<MWWorld::Ptr> Actors::getActorsFollowing(const MWWorld::Ptr& actor)
     {
         std::list<MWWorld::Ptr> list;
-        for(PtrActorMap::iterator iter(mActors.begin());iter != mActors.end();++iter)
+        forEachFollowingPackage(mActors, actor, getPlayer(), [&] (auto& iter, const std::unique_ptr<AiPackage>& package)
         {
-            const MWWorld::Ptr &iteratedActor = iter->first;
-            if (iteratedActor == getPlayer() || iteratedActor == actor)
-                continue;
-
-            const CreatureStats &stats = iteratedActor.getClass().getCreatureStats(iteratedActor);
-            if (stats.isDead())
-                continue;
-
-            // An actor counts as following if AiFollow is the current AiPackage,
-            // or there are only Combat and Wander packages before the AiFollow package
-            for (const auto& package : stats.getAiSequence())
-            {
-                if (package->followTargetThroughDoors() && package->getTarget() == actor)
-                    list.push_back(iteratedActor);
-                else if (package->getTypeId() != AiPackageTypeId::Combat && package->getTypeId() != AiPackageTypeId::Wander)
-                    break;
-            }
-        }
+            if (package->followTargetThroughDoors() && package->getTarget() == actor)
+                list.push_back(iter.first);
+            else if (package->getTypeId() != AiPackageTypeId::Combat && package->getTypeId() != AiPackageTypeId::Wander)
+                return false;
+            return true;
+        });
         return list;
     }
 
@@ -2575,30 +2593,36 @@ namespace MWMechanics
     std::list<int> Actors::getActorsFollowingIndices(const MWWorld::Ptr &actor)
     {
         std::list<int> list;
-        for(PtrActorMap::iterator iter(mActors.begin());iter != mActors.end();++iter)
+        forEachFollowingPackage(mActors, actor, getPlayer(), [&] (auto& iter, const std::unique_ptr<AiPackage>& package)
         {
-            const MWWorld::Ptr &iteratedActor = iter->first;
-            if (iteratedActor == getPlayer() || iteratedActor == actor)
-                continue;
-
-            const CreatureStats &stats = iteratedActor.getClass().getCreatureStats(iteratedActor);
-            if (stats.isDead())
-                continue;
-
-            // An actor counts as following if AiFollow is the current AiPackage,
-            // or there are only Combat and Wander packages before the AiFollow package
-            for (const auto& package : stats.getAiSequence())
+            if (package->followTargetThroughDoors() && package->getTarget() == actor)
             {
-                if (package->followTargetThroughDoors() && package->getTarget() == actor)
-                {
-                    list.push_back(static_cast<const AiFollow*>(package.get())->getFollowIndex());
-                    break;
-                }
-                else if (package->getTypeId() != AiPackageTypeId::Combat && package->getTypeId() != AiPackageTypeId::Wander)
-                    break;
+                list.push_back(static_cast<const AiFollow*>(package.get())->getFollowIndex());
+                return false;
             }
-        }
+            else if (package->getTypeId() != AiPackageTypeId::Combat && package->getTypeId() != AiPackageTypeId::Wander)
+                return false;
+            return true;
+        });
         return list;
+    }
+
+    std::map<int, MWWorld::Ptr> Actors::getActorsFollowingByIndex(const MWWorld::Ptr &actor)
+    {
+        std::map<int, MWWorld::Ptr> map;
+        forEachFollowingPackage(mActors, actor, getPlayer(), [&] (auto& iter, const std::unique_ptr<AiPackage>& package)
+        {
+            if (package->followTargetThroughDoors() && package->getTarget() == actor)
+            {
+                int index = static_cast<const AiFollow*>(package.get())->getFollowIndex();
+                map[index] = iter.first;
+                return false;
+            }
+            else if (package->getTypeId() != AiPackageTypeId::Combat && package->getTypeId() != AiPackageTypeId::Wander)
+                return false;
+            return true;
+        });
+        return map;
     }
 
     std::list<MWWorld::Ptr> Actors::getActorsFighting(const MWWorld::Ptr& actor) {

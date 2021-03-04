@@ -782,8 +782,6 @@ namespace MWRender
             NodeMap::const_iterator found = nodeMap.find("bip01");
             if (found == nodeMap.end())
                 found = nodeMap.find("root bone");
-            if (found == nodeMap.end())
-                found = nodeMap.find("root");
 
             if (found != nodeMap.end())
                 mAccumRoot = found->second;
@@ -1502,7 +1500,7 @@ namespace MWRender
                 MWWorld::LiveCellRef<ESM::Creature> *ref = mPtr.get<ESM::Creature>();
                 if(ref->mBase->mFlags & ESM::Creature::Bipedal)
                 {
-                    defaultSkeleton = "meshes\\xbase_anim.nif";
+                    defaultSkeleton = Settings::Manager::getString("xbaseanim", "Models");
                     inject = true;
                 }
             }

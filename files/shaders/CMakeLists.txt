@@ -23,6 +23,7 @@ set(SHADER_FILES
     shadows_fragment.glsl
     shadowcasting_vertex.glsl
     shadowcasting_fragment.glsl
+    vertexcolors.glsl
     effects.glsl
     fog.glsl
     linear_lighting.glsl

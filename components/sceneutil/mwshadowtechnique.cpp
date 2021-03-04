@@ -785,6 +785,7 @@ MWShadowTechnique::MWShadowTechnique():
     _debugHud(nullptr)
 {
     _shadowRecievingPlaceholderStateSet = new osg::StateSet;
+    mSetDummyStateWhenDisabled = false;
 }
 
 MWShadowTechnique::MWShadowTechnique(const MWShadowTechnique& vdsm, const osg::CopyOp& copyop):
@@ -792,6 +793,7 @@ MWShadowTechnique::MWShadowTechnique(const MWShadowTechnique& vdsm, const osg::C
 {
     _shadowRecievingPlaceholderStateSet = new osg::StateSet;
     _enableShadows = vdsm._enableShadows;
+    mSetDummyStateWhenDisabled = vdsm.mSetDummyStateWhenDisabled;
 }
 
 MWShadowTechnique::~MWShadowTechnique()
@@ -995,9 +997,9 @@ void MWShadowTechnique::cull(osgUtil::CullVisitor& cv)
     }
 
     // 1. Traverse main scene graph
-    cv.pushStateSet( _shadowRecievingPlaceholderStateSet.get() );
-
-    osg::ref_ptr<osgUtil::StateGraph> decoratorStateGraph = cv.getCurrentStateGraph();
+    auto* shadowReceiverStateSet = vdd->getStateSet(cv.getTraversalNumber());
+    shadowReceiverStateSet->clear();
+    cv.pushStateSet(shadowReceiverStateSet);
 
     cullShadowReceivingScene(&cv);
 
@@ -1424,7 +1426,7 @@ void MWShadowTechnique::cull(osgUtil::CullVisitor& cv)
 
     if (numValidShadows>0)
     {
-        decoratorStateGraph->setStateSet(selectStateSetForRenderingShadow(*vdd, cv.getTraversalNumber()));
+        prepareStateSetForRenderingShadow(*vdd, cv.getTraversalNumber());
     }
 
     // OSG_NOTICE<<"End of shadow setup Projection matrix "<<*cv.getProjectionMatrix()<<std::endl;
@@ -3002,9 +3004,9 @@ void MWShadowTechnique::cullShadowCastingScene(osgUtil::CullVisitor* cv, osg::Ca
     return;
 }
 
-osg::StateSet* MWShadowTechnique::selectStateSetForRenderingShadow(ViewDependentData& vdd, unsigned int traversalNumber) const
+osg::StateSet* MWShadowTechnique::prepareStateSetForRenderingShadow(ViewDependentData& vdd, unsigned int traversalNumber) const
 {
-    OSG_INFO<<"   selectStateSetForRenderingShadow() "<<vdd.getStateSet(traversalNumber)<<std::endl;
+    OSG_INFO<<"   prepareStateSetForRenderingShadow() "<<vdd.getStateSet(traversalNumber)<<std::endl;
 
     osg::ref_ptr<osg::StateSet> stateset = vdd.getStateSet(traversalNumber);
 

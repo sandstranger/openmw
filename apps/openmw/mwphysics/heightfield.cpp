@@ -1,4 +1,5 @@
 #include "heightfield.hpp"
+#include "mtphysics.hpp"
 
 #include <osg/Object>
 
@@ -42,10 +43,12 @@ namespace
 
 namespace MWPhysics
 {
-    HeightField::HeightField(const float* heights, int x, int y, float triSize, float sqrtVerts, float minH, float maxH, const osg::Object* holdObject)
-        : mHeights(makeHeights(heights, sqrtVerts))
+    HeightField::HeightField(const float* heights, int x, int y, float triSize, float sqrtVerts, float minH, float maxH, const osg::Object* holdObject, PhysicsTaskScheduler* scheduler)
+        : mHoldObject(holdObject)
+        , mHeights(makeHeights(heights, sqrtVerts))
+        , mTaskScheduler(scheduler)
     {
-        mShape = new btHeightfieldTerrainShape(
+        mShape = std::make_unique<btHeightfieldTerrainShape>(
             sqrtVerts, sqrtVerts,
             getHeights(heights, mHeights),
             1,
@@ -55,36 +58,43 @@ namespace MWPhysics
         mShape->setUseDiamondSubdivision(true);
         mShape->setLocalScaling(btVector3(triSize, triSize, 1));
 
+#if BT_BULLET_VERSION >= 289
+        // Accelerates some collision tests.
+        //
+        // Note: The accelerator data structure in Bullet is only used
+        // in some operations. This could be improved, see:
+        // https://github.com/bulletphysics/bullet3/issues/3276
+        mShape->buildAccelerator();
+#endif
+
         btTransform transform(btQuaternion::getIdentity(),
                                 btVector3((x+0.5f) * triSize * (sqrtVerts-1),
                                           (y+0.5f) * triSize * (sqrtVerts-1),
                                           (maxH+minH)*0.5f));
 
-        mCollisionObject = new btCollisionObject;
-        mCollisionObject->setCollisionShape(mShape);
+        mCollisionObject = std::make_unique<btCollisionObject>();
+        mCollisionObject->setCollisionShape(mShape.get());
         mCollisionObject->setWorldTransform(transform);
-
-        mHoldObject = holdObject;
+        mTaskScheduler->addCollisionObject(mCollisionObject.get(), CollisionType_HeightMap, CollisionType_Actor|CollisionType_Projectile);
     }
 
     HeightField::~HeightField()
     {
-        delete mCollisionObject;
-        delete mShape;
+        mTaskScheduler->removeCollisionObject(mCollisionObject.get());
     }
 
     btCollisionObject* HeightField::getCollisionObject()
     {
-        return mCollisionObject;
+        return mCollisionObject.get();
     }
 
     const btCollisionObject* HeightField::getCollisionObject() const
     {
-        return mCollisionObject;
+        return mCollisionObject.get();
     }
 
     const btHeightfieldTerrainShape* HeightField::getShape() const
     {
-        return mShape;
+        return mShape.get();
     }
 }

@@ -19,7 +19,7 @@ source_group(game FILES ${GAME} ${GAME_HEADER})
 
 add_openmw_dir (mwrender
     actors objects renderingmanager animation rotatecontroller sky npcanimation vismask
-    creatureanimation effectmanager util renderinginterface pathgrid rendermode weaponanimation
+    creatureanimation effectmanager util renderinginterface pathgrid rendermode weaponanimation screenshotmanager
     bulletdebugdraw globalmap characterpreview camera viewovershoulder localmap water terrainstorage ripplesimulation
     renderbin actoranimation landmanager navmesh actorspaths recastmesh fogmanager objectpaging
     )
@@ -66,14 +66,14 @@ add_openmw_dir (mwworld
     cells localscripts customdata inventorystore ptr actionopen actionread actionharvest
     actionequip timestamp actionalchemy cellstore actionapply actioneat
     store esmstore recordcmp fallback actionrepair actionsoulgem livecellref actiondoor
-    contentloader esmloader actiontrap cellreflist cellref physicssystem weather projectilemanager
+    contentloader esmloader actiontrap cellreflist cellref weather projectilemanager
     cellpreloader datetimemanager
     )
 
 add_openmw_dir (mwphysics
     physicssystem trace collisiontype actor convert object heightfield closestnotmerayresultcallback
-    contacttestresultcallback deepestnotmecontacttestresultcallback stepper movementsolver
-    closestnotmeconvexresultcallback raycasting mtphysics
+    contacttestresultcallback deepestnotmecontacttestresultcallback stepper movementsolver projectile
+    actorconvexcallback raycasting mtphysics contacttestwrapper projectileconvexcallback
     )
 
 add_openmw_dir (mwclass
@@ -143,29 +143,26 @@ target_link_libraries(openmw
     components
 )
 
-if (ANDROID)
-    set (OSG_PLUGINS
-        -Wl,--whole-archive
-    )
-    foreach(PLUGIN_NAME ${USED_OSG_PLUGINS})
-        set(OSG_PLUGINS ${OSG_PLUGINS} ${OSG_PLUGINS_DIR}/lib${PLUGIN_NAME}.a)
+if(OSG_STATIC)
+    unset(_osg_plugins_static_files)
+    add_library(openmw_osg_plugins INTERFACE)
+    foreach(_plugin ${USED_OSG_PLUGINS})
+        string(TOUPPER ${_plugin} _plugin_uc)
+        if (${_plugin_uc}_LIBRARY MATCHES "[/.]")
+            list(APPEND _osg_plugins_static_files ${${_plugin_uc}_LIBRARY})
+        else()
+            list(APPEND _osg_plugins_static_files $<TARGET_FILE:${${_plugin_uc}_LIBRARY}>)
+        endif()
+        target_link_libraries(openmw_osg_plugins INTERFACE ${${_plugin_uc}_LIBRARY})
     endforeach()
+    # We use --whole-archive because OSG plugins use registration.
+    get_whole_archive_options(_opts ${_osg_plugins_static_files})
+    target_link_options(openmw_osg_plugins INTERFACE ${_opts})
+    target_link_libraries(openmw openmw_osg_plugins)
+endif(OSG_STATIC)
 
-    set (OSG_PLUGINS
-        ${OSG_PLUGINS} -Wl,--no-whole-archive
-    )
-
-    target_link_libraries(openmw
-        EGL
-        android
-        log
-        dl
-        z
-        ${OPENSCENEGRAPH_LIBRARIES}
-        freetype
-        jpeg
-    	png
-    )
+if (ANDROID)
+    target_link_libraries(openmw EGL android log z)
 endif (ANDROID)
 
 if (USE_SYSTEM_TINYXML)

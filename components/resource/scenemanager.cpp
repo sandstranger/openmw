@@ -25,6 +25,7 @@
 #include <components/sceneutil/util.hpp>
 #include <components/sceneutil/controller.hpp>
 #include <components/sceneutil/optimizer.hpp>
+#include <components/sceneutil/visitor.hpp>
 
 #include <components/shader/shadervisitor.hpp>
 #include <components/shader/shadermanager.hpp>
@@ -110,6 +111,10 @@ namespace
 
 namespace Resource
 {
+    void TemplateMultiRef::addRef(const osg::Node* node)
+    {
+        mObjects.emplace_back(node);
+    }
 
     class SharedStateManager : public osgDB::SharedStateManager
     {
@@ -243,9 +248,9 @@ namespace Resource
         return mForceShaders;
     }
 
-    void SceneManager::recreateShaders(osg::ref_ptr<osg::Node> node, const std::string& shaderPrefix)
+    void SceneManager::recreateShaders(osg::ref_ptr<osg::Node> node, const std::string& shaderPrefix, bool translucentFramebuffer)
     {
-        osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor(createShaderVisitor(shaderPrefix));
+        osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor(createShaderVisitor(shaderPrefix, translucentFramebuffer));
         shaderVisitor->setAllowedToModifyStateSets(false);
         node->accept(*shaderVisitor);
     }
@@ -367,6 +372,14 @@ namespace Resource
                 errormsg << "Error loading " << normalizedFilename << ": " << result.message() << " code " << result.status() << std::endl;
                 throw std::runtime_error(errormsg.str());
             }
+
+            // Recognize and hide collision node
+            unsigned int hiddenNodeMask = 0;
+            SceneUtil::FindByNameVisitor nameFinder("Collision");
+            result.getNode()->accept(nameFinder);
+            if (nameFinder.mFoundNode)
+                nameFinder.mFoundNode->setNodeMask(hiddenNodeMask);
+
             return result.getNode();
         }
     }
@@ -384,7 +397,8 @@ namespace Resource
             {
                 const char* reserved[] = {"Head", "Neck", "Chest", "Groin", "Right Hand", "Left Hand", "Right Wrist", "Left Wrist", "Shield Bone", "Right Forearm", "Left Forearm", "Right Upper Arm",
                                           "Left Upper Arm", "Right Foot", "Left Foot", "Right Ankle", "Left Ankle", "Right Knee", "Left Knee", "Right Upper Leg", "Left Upper Leg", "Right Clavicle",
-                                          "Left Clavicle", "Weapon Bone", "Tail", "Bip01", "Root Bone", "BoneOffset", "AttachLight", "Arrow", "Camera"};
+                                          "Left Clavicle", "Weapon Bone", "Tail", "Bip01", "Root Bone", "BoneOffset", "AttachLight", "Arrow", "Camera", "Collision", "Right_Wrist", "Left_Wrist",
+                                          "Shield_Bone", "Right_Forearm", "Left_Forearm", "Right_Upper_Arm", "Left_Clavicle", "Weapon_Bone", "Root_Bone"};
 
                 reservedNames = std::vector<std::string>(reserved, reserved + sizeof(reserved)/sizeof(reserved[0]));
 
@@ -553,20 +567,6 @@ namespace Resource
         mInstanceCache->addEntryToObjectCache(normalized, node.get());
         return node;
     }
-
-    class TemplateRef : public osg::Object
-    {
-    public:
-        TemplateRef(const Object* object)
-            : mObject(object) {}
-        TemplateRef() {}
-        TemplateRef(const TemplateRef& copy, const osg::CopyOp&) : mObject(copy.mObject) {}
-
-        META_Object(Resource, TemplateRef)
-
-    private:
-        osg::ref_ptr<const Object> mObject;
-    };
 
     osg::ref_ptr<osg::Node> SceneManager::createInstance(const std::string& name)
     {
@@ -759,7 +759,7 @@ namespace Resource
         stats->setAttribute(frameNumber, "Node Instance", mInstanceCache->getCacheSize());
     }
 
-    Shader::ShaderVisitor *SceneManager::createShaderVisitor(const std::string& shaderPrefix)
+    Shader::ShaderVisitor *SceneManager::createShaderVisitor(const std::string& shaderPrefix, bool translucentFramebuffer)
     {
         Shader::ShaderVisitor* shaderVisitor = new Shader::ShaderVisitor(*mShaderManager.get(), *mImageManager, shaderPrefix+"_vertex.glsl", shaderPrefix+"_fragment.glsl");
         shaderVisitor->setForceShaders(mForceShaders);
@@ -769,6 +769,7 @@ namespace Resource
         shaderVisitor->setAutoUseSpecularMaps(mAutoUseSpecularMaps);
         shaderVisitor->setSpecularMapPattern(mSpecularMapPattern);
         shaderVisitor->setApplyLightingToEnvMaps(mApplyLightingToEnvMaps);
+        shaderVisitor->setTranslucentFramebuffer(translucentFramebuffer);
         return shaderVisitor;
     }
 
