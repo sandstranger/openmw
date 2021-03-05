@@ -1,120 +1,139 @@
 #version 120
 
-#define PER_PIXEL_LIGHTING 0
+#define GROUNDCOVER
 
-#define GRASS
-
-#include "helpsettings.glsl"
+attribute vec4 aOffset;
+attribute vec3 aRotation;
 
 #if @diffuseMap
 varying vec2 diffuseMapUV;
 #endif
 
-varying float depth;
-#if !@radialFog
+#if @normalMap
+varying vec2 normalMapUV;
+varying vec4 passTangent;
+#endif
+
+// Other shaders respect forcePPL, but legacy groundcover mods were designed to work with vertex lighting.
+// They may do not look as intended with per-pixel lighting, so ignore this setting for now.
+#define PER_PIXEL_LIGHTING @normalMap
+
+varying float euclideanDepth;
 varying float linearDepth;
-#endif
 
-#ifdef HEIGHT_FOG
-varying vec3 fogH;
-#endif
-
-#if @underwaterFog
+#if PER_PIXEL_LIGHTING
 varying vec3 passViewPos;
-#endif
-
-uniform int colorMode;
-centroid varying vec4 lighting;
-#ifdef LINEAR_LIGHTING
-  #include "linear_lighting.glsl"
+varying vec3 passNormal;
 #else
-  #include "lighting.glsl"
+centroid varying vec3 passLighting;
+centroid varying vec3 shadowDiffuseLighting;
 #endif
 
-uniform mat4 osg_ViewMatrixInverse;
-uniform float osg_SimulationTime;
+#include "shadows_vertex.glsl"
+#include "lighting.glsl"
 
+uniform float osg_SimulationTime;
+uniform mat4 osg_ViewMatrixInverse;
+uniform mat4 osg_ViewMatrix;
 uniform float windSpeed;
 uniform vec3 playerPos;
-attribute float originalCoords;
 
-#ifdef STORM_MODE
-uniform vec2 stormDir;
-#endif
-
-vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
+vec2 groundcoverDisplacement(in vec3 worldpos, float h)
 {
-    float h = originalCoords;
+    vec2 windDirection = vec2(1.0);
+    vec3 footPos = playerPos;
+    vec3 windVec = vec3(windSpeed * windDirection, 1.0);
 
-    vec4 worldPos = osg_ViewMatrixInverse * vec4(viewPos, 1.0);
-
-    vec2 WindVec = vec2(windSpeed);
-
-    float v = length(WindVec);
-    vec2 displace = vec2(2.0 * WindVec + 0.1);
-
+    float v = length(windVec);
+    vec2 displace = vec2(2.0 * windVec + 0.1);
     vec2 harmonics = vec2(0.0);
 
-    harmonics.xy += vec2((1.0 - 0.10*v) * sin(1.0*osg_SimulationTime +  worldPos.xy / 1100.0));
-    harmonics.xy += vec2((1.0 - 0.04*v) * cos(2.0*osg_SimulationTime +  worldPos.xy / 750.0));
-    harmonics.xy += vec2((1.0 + 0.14*v) * sin(3.0*osg_SimulationTime +  worldPos.xy / 500.0));
-    harmonics.xy += vec2((1.0 + 0.28*v) * sin(5.0*osg_SimulationTime  +  worldPos.xy / 200.0));
+    harmonics += vec2((1.0 - 0.10*v) * sin(1.0*osg_SimulationTime + worldpos.xy / 1100.0));
+    harmonics += vec2((1.0 - 0.04*v) * cos(2.0*osg_SimulationTime + worldpos.xy / 750.0));
+    harmonics += vec2((1.0 + 0.14*v) * sin(3.0*osg_SimulationTime + worldpos.xy / 500.0));
+    harmonics += vec2((1.0 + 0.28*v) * sin(5.0*osg_SimulationTime + worldpos.xy / 200.0));
 
-    float d = length(worldPos.xyz - playerPos);
+    float d = length(worldpos - footPos.xyz);
     vec3 stomp = vec3(0.0);
-    if(d < 150.0) stomp = (60.0 / d - 0.4) * (worldPos.xyz - playerPos);
+    if (d < 150.0 && d > 0.0)
+    {
+        stomp = (60.0 / d - 0.4) * (worldpos - footPos.xyz);
+    }
 
-    vec4 ret = vec4(0.0);
-    ret.xy += clamp(0.02 * h, 0.0, 1.0) * (harmonics * displace + stomp.xy);
+    return clamp(0.02 * h, 0.0, 1.0) * (harmonics * displace + stomp.xy);
+}
 
-#ifdef STORM_MODE
-    if(stormDir != vec2(0.0) && h > 0.0) {
-        ret.xy += h*stormDir;
-        ret.z -= length(ret.xy)/3.14;
-        ret.z -= sin(osg_SimulationTime * min(h, 150.0) / 10.0) * length(stormDir);
-     }
-#endif
+mat4 rotation(in vec3 angle)
+{
+    float sin_x = sin(angle.x);
+    float cos_x = cos(angle.x);
+    float sin_y = sin(angle.y);
+    float cos_y = cos(angle.y);
+    float sin_z = sin(angle.z);
+    float cos_z = cos(angle.z);
 
-    return vertex + ret;
+    return mat4(
+        cos_z*cos_y+sin_x*sin_y*sin_z, -sin_z*cos_x, cos_z*sin_y+sin_z*sin_x*cos_y, 0.0,
+        sin_z*cos_y+cos_z*sin_x*sin_y, cos_z*cos_x, sin_z*sin_y-cos_z*sin_x*cos_y, 0.0,
+        -sin_y*cos_x, sin_x, cos_x*cos_y, 0.0,
+        0.0, 0.0, 0.0, 1.0);
+}
+
+mat3 rotation3(in mat4 rot4)
+{
+    return mat3(
+        rot4[0].xyz,
+        rot4[1].xyz,
+        rot4[2].xyz);
 }
 
 void main(void)
 {
-    vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
-    gl_Position = gl_ModelViewProjectionMatrix * grassDisplacement(viewPos.xyz, gl_Vertex);
+    vec3 position = aOffset.xyz;
+    float scale = aOffset.w;
+
+    mat4 rotation = rotation(aRotation);
+    vec4 displacedVertex = rotation * scale * gl_Vertex;
+
+    displacedVertex = vec4(displacedVertex.xyz + position, 1.0);
+
+    vec4 worldPos = osg_ViewMatrixInverse * gl_ModelViewMatrix * displacedVertex;
+    worldPos.xy += groundcoverDisplacement(worldPos.xyz, gl_Vertex.z);
+    vec4 viewPos = osg_ViewMatrix * worldPos;
 
     gl_ClipVertex = viewPos;
-    depth = length(viewPos.xyz);
+    euclideanDepth = length(viewPos.xyz);
 
-#if !@radialFog
+    if (length(gl_ModelViewMatrix * vec4(position, 1.0)) > @groundcoverFadeEnd)
+        gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+    else
+        gl_Position = gl_ProjectionMatrix * viewPos;
+
     linearDepth = gl_Position.z;
+
+#if (!PER_PIXEL_LIGHTING || @shadows_enabled)
+    vec3 viewNormal = normalize((gl_NormalMatrix * rotation3(rotation) * gl_Normal).xyz);
 #endif
 
 #if @diffuseMap
     diffuseMapUV = (gl_TextureMatrix[@diffuseMapUV] * gl_MultiTexCoord@diffuseMapUV).xy;
 #endif
 
-    vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
-    lighting = doLighting(viewPos.xyz, viewNormal, vec4(1.0));
+#if @normalMap
+    normalMapUV = (gl_TextureMatrix[@normalMapUV] * gl_MultiTexCoord@normalMapUV).xy;
+    passTangent = gl_MultiTexCoord7.xyzw * rotation;
+#endif
 
-#if @underwaterFog
+#if PER_PIXEL_LIGHTING
     passViewPos = viewPos.xyz;
+    passNormal = rotation3(rotation) * gl_Normal.xyz;
+#else
+    vec3 diffuseLight, ambientLight;
+    doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
+    passLighting = diffuseLight + ambientLight;
 #endif
 
-#ifdef HEIGHT_FOG
-    fogH = (osg_ViewMatrixInverse * viewPos).xyz;
-#endif
-
-#ifdef UNDERWATER_DISTORTION
-if(osg_ViewMatrixInverse[3].z < -1.0 && gl_LightSource[0].diffuse.x != 0.0)
-{
-    vec2 harmonics;
-    vec4 wP = osg_ViewMatrixInverse * vec4(viewPos.xyz, 1.0);
-    harmonics += vec2(sin(1.0*osg_SimulationTime + wP.xy / 1100.0));
-    harmonics += vec2(cos(2.0*osg_SimulationTime + wP.xy / 750.0));
-    harmonics += vec2(sin(3.0*osg_SimulationTime + wP.xy / 500.0));
-    harmonics += vec2(sin(5.0*osg_SimulationTime + wP.xy / 200.0));
-    gl_Position.xy += (depth * 0.003) * harmonics;
-}
+#if (@shadows_enabled)
+    setupShadowCoords(viewPos, viewNormal);
 #endif
 }

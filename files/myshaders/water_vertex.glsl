@@ -4,7 +4,12 @@ varying vec3  screenCoordsPassthrough;
 varying vec4  position;
 varying float linearDepth;
 
-#include "shadows_vertex.glsl"
+#include "helpsettings.glsl"
+
+#ifdef HEIGHT_FOG
+varying vec3 fogH;
+uniform mat4 osg_ViewMatrixInverse;
+#endif
 
 void main(void)
 {
@@ -22,5 +27,8 @@ void main(void)
 
     linearDepth = gl_Position.z;
 
-    setupShadowCoords(gl_ModelViewMatrix * gl_Vertex, normalize((gl_NormalMatrix * gl_Normal).xyz));
+
+#ifdef HEIGHT_FOG
+    fogH = (osg_ViewMatrixInverse * (gl_ModelViewMatrix * gl_Vertex)).xyz;
+#endif
 }
