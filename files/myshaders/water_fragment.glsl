@@ -137,6 +137,7 @@ uniform sampler2D normalMap;
 uniform sampler2D reflectionMap;
 #if REFRACTION
 uniform sampler2D refractionMap;
+uniform sampler2D refractionDepthMap;
 #endif
 
 uniform float near;
@@ -206,7 +207,25 @@ void main(void)
 
     float radialise = 1.0;
 
-    vec2 screenCoordsOffset = normal.xy * REFL_BUMP;
+#if @radialFog
+    float radialDepth = distance(position.xyz, cameraPos);
+    // TODO: Figure out how to properly radialise refraction depth and thus underwater fog
+    // while avoiding oddities when the water plane is close to the clipping plane
+    // radialise = radialDepth / linearDepth;
+#endif
+
+#if @refraction_depth_enabled
+
+   	 vec2 screenCoordsOffset = normal.xy * REFL_BUMP;
+#if REFRACTION
+   	 float depthSample = linearizeDepth(texture2D(refractionDepthMap,screenCoords).x) * radialise;
+    	float depthSampleDistorted = linearizeDepth(texture2D(refractionDepthMap,screenCoords-screenCoordsOffset).x) * radialise;
+    	float surfaceDepth = linearizeDepth(gl_FragCoord.z) * radialise;
+    	float realWaterDepth = depthSample - surfaceDepth;  // undistorted water depth in view direction, independent of frustum
+    	screenCoordsOffset *= clamp(realWaterDepth / BUMP_SUPPRESS_DEPTH,0,1);
+#endif
+
+#endif
 
     // reflection
     vec3 reflection = texture2D(reflectionMap, screenCoords + screenCoordsOffset).rgb;
@@ -216,10 +235,6 @@ void main(void)
 
     vec3 waterColor = WATER_COLOR * sunFade;
 
-#if @radialFog
-        float radialDepth = distance(position.xyz, cameraPos);
-#endif
-
 #if REFRACTION
     // refraction
     vec3 refraction = texture2D(refractionMap, screenCoords - screenCoordsOffset).rgb;
@@ -228,11 +243,17 @@ void main(void)
     if (cameraPos.z < 0.0)
         refraction = clamp(refraction * 1.5, 0.0, 1.0);
     else
-#if @radialFog
-        refraction = mix(refraction, waterColor, clamp(radialDepth/VISIBILITY, 0.7, 1.0));
+
+#if @refraction_depth_enabled
+        refraction = mix(refraction, waterColor, clamp(depthSampleDistorted/VISIBILITY, 0.0, 1.0));
 #else
-        refraction = mix(refraction, waterColor, clamp(distance(position.xyz, cameraPos)/VISIBILITY, 0.7, 1.0));
+	#if @radialFog
+		refraction = mix(refraction, waterColor, clamp(radialDepth/VISIBILITY, 0.7, 1.0));
+	#else
+        	refraction = mix(refraction, waterColor, clamp(distance(position.xyz, cameraPos)/VISIBILITY, 0.7, 1.0));
+	#endif
 #endif
+
 
     // sunlight scattering
     // normal for sunlight scattering

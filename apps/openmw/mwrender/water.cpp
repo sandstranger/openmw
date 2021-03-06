@@ -596,9 +596,12 @@ void Water::createSimpleWaterStateSet(osg::Node* node, float alpha)
 
 void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, Refraction* refraction)
 {
+    bool depth_enabled = Settings::Manager::getBool("refraction depth map", "Water");
+
     // use a define map to conditionally compile the shader
     std::map<std::string, std::string> defineMap;
     defineMap.insert(std::make_pair(std::string("refraction_enabled"), std::string(refraction ? "1" : "0")));
+    defineMap.insert(std::make_pair(std::string("refraction_depth_enabled"), std::string(depth_enabled ? "1" : "0")));
 
     Shader::ShaderManager& shaderMgr = mResourceSystem->getSceneManager()->getShaderManager();
     osg::ref_ptr<osg::Shader> vertexShader (shaderMgr.getShader("water_vertex.glsl", defineMap, osg::Shader::VERTEX));
@@ -624,7 +627,7 @@ void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, R
     if (refraction)
     {
         shaderStateset->setTextureAttributeAndModes(2, refraction->getRefractionTexture(), osg::StateAttribute::ON);
-	if (Settings::Manager::getBool("refraction depth map", "Water") == true)
+	if (depth_enabled)
 	{
 		shaderStateset->setTextureAttributeAndModes(3, refraction->getRefractionDepthTexture(), osg::StateAttribute::ON);
 		shaderStateset->addUniform(new osg::Uniform("refractionDepthMap", 3));
