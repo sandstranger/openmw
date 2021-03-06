@@ -137,7 +137,11 @@ uniform sampler2D normalMap;
 uniform sampler2D reflectionMap;
 #if REFRACTION
 uniform sampler2D refractionMap;
-uniform sampler2D refractionDepthMap;
+
+#if @refraction_depth_enabled
+    uniform sampler2D refractionDepthMap;
+#endif
+
 #endif
 
 uniform float near;
@@ -214,11 +218,12 @@ void main(void)
     // radialise = radialDepth / linearDepth;
 #endif
 
+   	 vec2 screenCoordsOffset = normal.xy * REFL_BUMP;
+
 #if @refraction_depth_enabled
 
-   	 vec2 screenCoordsOffset = normal.xy * REFL_BUMP;
 #if REFRACTION
-   	 float depthSample = linearizeDepth(texture2D(refractionDepthMap,screenCoords).x) * radialise;
+	float depthSample = linearizeDepth(texture2D(refractionDepthMap,screenCoords).x) * radialise;
     	float depthSampleDistorted = linearizeDepth(texture2D(refractionDepthMap,screenCoords-screenCoordsOffset).x) * radialise;
     	float surfaceDepth = linearizeDepth(gl_FragCoord.z) * radialise;
     	float realWaterDepth = depthSample - surfaceDepth;  // undistorted water depth in view direction, independent of frustum
@@ -247,10 +252,11 @@ void main(void)
 #if @refraction_depth_enabled
         refraction = mix(refraction, waterColor, clamp(depthSampleDistorted/VISIBILITY, 0.0, 1.0));
 #else
+	//mmm it seems doesnt work right now
 	#if @radialFog
 		refraction = mix(refraction, waterColor, clamp(radialDepth/VISIBILITY, 0.7, 1.0));
 	#else
-        	refraction = mix(refraction, waterColor, clamp(distance(position.xyz, cameraPos)/VISIBILITY, 0.7, 1.0));
+		refraction = mix(refraction, waterColor, clamp(distance(position.xyz, cameraPos)/VISIBILITY, 0.7, 1.0));
 	#endif
 #endif
 
