@@ -13,10 +13,11 @@ struct PointLight
 };
 
 uniform int PointLightCount;
+uniform int PointLightIndex[@maxLights];
 
 layout(std140) uniform PointLightBuffer
 {
-    PointLight PointLights[@maxLights];
+    PointLight PointLights[@maxLightsInScene];
 };
 
 #else
@@ -55,7 +56,7 @@ void perLightPoint(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec
 #if @ffpLighting
     float illumination = clamp(1.0 / (getLight[lightIndex].constantAttenuation + getLight[lightIndex].linearAttenuation * lightDistance + getLight[lightIndex].quadraticAttenuation * lightDistance * lightDistance), 0.0, 1.0);
 #else 
-    float illumination = clamp(1.0 / (getLight[lightIndex].attenuation.x + getLight[lightIndex].attenuation.y * lightDistance + getLight[lightIndex].attenuation.z * lightDistance * lightDistance), 0.0, 1.0);
+    float illumination = clamp(1.0 / (getLight[lightIndex].attenuation.x + getLight[lightIndex].attenuation.y * lightDistance + getLight[lightIndex].attenuation.z * lightDistance * lightDistance), 0, 1);
 #endif
 
     ambientOut = getLight[lightIndex].ambient.xyz * illumination;
@@ -72,6 +73,7 @@ void perLightPoint(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec
     }
     lambert *= clamp(-8.0 * (1.0 - 0.3) * eyeCosine + 1.0, 0.3, 1.0);
 #endif
+
     diffuseOut = getLight[lightIndex].diffuse.xyz * lambert;
 }
 
@@ -98,11 +100,13 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
     ambientLight += ambientOut;
     diffuseLight += diffuseOut;
     for (int i=0; i<PointLightCount; ++i)
+    {
+        perLightPoint(ambientOut, diffuseOut, PointLightIndex[i], viewPos, viewNormal);
 #else
     for (int i=0; i<@maxLights; ++i)
-#endif
     {
         perLightPoint(ambientOut, diffuseOut, i, viewPos, viewNormal);
+#endif
         ambientLight += ambientOut;
         diffuseLight += diffuseOut;
     }

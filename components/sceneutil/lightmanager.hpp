@@ -2,13 +2,15 @@
 #define OPENMW_COMPONENTS_SCENEUTIL_LIGHTMANAGER_H
 
 #include <set>
+#include <cassert>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <osg/Light>
 
 #include <osg/Group>
 #include <osg/NodeVisitor>
 #include <osg/observer_ptr>
-#include <osg/BufferIndexBinding>
 
 #include <components/shader/shadermanager.hpp>
 
@@ -17,9 +19,16 @@ namespace osgUtil
     class CullVisitor;
 }
 
+namespace osg
+{
+    class UniformBufferBinding;
+    class UniformBufferObject;
+}
+
 namespace SceneUtil
 {
     class SunlightBuffer;
+    class PointLightBuffer;
 
     // Used to override sun. Rarely useful but necassary for local map. 
     class SunlightStateAttribute : public osg::StateAttribute
@@ -119,7 +128,7 @@ namespace SceneUtil
             osg::BoundingSphere mViewBound;
         };
 
-        typedef std::vector<const LightSourceViewBound*> LightList;
+        using LightList = std::vector<const LightSourceViewBound*>;
 
         static bool queryNonFFPLightingSupport();
 
@@ -146,8 +155,6 @@ namespace SceneUtil
         /// Internal use only, called automatically by the LightSource's UpdateCallback
         void addLight(LightSource* lightSource, const osg::Matrixf& worldMat, size_t frameNum);
 
-        const std::vector<LightSourceTransform>& getLights() const;
-
         const std::vector<LightSourceViewBound>& getLightsInViewSpace(osg::Camera* camera, const osg::RefMatrix* viewMatrix, size_t frameNum);
 
         osg::ref_ptr<osg::StateSet> getLightListStateSet(const LightList& lightList, size_t frameNum);
@@ -165,6 +172,37 @@ namespace SceneUtil
         Shader::ShaderManager::DefineMap getLightDefines() const;
 
     private:
+
+        friend class LightManagerStateAttribute;
+
+        void updateGPUPointLight(int index, osg::Light* light, int frameNum);
+
+        // For use of capacities >= 2, capacity must be set before use
+        // Tracks the ranges for compiling our GL buffer data
+        class RangeEncoder
+        {
+        public:
+
+            using RangeMap = std::map<int, int>;
+
+            void setCapacity(int size);
+
+            void reset();
+
+            void toggle(int index);
+
+            const RangeMap& getRanges() const;
+        
+        private:
+            bool shiftRight(int index);
+            bool shiftLeft(int index);
+
+            RangeMap::iterator findLeftMost(int index);
+
+            std::vector<bool> mMask;
+            RangeMap mRanges;
+        };
+
         // Lights collected from the scene graph. Only valid during the cull traversal.
         std::vector<LightSourceTransform> mLights;
 
@@ -184,6 +222,28 @@ namespace SceneUtil
         osg::ref_ptr<osg::Light> mSun;
         osg::ref_ptr<SunlightBuffer> mSunBuffer;
 
+        // TODO: we can pack this better
+        struct PointLightDataProxy
+        {
+            osg::Vec4 position;
+            osg::Vec4 ambient;
+            osg::Vec4 diffuse;
+            osg::Vec4 attenuation;
+        };
+
+        std::vector<PointLightDataProxy> mPointLightProxyData[2];
+        osg::ref_ptr<PointLightBuffer> mPointBuffer;
+
+        // < Light ID , Buffer Index >
+        using LightDataMap = std::unordered_map<int, int>;
+        LightDataMap mLightData[2];
+        
+        std::unordered_set<int> mUsedLights[2];
+
+        RangeEncoder mRangeEncoder[2];
+
+        bool mIndexNeedsRecompiling;
+        
         bool mFFP;
 
         static constexpr int mFFPMaxLights = 8;

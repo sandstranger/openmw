@@ -358,8 +358,8 @@ namespace Shader
             program->addBindAttribLocation("aRotation", 7);
             if (!mFFPLighting)
             {
-                program->addBindUniformBlock("PointLightBuffer", 8);
-                program->addBindUniformBlock("SunlightBuffer", 9);
+                program->addBindUniformBlock("SunlightBuffer", 0);
+                program->addBindUniformBlock("PointLightBuffer", 1);
             }
             found = mPrograms.insert(std::make_pair(std::make_pair(vertexShader, fragmentShader), program)).first;
         }
