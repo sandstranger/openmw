@@ -515,7 +515,7 @@ namespace SceneUtil
             
             state.applyModelViewMatrix(state.getInitialViewMatrix());
                         
-            for (int i = 0; i < mLightManager->mPointLightProxyData[frameIndex].size(); i++)
+            for (size_t i = 0; i < mLightManager->mPointLightProxyData[frameIndex].size(); i++)
             {
                 mLightManager->mPointBuffer->setValue(i, PointLightBuffer::Position, mLightManager->mPointLightProxyData[frameIndex][i].position * state.getInitialViewMatrix());
                 mLightManager->mPointBuffer->setValue(i, PointLightBuffer::Diffuse, mLightManager->mPointLightProxyData[frameIndex][i].diffuse);
@@ -600,7 +600,6 @@ namespace SceneUtil
         , mLightingMask(copy.mLightingMask)
         , mSun(copy.mSun)
         , mSunBuffer(copy.mSunBuffer)
-        , mRangeEncoder(copy.mRangeEncoder)
         , mFFP(copy.mFFP)
     {
     }
@@ -707,7 +706,7 @@ namespace SceneUtil
         lightSource->getLight(frameNum)->setPosition(osg::Vec4f(worldMat.getTrans().x(),
                                                         worldMat.getTrans().y(),
                                                         worldMat.getTrans().z(), 1.f));
-        if (mLights.size() < getMaxLightsInScene())
+        if (mLights.size() < static_cast<size_t>(getMaxLightsInScene()))
             mLights.emplace_back(l);
     }
 
