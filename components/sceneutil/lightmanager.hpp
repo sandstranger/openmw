@@ -68,6 +68,8 @@ namespace SceneUtil
 
         int mId;
 
+        float mBrightness[2];
+
     public:
 
         META_Node(SceneUtil, LightSource)
@@ -85,6 +87,16 @@ namespace SceneUtil
         void setRadius(float radius)
         {
             mRadius = radius;
+        }
+
+        float getBrightness(size_t frame)
+        {
+            return mBrightness[frame % 2];
+        }
+
+        void setBrightness(size_t frame, float brightness)
+        {
+            mBrightness[frame % 2] = brightness;
         }
 
         /// Get the osg::Light safe for modification in the given frame.
@@ -175,33 +187,7 @@ namespace SceneUtil
 
         friend class LightManagerStateAttribute;
 
-        void updateGPUPointLight(int index, osg::Light* light, int frameNum);
-
-        // For use of capacities >= 2, capacity must be set before use
-        // Tracks the ranges for compiling our GL buffer data
-        class RangeEncoder
-        {
-        public:
-
-            using RangeMap = std::map<int, int>;
-
-            void setCapacity(int size);
-
-            void reset();
-
-            void toggle(int index);
-
-            const RangeMap& getRanges() const;
-        
-        private:
-            bool shiftRight(int index);
-            bool shiftLeft(int index);
-
-            RangeMap::iterator findLeftMost(int index);
-
-            std::vector<bool> mMask;
-            RangeMap mRanges;
-        };
+        void updateGPUPointLight(int index, LightSource* lightSource, size_t frameNum);
 
         // Lights collected from the scene graph. Only valid during the cull traversal.
         std::vector<LightSourceTransform> mLights;
@@ -222,25 +208,18 @@ namespace SceneUtil
         osg::ref_ptr<osg::Light> mSun;
         osg::ref_ptr<SunlightBuffer> mSunBuffer;
 
-        // TODO: we can pack this better
-        struct PointLightDataProxy
+        struct PointLightProxyData
         {
-            osg::Vec4 position;
-            osg::Vec4 ambient;
-            osg::Vec4 diffuse;
-            osg::Vec4 attenuation;
+            osg::Vec4 mPosition;
+            float mBrightness;
         };
 
-        std::vector<PointLightDataProxy> mPointLightProxyData[2];
+        std::vector<PointLightProxyData> mPointLightProxyData;
         osg::ref_ptr<PointLightBuffer> mPointBuffer;
 
         // < Light ID , Buffer Index >
         using LightDataMap = std::unordered_map<int, int>;
-        LightDataMap mLightData[2];
-        
-        std::unordered_set<int> mUsedLights[2];
-
-        RangeEncoder mRangeEncoder[2];
+        LightDataMap mLightData;
 
         bool mIndexNeedsRecompiling;
         

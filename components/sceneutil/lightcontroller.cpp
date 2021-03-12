@@ -8,6 +8,12 @@
 
 #include <components/misc/rng.hpp>
 
+#include <components/resource/resourcesystem.hpp>
+#include <components/resource/scenemanager.hpp>
+
+#include "apps/openmw/mwbase/environment.hpp"
+#include "apps/openmw/mwbase/world.hpp"
+
 namespace SceneUtil
 {
 
@@ -62,7 +68,11 @@ namespace SceneUtil
                 mPhase = mPhase <= 0.5f ? 1.f : 0.25f;
         }
 
-        static_cast<SceneUtil::LightSource*>(node)->getLight(nv->getTraversalNumber())->setDiffuse(mDiffuseColor * mBrightness);
+        auto* lightSource = static_cast<SceneUtil::LightSource*>(node);
+        if (MWBase::Environment::get().getResourceSystem()->getSceneManager()->getFFPLighting())
+            lightSource->getLight(nv->getTraversalNumber())->setDiffuse(mDiffuseColor * mBrightness);
+        else
+            lightSource->setBrightness(nv->getTraversalNumber(), mBrightness);
 
         traverse(node, nv);
     }

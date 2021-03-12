@@ -39,75 +39,6 @@ namespace SceneUtil
 // Internal Data Structures
 ////////////////////////////////////////////////////////////////////////////////
 
-    void LightManager::RangeEncoder::setCapacity(int size)
-    {
-        mMask = std::vector<bool>(size, false);
-    }
-
-    void LightManager::RangeEncoder::reset()
-    {
-        std::fill(mMask.begin(), mMask.end(), false);
-        mRanges.clear();
-    }
-
-    bool LightManager::RangeEncoder::shiftRight(int index)
-    {
-        return (static_cast<size_t>(index) >= (mMask.size() - 1)) ? mMask.back() : mMask[index + 1];
-    }
-
-    bool LightManager::RangeEncoder::shiftLeft(int index)
-    {
-        return (index <= 0) ? mMask.front() : mMask[index - 1];
-    }
-
-    LightManager::RangeEncoder::RangeMap::iterator LightManager::RangeEncoder::findLeftMost(int index)
-    {
-        auto it = mRanges.begin();
-        for (; it != mRanges.end(); it++)
-        {
-            if (it->second == index)
-                return it;
-        }
-        return it;
-    }
-
-    const LightManager::RangeEncoder::RangeMap& LightManager::RangeEncoder::getRanges() const
-    {
-        return mRanges;
-    }
-
-    void LightManager::RangeEncoder::toggle(int index)
-    {
-        if (mMask[index])
-            return;
-
-        // 1 * 0
-        if (!shiftRight(index) && shiftLeft(index))
-        {
-            findLeftMost(index - 1)->second = index;
-        }
-        // 0 * 1
-        else if (!shiftLeft(index) && shiftRight(index))
-        {
-            auto rightIt = mRanges.find(index + 1);
-            mRanges.emplace(index, rightIt->second);
-            mRanges.erase(rightIt);
-        }
-        // 0 * 0
-        else if (!shiftLeft(index) && !shiftRight(index))
-        {
-            mRanges.emplace(index, index);
-        }
-        // 1 * 1
-        else
-        {
-            auto rightIt = mRanges.find(index + 1);
-            findLeftMost(index - 1)->second = rightIt->second;
-            mRanges.erase(rightIt);
-        }
-        mMask[index] = true;
-    }
-
     class LightBuffer : public osg::Referenced
     {
     public:
@@ -185,7 +116,7 @@ namespace SceneUtil
     {
     public:
 
-        enum Type {Diffuse, Ambient, Position, Attenuation};
+        enum Type {Position, Diffuse, Ambient, Attenuation};
 
         PointLightBuffer(int count)
             : LightBuffer(4, count)
@@ -508,39 +439,19 @@ namespace SceneUtil
 
         void apply(osg::State& state) const override
         {
-            
-            int frameIndex = !(state.getFrameStamp()->getFrameNumber()%2);
-
             osg::Matrix modelViewMatrix = state.getModelViewMatrix();
             
             state.applyModelViewMatrix(state.getInitialViewMatrix());
-                        
-            for (size_t i = 0; i < mLightManager->mPointLightProxyData[frameIndex].size(); i++)
+                                    
+            for (size_t i = 0; i < mLightManager->mPointLightProxyData.size(); i++)
             {
-                mLightManager->mPointBuffer->setValue(i, PointLightBuffer::Position, mLightManager->mPointLightProxyData[frameIndex][i].position * state.getInitialViewMatrix());
-                mLightManager->mPointBuffer->setValue(i, PointLightBuffer::Diffuse, mLightManager->mPointLightProxyData[frameIndex][i].diffuse);
-                mLightManager->mPointBuffer->setValue(i, PointLightBuffer::Ambient, mLightManager->mPointLightProxyData[frameIndex][i].ambient);
-                mLightManager->mPointBuffer->setValue(i, PointLightBuffer::Attenuation, mLightManager->mPointLightProxyData[frameIndex][i].attenuation);
+                auto& data = mLightManager->mPointLightProxyData[i];
+                auto pos = data.mPosition * state.getInitialViewMatrix();
+                pos[3] = data.mBrightness;
+                mLightManager->mPointBuffer->setValue(i, PointLightBuffer::Position, pos);
             }
-            
-            // over and out, bon voyage, knock em dead, break a leg, pitter patter!
-            if (!mLightManager->mIndexNeedsRecompiling)
-            {
-                auto& buf = mLightManager->mPointBuffer;
-                osg::GLExtensions* ext = state.get<osg::GLExtensions>();
-                osg::GLBufferObject* glBufferObject = buf->getData()->getOrCreateGLBufferObject(state.getContextID());
-
-                ext->glBindBuffer(GL_UNIFORM_BUFFER, glBufferObject->getGLObjectID());
-                for (const auto& range : mLightManager->mRangeEncoder[frameIndex].getRanges())
-                {
-                    int offset = PointLightBuffer::queryBlockSize(1) * range.first;
-                    int size = PointLightBuffer::queryBlockSize((range.second - range.first) + 1);
-                    glBufferObject->_extensions->glBufferSubData(GL_UNIFORM_BUFFER, offset, size, ((char*)(buf->getData()->getDataPointer()) + offset));
-                }
-                ext->glBindBuffer(GL_UNIFORM_BUFFER, 0);
-            }
-                
             state.applyModelViewMatrix(modelViewMatrix);
+            mLightManager->mPointBuffer->dirty();
         }
 
         LightManager* mLightManager;
@@ -579,10 +490,7 @@ namespace SceneUtil
             stateset->setAttributeAndModes(ubb.get(), osg::StateAttribute::ON);
         }
 
-        mRangeEncoder[0].setCapacity(getMaxLightsInScene());
-        mRangeEncoder[1].setCapacity(getMaxLightsInScene());
-        mPointLightProxyData[0].resize(getMaxLightsInScene());
-        mPointLightProxyData[1].resize(getMaxLightsInScene());
+        mPointLightProxyData.resize(getMaxLightsInScene());
 
         stateset->setMode(GL_LIGHTING, osg::StateAttribute::OFF|osg::StateAttribute::OVERRIDE);
         stateset->setAttribute(new LightManagerStateAttribute(this), osg::StateAttribute::ON);
@@ -732,14 +640,7 @@ namespace SceneUtil
         // possible optimization: return a StateSet containing all requested lights plus some extra lights (if a suitable one exists)
         size_t hash = 0;
         for (size_t i=0; i<lightList.size();++i)
-        {
-            auto it = mLightData[frameNum%2].find(lightList[i]->mLightSource->getId());
-            if (it != mLightData[frameNum%2].end())
-            {
-                mRangeEncoder[frameNum%2].toggle(it->second);
-            }
             hash_combine(hash, lightList[i]->mLightSource->getId());
-        }
 
         LightStateSetMap& stateSetCache = mStateSetCache[frameNum%2];
         
@@ -777,8 +678,8 @@ namespace SceneUtil
                 int validCount = 0;
                 for (size_t i = 0; i < lightList.size(); ++i)
                 {
-                    auto it = mLightData[frameNum%2].find(lightList[i]->mLightSource->getId());
-                    if (it != mLightData[frameNum%2].end())
+                    auto it = mLightData.find(lightList[i]->mLightSource->getId());
+                    if (it != mLightData.end())
                         indices->at(validCount++) = it->second;
                 }
                 indicesUni->setArray(indices);
@@ -815,40 +716,42 @@ namespace SceneUtil
 
                 auto* light = l.mLightSource->getLight(frameNum);
 
-                // we don't need to recompile our indices, but the light likely has
-                // changed from previous frame
-                auto dataIt = mLightData[frameNum%2].find(l.mLightSource->getId());
-                if (dataIt != mLightData[frameNum%2].end())
+                auto dataIt = mLightData.find(l.mLightSource->getId());
+                if (dataIt != mLightData.end())
                 {
-                    updateGPUPointLight(dataIt->second, light, frameNum);
+                    mPointLightProxyData[dataIt->second].mPosition = light->getPosition();
+                    mPointLightProxyData[dataIt->second].mBrightness = l.mLightSource->getBrightness(frameNum);
+                    mPointBuffer->setValue(dataIt->second, PointLightBuffer::Diffuse, light->getDiffuse());
                     continue;
                 }
 
-                if (mLightData[frameNum%2].size() >= static_cast<size_t>(getMaxLightsInScene()))
+                if (mLightData.size() >= static_cast<size_t>(getMaxLightsInScene()))
                 {
                     mIndexNeedsRecompiling = true;
-                    mLightData[frameNum%2].clear();
-                    mRangeEncoder[frameNum%2].reset();
+                    mLightData.clear();
                 }
 
-                int index = mLightData[frameNum%2].size();
-                updateGPUPointLight(index, light, frameNum);
-                mLightData[frameNum%2].emplace(l.mLightSource->getId(), index);
+                int index = mLightData.size();
+                updateGPUPointLight(index, l.mLightSource, frameNum);
+                mLightData.emplace(l.mLightSource->getId(), index);
             }
         }
         return it->second;
     }
 
-    void LightManager::updateGPUPointLight(int index, osg::Light* light, int frameNum)
+    void LightManager::updateGPUPointLight(int index, LightSource* lightSource, size_t frameNum)
     {
-        mPointLightProxyData[frameNum%2][index].position = light->getPosition();
-        mPointLightProxyData[frameNum%2][index].diffuse = light->getDiffuse();
-        mPointLightProxyData[frameNum%2][index].ambient = light->getAmbient();
-        mPointLightProxyData[frameNum%2][index].attenuation = osg::Vec4(light->getConstantAttenuation(), light->getLinearAttenuation(), light->getQuadraticAttenuation(), 0.0);
+        auto* light = lightSource->getLight(frameNum);
+        mPointLightProxyData[index].mPosition = light->getPosition();
+        mPointLightProxyData[index].mBrightness = lightSource->getBrightness(frameNum);
+        mPointBuffer->setValue(index, PointLightBuffer::Diffuse, light->getDiffuse());
+        mPointBuffer->setValue(index, PointLightBuffer::Ambient, light->getAmbient());
+        mPointBuffer->setValue(index, PointLightBuffer::Attenuation, osg::Vec4(light->getConstantAttenuation(), light->getLinearAttenuation(), light->getQuadraticAttenuation(), lightSource->getRadius()));
     }
 
     LightSource::LightSource()
         : mRadius(0.f)
+        , mBrightness{1.0,1.0}
     {
         setUpdateCallback(new CollectLightCallback);
         mId = sLightId++;
@@ -900,7 +803,7 @@ namespace SceneUtil
             // Don't use Camera::getViewMatrix, that one might be relative to another camera!
             const osg::RefMatrix* viewMatrix = cv->getCurrentRenderStage()->getInitialViewMatrix();
             const std::vector<LightManager::LightSourceViewBound>& lights = mLightManager->getLightsInViewSpace(cv->getCurrentCamera(), viewMatrix, mLastFrameNumber);
-
+            
             // get the node bounds in view space
             // NB do not node->getBound() * modelView, that would apply the node's transformation twice
             osg::BoundingSphere nodeBound;
@@ -964,7 +867,6 @@ namespace SceneUtil
             }
             else
                 stateset = mLightManager->getLightListStateSet(mLightList, cv->getTraversalNumber());
-
 
             cv->pushStateSet(stateset);
             return true;
