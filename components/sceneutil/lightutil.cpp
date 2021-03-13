@@ -58,7 +58,7 @@ namespace SceneUtil
         light->setQuadraticAttenuation(quadraticAttenuation);
     }
 
-    void addLight (osg::Group* node, const ESM::Light* esmLight, unsigned int partsysMask, unsigned int lightMask, bool isExterior)
+    void addLight (osg::Group* node, const ESM::Light* esmLight, unsigned int partsysMask, unsigned int lightMask, bool isExterior, bool useFFPLighting)
     {
         SceneUtil::FindByNameVisitor visitor("AttachLight");
         node->accept(visitor);
@@ -85,11 +85,11 @@ namespace SceneUtil
             attachTo = trans;
         }
 
-        osg::ref_ptr<LightSource> lightSource = createLightSource(esmLight, lightMask, isExterior);
+        osg::ref_ptr<LightSource> lightSource = createLightSource(esmLight, lightMask, isExterior, osg::Vec4f(0,0,0,1), useFFPLighting);
         attachTo->addChild(lightSource);
     }
 
-    osg::ref_ptr<LightSource> createLightSource(const ESM::Light* esmLight, unsigned int lightMask, bool isExterior, const osg::Vec4f& ambient)
+    osg::ref_ptr<LightSource> createLightSource(const ESM::Light* esmLight, unsigned int lightMask, bool isExterior, const osg::Vec4f& ambient, bool useFFPLighting)
     {
         osg::ref_ptr<SceneUtil::LightSource> lightSource (new SceneUtil::LightSource);
         osg::ref_ptr<osg::Light> light (new osg::Light);
@@ -112,7 +112,7 @@ namespace SceneUtil
 
         lightSource->setLight(light);
 
-        osg::ref_ptr<SceneUtil::LightController> ctrl (new SceneUtil::LightController);
+        osg::ref_ptr<SceneUtil::LightController> ctrl (new SceneUtil::LightController(useFFPLighting));
         ctrl->setDiffuse(light->getDiffuse());
         if (esmLight->mData.mFlags & ESM::Light::Flicker)
             ctrl->setType(SceneUtil::LightController::LT_Flicker);

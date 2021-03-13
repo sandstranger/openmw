@@ -8,22 +8,17 @@
 
 #include <components/misc/rng.hpp>
 
-#include <components/resource/resourcesystem.hpp>
-#include <components/resource/scenemanager.hpp>
-
-#include "apps/openmw/mwbase/environment.hpp"
-#include "apps/openmw/mwbase/world.hpp"
-
 namespace SceneUtil
 {
 
-    LightController::LightController()
+    LightController::LightController(bool useFFPLighting)
         : mType(LT_Normal)
         , mPhase(0.25f + Misc::Rng::rollClosedProbability() * 0.75f)
         , mBrightness(0.675f)
         , mStartTime(0.0)
         , mLastTime(0.0)
         , mTicksToAdvance(0.f)
+        , mFFPLighting(useFFPLighting)
     {
     }
 
@@ -69,7 +64,7 @@ namespace SceneUtil
         }
 
         auto* lightSource = static_cast<SceneUtil::LightSource*>(node);
-        if (MWBase::Environment::get().getResourceSystem()->getSceneManager()->getFFPLighting())
+        if (mFFPLighting)
             lightSource->getLight(nv->getTraversalNumber())->setDiffuse(mDiffuseColor * mBrightness);
         else
             lightSource->setBrightness(nv->getTraversalNumber(), mBrightness);
