@@ -64,7 +64,7 @@ void perLightPoint(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec
 // Add an artificial cutoff, otherwise effected objects will be brightly lit and adjacent objects not effected by this light will be dark by contrast
 // This causes nasty artifacts, especially with active grid so it is necassary for now. 
 #if !@ffpLighting
-    float cutoff = getLight[lightIndex].radius * 0.978;
+    float cutoff = getLight[lightIndex].radius * 0.5;
     illumination *= 1.0 - smoothstep(0.0, 1.0, ((lightDistance / cutoff) - 1.0) * 0.887);
     illumination = max(0.0, illumination);
 #endif

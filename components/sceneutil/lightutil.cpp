@@ -96,6 +96,10 @@ namespace SceneUtil
         lightSource->setNodeMask(lightMask);
 
         float radius = esmLight->mData.mRadius;
+        // arbitrary multipler to reduce light popping, this is hard to avoid with per-object lighting
+        // we offset this multipler in shaders
+        if (!useFFPLighting)
+            radius *= 2.0;
         lightSource->setRadius(radius);
 
         configureLight(light, radius, isExterior);
