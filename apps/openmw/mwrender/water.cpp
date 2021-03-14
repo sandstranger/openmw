@@ -26,6 +26,7 @@
 #include <components/resource/scenemanager.hpp>
 
 #include <components/sceneutil/shadow.hpp>
+#include <components/sceneutil/util.hpp>
 #include <components/sceneutil/waterutil.hpp>
 
 #include <components/misc/constants.hpp>
@@ -208,6 +209,37 @@ public:
     }
 };
 
+class RainIntensityUpdater : public SceneUtil::StateSetUpdater
+{
+public:
+    RainIntensityUpdater()
+        : mRainIntensity(0.f)
+    {
+    }
+
+    void setRainIntensity(float rainIntensity)
+    {
+        mRainIntensity = rainIntensity;
+    }
+
+protected:
+    void setDefaults(osg::StateSet* stateset) override
+    {
+        osg::ref_ptr<osg::Uniform> rainIntensityUniform = new osg::Uniform("rainIntensity", 0.0f);
+        stateset->addUniform(rainIntensityUniform.get());
+    }
+
+    void apply(osg::StateSet* stateset, osg::NodeVisitor* /*nv*/) override
+    {
+        osg::ref_ptr<osg::Uniform> rainIntensityUniform = stateset->getUniform("rainIntensity");
+        if (rainIntensityUniform != nullptr)
+            rainIntensityUniform->set(mRainIntensity);
+    }
+
+private:
+    float mRainIntensity;
+};
+
 osg::ref_ptr<osg::Image> readPngImage (const std::string& file)
 {
     // use boost in favor of osgDB::readImage, to handle utf-8 path issues on Windows
@@ -271,7 +303,7 @@ public:
         mRefractionTexture->setFilter(osg::Texture::MIN_FILTER, osg::Texture::LINEAR);
         mRefractionTexture->setFilter(osg::Texture::MAG_FILTER, osg::Texture::LINEAR);
 
-        attach(osg::Camera::COLOR_BUFFER, mRefractionTexture);
+        SceneUtil::attachAlphaToCoverageFriendlyFramebufferToCamera(this, osg::Camera::COLOR_BUFFER, mRefractionTexture);
 
 
 	if (Settings::Manager::getBool("refraction depth map", "Water") == true)
@@ -359,7 +391,7 @@ public:
         mReflectionTexture->setWrap(osg::Texture::WRAP_S, osg::Texture::CLAMP_TO_EDGE);
         mReflectionTexture->setWrap(osg::Texture::WRAP_T, osg::Texture::CLAMP_TO_EDGE);
 
-        attach(osg::Camera::COLOR_BUFFER, mReflectionTexture);
+        SceneUtil::attachAlphaToCoverageFriendlyFramebufferToCamera(this, osg::Camera::COLOR_BUFFER, mReflectionTexture);
 
         // XXX: should really flip the FrontFace on each renderable instead of forcing clockwise.
         osg::ref_ptr<osg::FrontFace> frontFace (new osg::FrontFace);
@@ -434,7 +466,8 @@ public:
 
 Water::Water(osg::Group *parent, osg::Group* sceneRoot, Resource::ResourceSystem *resourceSystem,
              osgUtil::IncrementalCompileOperation *ico, const std::string& resourcePath)
-    : mParent(parent)
+    : mRainIntensityUpdater(nullptr)
+    , mParent(parent)
     , mSceneRoot(sceneRoot)
     , mResourceSystem(resourceSystem)
     , mResourcePath(resourcePath)
@@ -466,8 +499,6 @@ Water::Water(osg::Group *parent, osg::Group* sceneRoot, Resource::ResourceSystem
 
     setHeight(mTop);
 
-    mRainIntensityUniform = new osg::Uniform("rainIntensity",(float) 0.0);
-
     updateWaterMaterial();
 
     if (ico)
@@ -495,11 +526,6 @@ void Water::setCullCallback(osg::Callback* callback)
         if (mRefraction)
             mRefraction->addCullCallback(callback);
     }
-}
-
-osg::Uniform *Water::getRainIntensityUniform()
-{
-    return mRainIntensityUniform.get();
 }
 
 void Water::updateWaterMaterial()
@@ -559,6 +585,8 @@ void Water::createSimpleWaterStateSet(osg::Node* node, float alpha)
     osg::ref_ptr<osg::StateSet> stateset = SceneUtil::createSimpleWaterStateSet(alpha, MWRender::RenderBin_Water);
 
     node->setStateSet(stateset);
+    node->setUpdateCallback(nullptr);
+    mRainIntensityUpdater = nullptr;
 
     // Add animated textures
     std::vector<osg::ref_ptr<osg::Texture2D> > textures;
@@ -648,15 +676,15 @@ void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, R
 
     shaderStateset->setMode(GL_CULL_FACE, osg::StateAttribute::OFF);
 
-    shaderStateset->addUniform(mRainIntensityUniform.get());
-
     osg::ref_ptr<osg::Program> program (new osg::Program);
     program->addShader(vertexShader);
     program->addShader(fragmentShader);
     shaderStateset->setAttributeAndModes(program, osg::StateAttribute::ON);
 
     node->setStateSet(shaderStateset);
-    node->setUpdateCallback(nullptr);
+
+    mRainIntensityUpdater = new RainIntensityUpdater();
+    node->setUpdateCallback(mRainIntensityUpdater);
 }
 
 void Water::processChangedSettings(const Settings::CategorySettingVector& settings)
@@ -737,6 +765,12 @@ void Water::setHeight(const float height)
         mReflection->setWaterLevel(mTop);
     if (mRefraction)
         mRefraction->setWaterLevel(mTop);
+}
+
+void Water::setRainIntensity(float rainIntensity)
+{
+    if (mRainIntensityUpdater)
+        mRainIntensityUpdater->setRainIntensity(rainIntensity);
 }
 
 void Water::update(float dt)

@@ -25,6 +25,7 @@
 #include <components/resource/scenemanager.hpp>
 #include <components/resource/keyframemanager.hpp>
 
+#include <components/shader/removedalphafunc.hpp>
 #include <components/shader/shadermanager.hpp>
 
 #include <components/settings/settings.hpp>
@@ -272,6 +273,7 @@ namespace MWRender
         resourceSystem->getSceneManager()->setAutoUseSpecularMaps(Settings::Manager::getBool("auto use object specular maps", "Shaders"));
         resourceSystem->getSceneManager()->setSpecularMapPattern(Settings::Manager::getString("specular map pattern", "Shaders"));
         resourceSystem->getSceneManager()->setApplyLightingToEnvMaps(Settings::Manager::getBool("apply lighting to environment maps", "Shaders"));
+        resourceSystem->getSceneManager()->setConvertAlphaTestToAlphaToCoverage(Settings::Manager::getBool("antialias alpha test", "Shaders") && Settings::Manager::getInt("antialiasing", "Video") > 1);
 
         osg::ref_ptr<SceneUtil::LightManager> sceneRoot = new SceneUtil::LightManager;
         sceneRoot->setLightingMask(Mask_Lighting);
@@ -304,6 +306,7 @@ namespace MWRender
         globalDefines["clamp"] = Settings::Manager::getBool("clamp lighting", "Shaders") ? "1" : "0";
         globalDefines["preLightEnv"] = Settings::Manager::getBool("apply lighting to environment maps", "Shaders") ? "1" : "0";
         globalDefines["radialFog"] = Settings::Manager::getBool("radial fog", "Shaders") ? "1" : "0";
+        globalDefines["useGPUShader4"] = "0";
 
         float groundcoverDistance = (Constants::CellSizeInUnits * Settings::Manager::getInt("distance", "Groundcover") - 1024) * 0.93;
         globalDefines["groundcoverFadeStart"] = std::to_string(groundcoverDistance * Settings::Manager::getFloat("fade start", "Groundcover"));
@@ -432,7 +435,6 @@ namespace MWRender
 
         mSky.reset(new SkyManager(sceneRoot, resourceSystem->getSceneManager()));
         mSky->setCamera(mViewer->getCamera());
-        mSky->setRainIntensityUniform(mWater->getRainIntensityUniform());
 
         source->setStateSetModes(*mRootNode->getOrCreateStateSet(), osg::StateAttribute::ON);
 
@@ -473,6 +475,11 @@ namespace MWRender
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isInterior", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isPlayer", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("skip", false));
+
+        // Hopefully, anything genuinely requiring the default alpha func of GL_ALWAYS explicitly sets it
+        mRootNode->getOrCreateStateSet()->setAttribute(Shader::RemovedAlphaFunc::getInstance(GL_ALWAYS));
+        // The transparent renderbin sets alpha testing on because that was faster on old GPUs. It's now slower and breaks things.
+        mRootNode->getOrCreateStateSet()->setMode(GL_ALPHA_TEST, osg::StateAttribute::OFF);
 
         mUniformNear = mRootNode->getOrCreateStateSet()->getUniform("near");
         mUniformFar = mRootNode->getOrCreateStateSet()->getUniform("far");
@@ -722,6 +729,9 @@ namespace MWRender
         reportStats();
 
         mUnrefQueue->flush(mWorkQueue.get());
+
+        float rainIntensity = mSky->getPrecipitationAlpha();
+        mWater->setRainIntensity(rainIntensity);
 
         if (!paused)
         {

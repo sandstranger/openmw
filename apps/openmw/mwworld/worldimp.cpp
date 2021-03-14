@@ -3192,6 +3192,11 @@ namespace MWWorld
         mProjectileManager->launchMagicBolt(spellId, caster, fallbackDirection);
     }
 
+    void World::updateProjectilesCasters()
+    {
+        mProjectileManager->updateCasters();
+    }
+
     class ApplyLoopingParticlesVisitor : public MWMechanics::EffectSourceVisitor
     {
     private:
