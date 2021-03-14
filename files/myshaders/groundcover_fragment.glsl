@@ -8,6 +8,7 @@ varying vec2 diffuseMapUV;
 #endif
 
 #include "helpsettings.glsl"
+#include "vertexcolors.glsl"
 
 varying float depth;
 
@@ -24,10 +25,11 @@ varying vec3 passViewPos;
 uniform float osg_SimulationTime;
 #endif
 
-centroid varying vec4 lighting;
+centroid varying vec3 passLighting;
 
 #include "effects.glsl"
 #include "fog.glsl"
+#include "alpha.glsl"
 
 float calc_coverage(float a, float alpha_ref, float falloff_rate)
 {
@@ -38,14 +40,17 @@ void main()
 {
 #if @diffuseMap
     gl_FragData[0] = texture2D(diffuseMap, diffuseMapUV);
+    //gl_FragData[0].a *= coveragePreservingAlphaScale(diffuseMap, diffuseMapUV);
 #else
     gl_FragData[0] = vec4(1.0);
 #endif
 
-gl_FragData[0].a = calc_coverage(gl_FragData[0].a, 128.0/255.0, 4.0);
+    gl_FragData[0].a = calc_coverage(gl_FragData[0].a, 128.0/255.0, 4.0);
 
     if (depth > @groundcoverFadeStart)
         gl_FragData[0].a *= 1.0-smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, depth);
+
+alphaTest();
 
 if(gl_FragData[0].a != 0.0)
 {
@@ -53,7 +58,11 @@ if(gl_FragData[0].a != 0.0)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(2.2));
 #endif
 
-    gl_FragData[0] *= lighting;
+#if @clamp
+    gl_FragData[0].xyz *= clamp(passLighting, vec3(0.0), vec3(1.0));
+#else
+    gl_FragData[0].xyz *= max(passLighting, 0.0);
+#endif
 
 #ifdef LINEAR_LIGHTING
         gl_FragData[0].xyz = Uncharted2ToneMapping(gl_FragData[0].xyz);
@@ -76,5 +85,4 @@ if(gl_FragData[0].a != 0.0)
 #if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
-
 }

@@ -2,15 +2,18 @@
 
 #define PARTICLE
 
+#define PER_PIXEL_LIGHTING 0
+
 #if @diffuseMap
 uniform sampler2D diffuseMap;
 varying vec2 diffuseMapUV;
 #endif
 
-centroid varying vec4 lighting;
+centroid varying vec3 passLighting;
 varying float depth;
 
 #include "helpsettings.glsl"
+#include "vertexcolors.glsl"
 #include "fog.glsl"
 
 vec3 SpecialContrast(vec3 x, float suncon) 
@@ -30,7 +33,12 @@ void main()
 
 if(gl_FragData[0].a != 0.0)
 {
-    gl_FragData[0] *= lighting;
+
+#if @clamp
+    gl_FragData[0].xyz *= clamp(passLighting, vec3(0.0), vec3(1.0));
+#else
+    gl_FragData[0].xyz *= max(passLighting, 0.0);
+#endif
 
 #ifdef LINEAR_LIGHTING
         gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(2.2+(@gamma.0/1000.0)-1.0)));
@@ -44,5 +52,5 @@ if(gl_FragData[0].a != 0.0)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
 
-    //gl_FragData[0] = vec4(1.0, 0.0, 0.0, 1.0);
+    //gl_FragData[0].x = 1.0;
 }

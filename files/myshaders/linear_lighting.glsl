@@ -1,13 +1,6 @@
 #include "lightsettings.glsl"
 #define MAX_LIGHTS 8
 
-const int ColorMode_None = 0;
-const int ColorMode_Emission = 1;
-const int ColorMode_AmbientAndDiffuse = 2;
-const int ColorMode_Ambient = 3;
-const int ColorMode_Diffuse = 4;
-const int ColorMode_Specular = 5;
-
 vec3 ToLinearColApprox(vec3 col) {
     return col * col;
 }
@@ -87,9 +80,9 @@ void perNegativeLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, 
 
 
 #if PER_PIXEL_LIGHTING
-vec4 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor, float shadowing)
+vec3 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor, float shadowing)
 #else
-vec4 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
+vec3 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
 #endif
 {
     vec4 diffuse;
@@ -188,10 +181,5 @@ vec4 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
     else
         lightResult.xyz += mix(emivnight, emivday, gl_LightSource[0].diffuse.x) * gl_FrontMaterial.emission.xyz;
 
-#if @clamp
-    lightResult = clamp(lightResult, vec4(0.0), vec4(1.0));
-#else
-    lightResult = max(lightResult, 0.0);
-#endif
-    return lightResult;
+    return lightResult.xyz;
 }

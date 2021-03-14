@@ -6,6 +6,7 @@ varying float depth;
 #define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
 
 #include "helpsettings.glsl"
+#include "vertexcolors.glsl"
 
 #ifdef HEIGHT_FOG
 varying vec3 fogH;
@@ -28,15 +29,12 @@ varying vec3 passNormal;
 #endif
 
 #if !PER_PIXEL_LIGHTING
-centroid varying vec4 lighting;
-uniform int colorMode;
+centroid varying vec3 passLighting;
   #ifdef LINEAR_LIGHTING
     #include "linear_lighting.glsl"
   #else
     #include "lighting.glsl"
   #endif
-#else
-centroid varying vec4 passColor;
 #endif
 
 void main(void)
@@ -52,12 +50,7 @@ void main(void)
     depth = gl_Position.z;
 #endif
 
-#if !PER_PIXEL_LIGHTING
-    vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
-    lighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
-#else
-    passColor = gl_Color;
-#endif
+passColor = gl_Color;
 
 #if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG) || @underwaterFog)
     passViewPos = viewPos.xyz;
@@ -83,5 +76,18 @@ if(osg_ViewMatrixInverse[3].z < -1.0)
     harmonics += vec2(sin(5.0*osg_SimulationTime + wP.xy / 200.0));
     gl_Position.xy += (depth * 0.003) * harmonics;
 }
+#endif
+
+
+#if !PER_PIXEL_LIGHTING
+    vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
+#ifdef LINEAR_LIGHTING
+    passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
+#else
+    vec3 shadowDiffuseLighting;
+    vec3 diffuseLight, ambientLight;
+    doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
+    passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
+#endif
 #endif
 }

@@ -9,11 +9,10 @@ varying vec2 diffuseMapUV;
 #endif
 
 varying float depth;
-
-uniform int colorMode;
-centroid varying vec4 lighting;
+centroid varying vec3 passLighting;
 
 #include "helpsettings.glsl"
+#include "vertexcolors.glsl"
 
 #ifdef LINEAR_LIGHTING
   #include "linear_lighting.glsl"
@@ -37,6 +36,14 @@ void main(void)
     diffuseMapUV = (gl_TextureMatrix[@diffuseMapUV] * gl_MultiTexCoord@diffuseMapUV).xy;
 #endif
 
-    vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
-    lighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
+vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
+
+#ifdef LINEAR_LIGHTING
+    passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
+#else
+    vec3 shadowDiffuseLighting;
+    vec3 diffuseLight, ambientLight;
+    doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
+    passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
+#endif
 }

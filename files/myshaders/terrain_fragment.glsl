@@ -19,6 +19,7 @@ varying float depth;
 #define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
 
 #include "helpsettings.glsl"
+#include "vertexcolors.glsl"
 
 #if defined(TERRAIN_PARALLAX_SOFT_SHADOWS) || @underwaterFog
 uniform mat4 osg_ViewMatrixInverse;
@@ -40,11 +41,10 @@ varying vec3 passViewPos;
 varying vec3 passNormal;
 #endif
 
+
 #if !PER_PIXEL_LIGHTING
-centroid varying vec4 lighting;
+centroid varying vec3 passLighting;
 #else
-uniform int colorMode;
-centroid varying vec4 passColor;
   #ifdef LINEAR_LIGHTING
     #include "linear_lighting.glsl"
   #else
@@ -111,11 +111,31 @@ void main()
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(2.2));
 #endif
 
+   vec4 diffuseColor = getDiffuseColor();
+   gl_FragData[0].a *= diffuseColor.a;
+
+    vec3 lighting;
+
 #if !PER_PIXEL_LIGHTING
-    gl_FragData[0] *= lighting;
+    lighting = passLighting;
 #else
-    gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor, shadowpara);
+#ifdef LINEAR_LIGHTING
+    lighting.xyz = doLighting(passViewPos, normalize(viewNormal), passColor, shadowpara).xyz;
+#else
+    vec3 diffuseLight, ambientLight;
+    doLighting(passViewPos, normalize(viewNormal), shadowpara, diffuseLight, ambientLight);
+    lighting = diffuseColor.xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
 #endif
+#endif
+
+#if @clamp
+    lighting = clamp(lighting, vec3(0.0), vec3(1.0));
+#else
+    lighting = max(lighting, 0.0);
+#endif
+
+    gl_FragData[0].xyz *= lighting;
+
 
 #if @specularMap
     float shininess = 128.0; // TODO: make configurable
@@ -140,13 +160,5 @@ void main()
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
 
-/*
-    bool nl = false;
-    for (int i=0; i<8; ++i)
-    {
-        if(gl_LightSource[i].diffuse.x < 0.0)
-            nl = true;
-    }
-    if(nl) gl_FragData[0].z = 1.0;
-*/
+//gl_FragData[0].x = 1.0;
 }

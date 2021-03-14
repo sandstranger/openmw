@@ -2,6 +2,12 @@
 
 #define OBJECT
 
+/*
+#if @useGPUShader4
+    #extension GL_EXT_gpu_shader4: require
+#endif
+*/
+
 #if @diffuseMap
 uniform sampler2D diffuseMap;
 varying vec2 diffuseMapUV;
@@ -50,6 +56,7 @@ uniform mat2 bumpMapMatrix;
 #define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL))
 
 #include "helpsettings.glsl"
+#include "vertexcolors.glsl"
 
 #if @radialFog || @underwaterFog || defined(SIMPLE_WATER_TWEAK)
 uniform bool simpleWater;
@@ -73,7 +80,7 @@ uniform float osg_SimulationTime;
 #endif
 
 #if !PER_PIXEL_LIGHTING
-centroid varying vec4 lighting;
+centroid varying vec3 passLighting;
 #endif
 
 #if PER_PIXEL_LIGHTING || @specularMap
@@ -86,9 +93,7 @@ varying vec3 passViewPos;
 
 varying float depth;
 
-uniform int colorMode;
 #if PER_PIXEL_LIGHTING
-centroid varying vec4 passColor;
   #ifdef LINEAR_LIGHTING
     #include "linear_lighting.glsl"
   #else
@@ -98,6 +103,7 @@ centroid varying vec4 passColor;
 
 #include "effects.glsl"
 #include "fog.glsl"
+#include "alpha.glsl"
 
 void main()
 {
@@ -167,9 +173,14 @@ float shadowpara = 1.0;
 
 #if @diffuseMap
     gl_FragData[0] = texture2D(diffuseMap, adjustedDiffuseUV);
+    gl_FragData[0].a *= coveragePreservingAlphaScale(diffuseMap, adjustedDiffuseUV);
 #else
     gl_FragData[0] = vec4(1.0);
 #endif
+
+    vec4 diffuseColor = getDiffuseColor();
+    gl_FragData[0].a *= diffuseColor.a;
+    alphaTest();
 
 if(gl_FragData[0].a != 0.0)
 {
@@ -229,11 +240,27 @@ if(gl_FragData[0].a != 0.0)
         gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(2.2));
 #endif
 
+    vec3 lighting;
 #if !PER_PIXEL_LIGHTING
-    gl_FragData[0] *= lighting;
+    lighting = passLighting;
 #else
-    gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor, shadowpara);
+#ifdef LINEAR_LIGHTING
+    lighting = doLighting(passViewPos, normalize(viewNormal), passColor, shadowpara);
+#else
+    vec3 diffuseLight, ambientLight;
+    doLighting(passViewPos, normalize(viewNormal), shadowpara, diffuseLight, ambientLight);
+    lighting = diffuseColor.xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
 #endif
+#endif
+
+#if @clamp
+    lighting = clamp(lighting, vec3(0.0), vec3(1.0));
+#else
+    lighting = max(lighting, 0.0);
+#endif
+
+gl_FragData[0].xyz *= lighting;
+
 
 #if @emissiveMap
     gl_FragData[0].xyz += pow(texture2D(emissiveMap, diffuseMapUV).xyz, vec3(2.2));
@@ -289,4 +316,4 @@ if(simpleWater)
 #endif  
 
 //gl_FragData[0].x = 1.0;
-}
+ }

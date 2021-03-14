@@ -31,10 +31,7 @@ varying float depth;
 #define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL))
 
 #include "helpsettings.glsl"
-
-#if PER_PIXEL_LIGHTING
-centroid varying vec4 passColor;
-#endif
+#include "vertexcolors.glsl"
 
 #if PER_PIXEL_LIGHTING || @specularMap
 varying vec3 passNormal;
@@ -62,8 +59,7 @@ uniform bool isPlayer;
 #endif
 
 #if !PER_PIXEL_LIGHTING
-  uniform int colorMode;
-  centroid varying vec4 lighting;
+  centroid varying vec3 passLighting;
   #ifdef LINEAR_LIGHTING
     #include "linear_lighting.glsl"
   #else
@@ -114,11 +110,9 @@ void main(void)
     passTangent = gl_MultiTexCoord7.xyzw;
 #endif
 
-#if !PER_PIXEL_LIGHTING
-    lighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
-#else
+
+
     passColor = gl_Color;
-#endif
 
 #if PER_PIXEL_LIGHTING || @specularMap
     passNormal = gl_Normal.xyz;
@@ -144,4 +138,17 @@ if(osg_ViewMatrixInverse[3].z < -1.0 && !isInterior && !isPlayer)
     gl_Position.xy += (depth * 0.003) * harmonics;
 }
 #endif
+
+
+#if !PER_PIXEL_LIGHTING
+#ifdef LINEAR_LIGHTING
+    passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
+#else
+    vec3 shadowDiffuseLighting;
+    vec3 diffuseLight, ambientLight;
+    doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
+    passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
+#endif
+#endif
+
 }
