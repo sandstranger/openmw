@@ -1,6 +1,9 @@
 #version 120
 
 #extension GL_ARB_uniform_buffer_object : enable
+#if @useGPUShader4
+    #extension GL_EXT_gpu_shader4: require
+#endif
 
 #if @diffuseMap
 uniform sampler2D diffuseMap;
@@ -69,7 +72,11 @@ varying vec3 passNormal;
 #include "vertexcolors.glsl"
 #include "shadows_fragment.glsl"
 #include "parallax.glsl"
+<<<<<<< HEAD
 #include "lighting.glsl"
+=======
+#include "alpha.glsl"
+>>>>>>> upstream/master
 
 void main()
 {
@@ -111,9 +118,14 @@ void main()
 
 #if @diffuseMap
     gl_FragData[0] = texture2D(diffuseMap, adjustedDiffuseUV);
+    gl_FragData[0].a *= coveragePreservingAlphaScale(diffuseMap, adjustedDiffuseUV);
 #else
     gl_FragData[0] = vec4(1.0);
 #endif
+
+    vec4 diffuseColor = getDiffuseColor();
+    gl_FragData[0].a *= diffuseColor.a;
+    alphaTest();
 
 #if @detailMap
     gl_FragData[0].xyz *= texture2D(detailMap, detailMapUV).xyz * 2.0;
@@ -152,9 +164,6 @@ void main()
 #endif
 
 #endif
-
-    vec4 diffuseColor = getDiffuseColor();
-    gl_FragData[0].a *= diffuseColor.a;
 
     float shadowing = unshadowedLightRatio(linearDepth);
     vec3 lighting;
