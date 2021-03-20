@@ -10,7 +10,7 @@ void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 vie
     ambientOut = gl_LightSource[lightIndex].ambient.xyz * illumination;
 
     float lambert = dot(viewNormal.xyz, lightDir) * illumination;
-#ifndef GROUNDCOVER
+#ifndef GRASS
     lambert = max(lambert, 0.0);
 #else
     float eyeCosine = dot(normalize(viewPos), viewNormal.xyz);
@@ -39,6 +39,7 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
     shadowDiffuse = diffuseOut;
     diffuseLight = -diffuseOut;
 #endif
+
     ambientLight = gl_LightModel.ambient.xyz;
     for (int i=0; i<MAX_LIGHTS; ++i)
     {
@@ -46,16 +47,4 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
         ambientLight += ambientOut;
         diffuseLight += diffuseOut;
     }
-}
-
-
-vec3 getSpecular(vec3 viewNormal, vec3 viewDirection, float shininess, vec3 matSpec)
-{
-    vec3 lightDir = normalize(gl_LightSource[0].position.xyz);
-    float NdotL = dot(viewNormal, lightDir);
-    if (NdotL <= 0.0)
-        return vec3(0.0);
-    vec3 halfVec = normalize(lightDir - viewDirection);
-    float NdotH = dot(viewNormal, halfVec);
-    return pow(max(NdotH, 0.0), max(1e-4, shininess)) * gl_LightSource[0].specular.xyz * matSpec;
 }

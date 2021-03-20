@@ -315,5 +315,11 @@ if(simpleWater)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif  
 
+#if @translucentFramebuffer
+// having testing & blending isn't enough - we need to write an opaque pixel to be opaque
+    if (noAlpha) 
+         gl_FragData[0].a = 1.0;
+#endif
+
 //gl_FragData[0].x = 1.0;
  }

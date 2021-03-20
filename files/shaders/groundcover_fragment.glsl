@@ -1,90 +1,92 @@
 #version 120
 
-#if @useGPUShader4
-    #extension EXT_gpu_shader4: require
-#endif
-
-#define GROUNDCOVER
+#define GRASS
 
 #if @diffuseMap
 uniform sampler2D diffuseMap;
 varying vec2 diffuseMapUV;
 #endif
 
-#if @normalMap
-uniform sampler2D normalMap;
-varying vec2 normalMapUV;
-varying vec4 passTangent;
-#endif
+#include "helpsettings.glsl"
+#include "vertexcolors.glsl"
 
-// Other shaders respect forcePPL, but legacy groundcover mods were designed to work with vertex lighting.
-// They may do not look as intended with per-pixel lighting, so ignore this setting for now.
-#define PER_PIXEL_LIGHTING @normalMap
+varying float depth;
 
-varying float euclideanDepth;
+#if !@radialFog
 varying float linearDepth;
-
-#if PER_PIXEL_LIGHTING
-varying vec3 passViewPos;
-varying vec3 passNormal;
-#else
-centroid varying vec3 passLighting;
-centroid varying vec3 shadowDiffuseLighting;
 #endif
 
-#include "shadows_fragment.glsl"
-#include "lighting.glsl"
-#include "alpha.glsl"
+#if @underwaterFog
+uniform mat4 osg_ViewMatrixInverse;
+varying vec3 passViewPos;
+#endif
+
+#ifdef ANIMATED_HEIGHT_FOG
+uniform float osg_SimulationTime;
+#endif
+
+centroid varying vec3 passLighting;
+
+#include "effects.glsl"
+#include "fog.glsl"
+
+uniform float alphaRef;
+
+float calc_coverage(float a, float alpha_ref, float falloff_rate)
+{
+    return clamp(falloff_rate * (a - alpha_ref) + alpha_ref, 0.0, 1.0);
+}
 
 void main()
 {
-#if @normalMap
-    vec4 normalTex = texture2D(normalMap, normalMapUV);
-
-    vec3 normalizedNormal = normalize(passNormal);
-    vec3 normalizedTangent = normalize(passTangent.xyz);
-    vec3 binormal = cross(normalizedTangent, normalizedNormal) * passTangent.w;
-    mat3 tbnTranspose = mat3(normalizedTangent, binormal, normalizedNormal);
-
-    vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
-#endif
-
 #if @diffuseMap
     gl_FragData[0] = texture2D(diffuseMap, diffuseMapUV);
 #else
     gl_FragData[0] = vec4(1.0);
 #endif
 
-    if (euclideanDepth > @groundcoverFadeStart)
-        gl_FragData[0].a *= 1.0-smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, euclideanDepth);
+    float fade = smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, depth);
 
-    alphaTest();
+    gl_FragData[0].a = calc_coverage(gl_FragData[0].a, 1.0/255.0, 4.0);
 
-    float shadowing = unshadowedLightRatio(linearDepth);
+    if (depth > @groundcoverFadeStart)
+        gl_FragData[0].a *= 1.0-fade;
 
-    vec3 lighting;
-#if !PER_PIXEL_LIGHTING
-    lighting = passLighting + shadowDiffuseLighting * shadowing;
-#else
-    vec3 diffuseLight, ambientLight;
-    doLighting(passViewPos, normalize(viewNormal), shadowing, diffuseLight, ambientLight);
-    lighting = diffuseLight + ambientLight;
+    if (gl_FragData[0].a != alphaRef)
+        discard;
+
+if(gl_FragData[0].a != 0.0)
+{
+#ifdef LINEAR_LIGHTING
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(2.2));
 #endif
 
 #if @clamp
-    lighting = clamp(lighting, vec3(0.0), vec3(1.0));
+    gl_FragData[0].xyz *= clamp(passLighting, vec3(0.0), vec3(1.0));
 #else
-    lighting = max(lighting, 0.0);
+    gl_FragData[0].xyz *= max(passLighting, 0.0);
 #endif
 
-    gl_FragData[0].xyz *= lighting;
-
-#if @radialFog
-    float fogValue = clamp((euclideanDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
-#else
-    float fogValue = clamp((linearDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
+#ifdef LINEAR_LIGHTING
+        gl_FragData[0].xyz = Uncharted2ToneMapping(gl_FragData[0].xyz);
+        gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(2.2+(@gamma.0/1000.0)-1.0)));
+        gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, gl_LightSource[0].diffuse.x));
 #endif
-    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-    applyShadowDebugOverlay();
+}
+
+    bool isUnderwater = false;
+#if @underwaterFog
+    isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 && gl_LightSource[0].diffuse.x != 0.0;
+#endif
+
+#if !@radialFog
+    applyFog(isUnderwater, linearDepth);
+#else
+    applyFog(isUnderwater, depth);
+#endif
+
+#if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
+#endif
 }

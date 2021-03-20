@@ -29,7 +29,8 @@ centroid varying vec3 passLighting;
 
 #include "effects.glsl"
 #include "fog.glsl"
-#include "alpha.glsl"
+
+uniform float alphaRef;
 
 float calc_coverage(float a, float alpha_ref, float falloff_rate)
 {
@@ -40,17 +41,19 @@ void main()
 {
 #if @diffuseMap
     gl_FragData[0] = texture2D(diffuseMap, diffuseMapUV);
-    //gl_FragData[0].a *= coveragePreservingAlphaScale(diffuseMap, diffuseMapUV);
 #else
     gl_FragData[0] = vec4(1.0);
 #endif
 
-    gl_FragData[0].a = calc_coverage(gl_FragData[0].a, 128.0/255.0, 4.0);
+    float fade = smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, depth);
+
+    gl_FragData[0].a = calc_coverage(gl_FragData[0].a, 1.0/255.0, 4.0);
 
     if (depth > @groundcoverFadeStart)
-        gl_FragData[0].a *= 1.0-smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, depth);
+        gl_FragData[0].a *= 1.0-fade;
 
-alphaTest();
+    if (gl_FragData[0].a != alphaRef)
+        discard;
 
 if(gl_FragData[0].a != 0.0)
 {
@@ -71,6 +74,7 @@ if(gl_FragData[0].a != 0.0)
 #endif
 
 }
+
     bool isUnderwater = false;
 #if @underwaterFog
     isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 && gl_LightSource[0].diffuse.x != 0.0;

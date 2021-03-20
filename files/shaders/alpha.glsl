@@ -37,6 +37,7 @@ float coveragePreservingAlphaScale(sampler2D diffuseMap, vec2 uv)
 
 void alphaTest()
 {
+
     #if @alphaToCoverage 
         float coverageAlpha = (gl_FragData[0].a - clamp(alphaRef, 0.0001, 0.9999)) / max(fwidth(gl_FragData[0].a), 0.0001) + 0.5;
 
@@ -60,6 +61,7 @@ void alphaTest()
             gl_FragData[0].a = coverageAlpha;
         #endif
     #else
+
         #if @alphaFunc == FUNC_NEVER
             discard;
         #elif @alphaFunc == FUNC_LESS
@@ -81,5 +83,6 @@ void alphaTest()
             if (gl_FragData[0].a < alphaRef)
                 discard;
         #endif
-    #endif
+
+    #endif 
 }

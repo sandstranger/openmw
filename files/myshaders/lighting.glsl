@@ -10,7 +10,7 @@ void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 vie
     ambientOut = gl_LightSource[lightIndex].ambient.xyz * illumination;
 
     float lambert = dot(viewNormal.xyz, lightDir) * illumination;
-#ifndef GROUNDCOVER
+#ifndef GRASS
     lambert = max(lambert, 0.0);
 #else
     float eyeCosine = dot(normalize(viewPos), viewNormal.xyz);
