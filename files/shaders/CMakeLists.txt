@@ -38,8 +38,6 @@ set(SHADER_FILES
     ../myshaders/terrain_fragment.glsl
     ../myshaders/s360_fragment.glsl
     ../myshaders/s360_vertex.glsl
-    ../myshaders/shadows_vertex.glsl
-    ../myshaders/shadows_fragment.glsl
     ../myshaders/shadowcasting_vertex.glsl
     ../myshaders/shadowcasting_fragment.glsl
     ../myshaders/effects.glsl

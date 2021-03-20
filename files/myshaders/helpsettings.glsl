@@ -1,4 +1,4 @@
-#define LINEAR_LIGHTING
+//#define LINEAR_LIGHTING
 #define ATTEN_FIX
 
 // contrast for day and night
@@ -7,8 +7,8 @@ const float conday = 1.0;
 const float connight = 0.75;
 
 // self shadowing for parallax maps
-#define TERRAIN_PARALLAX_SOFT_SHADOWS
-#define OBJECTS_PARALLAX_SOFT_SHADOWS
+//#define TERRAIN_PARALLAX_SOFT_SHADOWS
+//#define OBJECTS_PARALLAX_SOFT_SHADOWS
 #define MAX_PARAL_LIGHTS 1
 
 //#define HEIGHT_FOG
@@ -22,7 +22,7 @@ const float maxfheight = 1.0;
 const vec3 uwdeepfog = vec3(-2000.0, 1000.0, 1.0); //deeper terrain/objects become more fogged
 const vec3 uwdistfog = vec3(-3333.0, 6666.0, 0.15); //distant underwater terrain/objects become more fogged
 const vec3 uwfogcolor = vec3(12.0/255.0, 30.0/255.0, 37.0/255.0);
-#define UNDERWATER_DISTORTION
+//#define UNDERWATER_DISTORTION
 
 // just fade alpha to make it non-transparent at some distance, allow to hide world edge sometimes
 // also darken it a little if using linear lighting; vec2(start, end)
