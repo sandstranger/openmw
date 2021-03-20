@@ -42,6 +42,7 @@ set(SHADER_FILES
     ../myshaders/shadowcasting_fragment.glsl
     ../myshaders/effects.glsl
     ../myshaders/fog.glsl
+    ../myshaders/lighting.glsl
     ../myshaders/linear_lighting.glsl
     ../myshaders/lightsettings.glsl
     ../myshaders/helpsettings.glsl
