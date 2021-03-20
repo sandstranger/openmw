@@ -91,6 +91,10 @@ varying vec3 passNormal;
 varying vec3 passViewPos;
 #endif
 
+#if @translucentFramebuffer
+uniform bool noAlpha;
+#endif
+
 varying float depth;
 
 #if PER_PIXEL_LIGHTING
