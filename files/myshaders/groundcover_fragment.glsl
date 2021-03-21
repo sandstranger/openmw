@@ -39,6 +39,11 @@ float calc_coverage(float a, float alpha_ref, float falloff_rate)
 
 void main()
 {
+
+if(@groundcoverFadeEnd != @groundcoverFadeStart)
+    if (depth > @groundcoverFadeEnd)
+        discard;
+
 #if @diffuseMap
     gl_FragData[0] = texture2D(diffuseMap, diffuseMapUV);
 #else
@@ -47,10 +52,10 @@ void main()
 
     float fade = smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, depth);
 
+if(@groundcoverFadeEnd != @groundcoverFadeStart)
+    gl_FragData[0].a = calc_coverage(gl_FragData[0].a, (1.0+(fade*127.0))/255.0, 4.0);
+else
     gl_FragData[0].a = calc_coverage(gl_FragData[0].a, 1.0/255.0, 4.0);
-
-    if (depth > @groundcoverFadeStart)
-        gl_FragData[0].a *= 1.0-fade;
 
     if (gl_FragData[0].a != alphaRef)
         discard;
@@ -89,4 +94,7 @@ if(gl_FragData[0].a != 0.0)
 #if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
+
+
+//if(@groundcoverFadeEnd == @groundcoverFadeStart) gl_FragData[0].xyz = vec3(1.0, 0.0, 0.0);
 }
