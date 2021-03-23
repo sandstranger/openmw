@@ -1,34 +1,50 @@
+#define LIGHTING_MODEL_FFP 0
+#define LIGHTING_MODEL_SINGLE_UBO 1
+#define LIGHTING_MODEL_PER_OBJECT_UNIFORM 2
+
 #if !@ffpLighting
 
 #include "sun.glsl"
 
 #define getLight PointLights
 
+float quickstep(float x)
+{
+    x = clamp(x, 0.0, 1.0);
+    x = 1.0 - x*x;
+    x = 1.0 - x*x;
+    return x;
+}
+
 struct PointLight
 {
     vec4 position;
     vec4 diffuse;
     vec4 ambient;
-    float constantAttenuation;
-    float linearAttenuation;
-    float quadraticAttenuation;
-    float radius;
+    vec4 attenuation;   // constant, linear, quadratic, radius
 };
 
 uniform int PointLightCount;
-uniform int PointLightIndex[@maxLights];
 
+#if @useUBO
+uniform int PointLightIndex[@maxLights];
+#endif
+
+#if @useUBO
 layout(std140) uniform PointLightBuffer
 {
     PointLight PointLights[@maxLightsInScene];
 };
+#else
+uniform PointLight PointLights[@maxLights];
+#endif
 
 #else
 #define getLight gl_LightSource
 #endif
 
 void perLightSun(out vec3 ambientOut, out vec3 diffuseOut, vec3 viewPos, vec3 viewNormal)
-{
+{    
     vec3 lightDir = @sunDirection.xyz;
     lightDir = normalize(lightDir);
 
@@ -49,8 +65,6 @@ void perLightSun(out vec3 ambientOut, out vec3 diffuseOut, vec3 viewPos, vec3 vi
     diffuseOut = @sunDiffuse.xyz * lambert;
 }
 
-
-uniform float osg_SimulationTime;
 void perLightPoint(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 viewPos, vec3 viewNormal)
 {
     vec4 pos = getLight[lightIndex].position;
@@ -59,19 +73,17 @@ void perLightPoint(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec
     float lightDistance = length(lightDir);
     lightDir = normalize(lightDir);
 
+#if @ffpLighting
     float illumination = clamp(1.0 / (getLight[lightIndex].constantAttenuation + getLight[lightIndex].linearAttenuation * lightDistance + getLight[lightIndex].quadraticAttenuation * lightDistance * lightDistance), 0.0, 1.0);
-
-// Add an artificial cutoff, otherwise effected objects will be brightly lit and adjacent objects not effected by this light will be dark by contrast
-// This causes nasty artifacts, especially with active grid so it is necassary for now. 
-#if !@ffpLighting
-    float cutoff = getLight[lightIndex].radius * 0.5;
-    illumination *= 1.0 - smoothstep(0.0, 1.0, ((lightDistance / cutoff) - 1.0) * 0.887);
-    illumination = max(0.0, illumination);
+#else
+    float illumination = clamp(1.0 / (getLight[lightIndex].attenuation.x + getLight[lightIndex].attenuation.y * lightDistance + getLight[lightIndex].attenuation.z * lightDistance * lightDistance), 0.0, 1.0);
+    illumination *= 1.0 - quickstep((lightDistance * 0.887 / getLight[lightIndex].attenuation.w) - 0.887);
 #endif
 
     ambientOut = getLight[lightIndex].ambient.xyz * illumination;
 
     float lambert = dot(viewNormal.xyz, lightDir) * illumination;
+    
 #ifndef GROUNDCOVER
     lambert = max(lambert, 0.0);
 #else
@@ -83,12 +95,7 @@ void perLightPoint(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec
     }
     lambert *= clamp(-8.0 * (1.0 - 0.3) * eyeCosine + 1.0, 0.3, 1.0);
 #endif
-
-#if @ffpLighting
     diffuseOut = getLight[lightIndex].diffuse.xyz * lambert;
-#else
-    diffuseOut = (getLight[lightIndex].diffuse.xyz * pos.w) * lambert;
-#endif
 }
 
 #if PER_PIXEL_LIGHTING
@@ -115,7 +122,11 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
     diffuseLight += diffuseOut;
     for (int i=0; i<PointLightCount; ++i)
     {
+#if @lightingModel == LIGHTING_MODEL_SINGLE_UBO
         perLightPoint(ambientOut, diffuseOut, PointLightIndex[i], viewPos, viewNormal);
+#else
+        perLightPoint(ambientOut, diffuseOut, i, viewPos, viewNormal);
+#endif
 #else
     for (int i=0; i<@maxLights; ++i)
     {

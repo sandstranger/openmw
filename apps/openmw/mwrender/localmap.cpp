@@ -224,12 +224,8 @@ osg::ref_ptr<osg::Camera> LocalMap::createOrthographicCamera(float x, float y, f
     SceneUtil::ShadowManager::disableShadowsForStateSet(stateset);
 
     // override sun for local map 
-    if (!MWBase::Environment::get().getResourceSystem()->getSceneManager()->getFFPLighting())
-    {
-        osg::ref_ptr<SceneUtil::SunlightStateAttribute> sun = new SceneUtil::SunlightStateAttribute;
-        sun->setFromLight(light);
-        sun->setStateSet(stateset, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
-    }
+    auto lightingMethod = MWBase::Environment::get().getResourceSystem()->getSceneManager()->getLightingMethod();    
+    SceneUtil::configureStateSetSunOverride(lightingMethod, light, stateset);
 
     camera->addChild(lightSource);
     camera->setStateSet(stateset);

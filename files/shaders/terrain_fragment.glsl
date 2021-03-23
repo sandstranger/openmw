@@ -1,6 +1,8 @@
 #version 120
 
-#extension GL_ARB_uniform_buffer_object : enable
+#if @useUBO
+    #extension GL_ARB_uniform_buffer_object : require
+#endif
 
 varying vec2 uv;
 

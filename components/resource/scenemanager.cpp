@@ -226,7 +226,7 @@ namespace Resource
         , mAutoUseNormalMaps(false)
         , mAutoUseSpecularMaps(false)
         , mApplyLightingToEnvMaps(false)
-        , mFFPLighting(true)
+        , mLightingMethod(SceneUtil::LightingMethod::FFP)
         , mInstanceCache(new MultiObjectCache)
         , mSharedStateManager(new SharedStateManager)
         , mImageManager(imageManager)
@@ -304,14 +304,14 @@ namespace Resource
         mApplyLightingToEnvMaps = apply;
     }
 
-    void SceneManager::setFFPLighting(bool apply)
+    void SceneManager::setLightingMethod(SceneUtil::LightingMethod method)
     {
-        mFFPLighting = apply;
+        mLightingMethod = method;
     }
 
-    bool SceneManager::getFFPLighting() const
+    SceneUtil::LightingMethod SceneManager::getLightingMethod() const
     {
-        return mFFPLighting;
+        return mLightingMethod;
     }
     
     void SceneManager::setConvertAlphaTestToAlphaToCoverage(bool convert)

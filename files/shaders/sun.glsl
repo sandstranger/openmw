@@ -7,8 +7,12 @@ struct Sunlight
     vec4 direction;
 };
 
+#if @useUBO
 layout(std140) uniform SunlightBuffer
 {
     Sunlight Sun;
 };
+#else
+uniform Sunlight Sun;
+#endif
 #endif

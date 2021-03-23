@@ -199,10 +199,13 @@ namespace MWRender
         , mFieldOfViewOverridden(false)
         , mFieldOfViewOverride(0.f)
     {
+        auto lightingModelString = Settings::Manager::getString("lighting method", "Shaders");
+        bool usingFFPLighting = lightingModelString == "legacy" && SceneUtil::LightManager::isValidLightingModelString(lightingModelString);
+
         resourceSystem->getSceneManager()->setParticleSystemMask(MWRender::Mask_ParticleSystem);
         resourceSystem->getSceneManager()->setShaderPath(resourcePath + "/shaders");
         // Shadows and radial fog have problems with fixed-function mode
-        bool forceShaders = Settings::Manager::getBool("radial fog", "Shaders") || Settings::Manager::getBool("force shaders", "Shaders") || Settings::Manager::getBool("enable shadows", "Shadows");
+        bool forceShaders = Settings::Manager::getBool("radial fog", "Shaders") || Settings::Manager::getBool("force shaders", "Shaders") || Settings::Manager::getBool("enable shadows", "Shadows") || usingFFPLighting;
         bool clampLighting = Settings::Manager::getBool("clamp lighting", "Shaders");
         resourceSystem->getSceneManager()->setForceShaders(forceShaders);
         // FIXME: calling dummy method because terrain needs to know whether lighting is clamped
@@ -215,11 +218,11 @@ namespace MWRender
         resourceSystem->getSceneManager()->setApplyLightingToEnvMaps(Settings::Manager::getBool("apply lighting to environment maps", "Shaders"));
         resourceSystem->getSceneManager()->setConvertAlphaTestToAlphaToCoverage(Settings::Manager::getBool("antialias alpha test", "Shaders") && Settings::Manager::getInt("antialiasing", "Video") > 1);
         
-        bool useFFP = clampLighting || !forceShaders || !SceneUtil::LightManager::queryNonFFPLightingSupport();
-        resourceSystem->getSceneManager()->setFFPLighting(useFFP);
-        resourceSystem->getSceneManager()->getShaderManager().setFFPLighting(useFFP);
-        
-        osg::ref_ptr<SceneUtil::LightManager> sceneRoot = new SceneUtil::LightManager(useFFP);
+        osg::ref_ptr<SceneUtil::LightManager> sceneRoot = new SceneUtil::LightManager(!forceShaders || usingFFPLighting);
+        // Let LightManager choose which backend to use based, mostly depends on support for UBOs 
+        resourceSystem->getSceneManager()->getShaderManager().setLightingMethod(sceneRoot->getLightingMethod());
+        resourceSystem->getSceneManager()->setLightingMethod(sceneRoot->getLightingMethod());
+
         sceneRoot->setLightingMask(Mask_Lighting);
         mSceneRoot = sceneRoot;
         sceneRoot->setStartLight(1);
@@ -244,9 +247,6 @@ namespace MWRender
         Shader::ShaderManager::DefineMap lightDefines = sceneRoot->getLightDefines();
         Shader::ShaderManager::DefineMap globalDefines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
 
-        for (auto itr = lightDefines.begin(); itr != lightDefines.end(); itr++)
-            globalDefines[itr->first] = itr->second;
-
         for (auto itr = shadowDefines.begin(); itr != shadowDefines.end(); itr++)
             globalDefines[itr->first] = itr->second;
 
@@ -255,6 +255,9 @@ namespace MWRender
         globalDefines["preLightEnv"] = Settings::Manager::getBool("apply lighting to environment maps", "Shaders") ? "1" : "0";
         globalDefines["radialFog"] = Settings::Manager::getBool("radial fog", "Shaders") ? "1" : "0";
         globalDefines["useGPUShader4"] = "0";
+
+        for (auto itr = lightDefines.begin(); itr != lightDefines.end(); itr++)
+            globalDefines[itr->first] = itr->second;
 
         float groundcoverDistance = (Constants::CellSizeInUnits * std::max(1, Settings::Manager::getInt("distance", "Groundcover")) - 1024) * 0.93;
         globalDefines["groundcoverFadeStart"] = std::to_string(groundcoverDistance * 0.9f);

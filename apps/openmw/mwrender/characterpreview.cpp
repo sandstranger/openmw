@@ -174,7 +174,9 @@ namespace MWRender
 
         mCamera->setNodeMask(Mask_RenderToTexture);
 
-        osg::ref_ptr<SceneUtil::LightManager> lightManager = new SceneUtil::LightManager(mResourceSystem->getSceneManager()->getFFPLighting());
+        bool ffp = mResourceSystem->getSceneManager()->getLightingMethod() == SceneUtil::LightingMethod::FFP;
+
+        osg::ref_ptr<SceneUtil::LightManager> lightManager = new SceneUtil::LightManager(ffp);
         lightManager->setStartLight(1);
         osg::ref_ptr<osg::StateSet> stateset = lightManager->getOrCreateStateSet();
         stateset->setMode(GL_LIGHTING, osg::StateAttribute::ON);

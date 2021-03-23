@@ -5,6 +5,7 @@
 #include <cassert>
 #include <unordered_map>
 #include <unordered_set>
+#include <memory>
 
 #include <osg/Light>
 
@@ -27,28 +28,18 @@ namespace osg
 
 namespace SceneUtil
 {
-    class SunlightBuffer;
+    class SunLightBuffer;
     class PointLightBuffer;
+    class StateSetGenerator;
 
-    // Used to override sun. Rarely useful but necassary for local map. 
-    class SunlightStateAttribute : public osg::StateAttribute
+    enum class LightingMethod
     {
-    public:
-        SunlightStateAttribute();
-        SunlightStateAttribute(const SunlightStateAttribute& copy,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
-        
-        int compare(const StateAttribute &sa) const override;
-
-        META_StateAttribute(NifOsg, SunlightStateAttribute, osg::StateAttribute::LIGHT)
-
-        void setFromLight(const osg::Light* light);
-
-        void setStateSet(osg::StateSet* stateset, int mode=osg::StateAttribute::ON);
-
-    private:
-        osg::ref_ptr<SunlightBuffer> mBuffer;
-        osg::ref_ptr<osg::UniformBufferBinding> mUbb;
+        FFP,
+        SingleUBO,
+        PerObjectUniform
     };
+
+    void configureStateSetSunOverride(LightingMethod method, const osg::Light* light, osg::StateSet* stateset, int mode = osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
 
     /// LightSource managed by a LightManager.
     /// @par Typically used for point lights. Spot lights are not supported yet. Directional lights affect the whole scene
@@ -68,8 +59,6 @@ namespace SceneUtil
 
         int mId;
 
-        float mBrightness[2];
-
     public:
 
         META_Node(SceneUtil, LightSource)
@@ -87,16 +76,6 @@ namespace SceneUtil
         void setRadius(float radius)
         {
             mRadius = radius;
-        }
-
-        float getBrightness(size_t frame)
-        {
-            return mBrightness[frame % 2];
-        }
-
-        void setBrightness(size_t frame, float brightness)
-        {
-            mBrightness[frame % 2] = brightness;
         }
 
         /// Get the osg::Light safe for modification in the given frame.
@@ -128,6 +107,17 @@ namespace SceneUtil
     class LightManager : public osg::Group
     {
     public:
+
+        static bool isValidLightingModelString(const std::string& value);
+
+        enum class UniformKey
+        {
+            Diffuse,
+            Ambient,
+            Position,
+            Attenuation
+        };
+
         struct LightSourceTransform
         {
             LightSource* mLightSource;
@@ -141,8 +131,6 @@ namespace SceneUtil
         };
 
         using LightList = std::vector<const LightSourceViewBound*>;
-
-        static bool queryNonFFPLightingSupport();
 
         META_Node(SceneUtil, LightManager)
 
@@ -162,7 +150,7 @@ namespace SceneUtil
         int getStartLight() const;
 
         /// Internal use only, called automatically by the LightManager's UpdateCallback
-        void update();
+        void update(size_t frameNum);
 
         /// Internal use only, called automatically by the LightSource's UpdateCallback
         void addLight(LightSource* lightSource, const osg::Matrixf& worldMat, size_t frameNum);
@@ -174,27 +162,36 @@ namespace SceneUtil
         void setSunlight(osg::ref_ptr<osg::Light> sun);
         osg::ref_ptr<osg::Light> getSunlight();
 
-        osg::ref_ptr<SunlightBuffer> getSunBuffer();
+        osg::ref_ptr<SunLightBuffer> getSunBuffer();
 
         bool usingFFP() const;
+        LightingMethod getLightingMethod() const;
 
         int getMaxLights() const;
         int getMaxLightsInScene() const;
 
-        Shader::ShaderManager::DefineMap getLightDefines() const;
+        auto& getDummies() { return mDummies; }
+
+        auto& getLightData(size_t frameNum) { return mLightData[frameNum%2]; }
+
+        std::map<std::string, std::string> getLightDefines() const;
+
+        auto& getLightUniform(int index, UniformKey key) { return mLightUniforms[index][key]; }
 
     private:
 
         friend class LightManagerStateAttribute;
+        friend class SunlightCallback;
+
+        void setLightingMethod(LightingMethod method);
 
         void updateGPUPointLight(int index, LightSource* lightSource, size_t frameNum);
 
-        // Lights collected from the scene graph. Only valid during the cull traversal.
         std::vector<LightSourceTransform> mLights;
 
         typedef std::vector<LightSourceViewBound> LightSourceViewBoundCollection;
         std::map<osg::observer_ptr<osg::Camera>, LightSourceViewBoundCollection> mLightsInViewSpace;
-
+        
         // < Light list hash , StateSet >
         typedef std::map<size_t, osg::ref_ptr<osg::StateSet> > LightStateSetMap;
         LightStateSetMap mStateSetCache[2];
@@ -206,26 +203,23 @@ namespace SceneUtil
         size_t mLightingMask;
 
         osg::ref_ptr<osg::Light> mSun;
-        osg::ref_ptr<SunlightBuffer> mSunBuffer;
+        osg::ref_ptr<SunLightBuffer> mSunBuffer;        
 
-        struct PointLightProxyData
-        {
-            osg::Vec4 mPosition;
-            float mBrightness;
-        };
-
-        std::vector<PointLightProxyData> mPointLightProxyData;
-        osg::ref_ptr<PointLightBuffer> mPointBuffer;
+        osg::ref_ptr<PointLightBuffer> mPointBufferMapped[2];
 
         // < Light ID , Buffer Index >
         using LightDataMap = std::unordered_map<int, int>;
-        LightDataMap mLightData;
-
-        bool mIndexNeedsRecompiling;
+        LightDataMap mLightData[2];
         
-        bool mFFP;
+        LightingMethod mLightingMethod;
 
-        static constexpr int mFFPMaxLights = 8;
+        using UniformMap = std::vector<std::unordered_map<UniformKey, osg::ref_ptr<osg::Uniform>>>;
+        UniformMap mLightUniforms;
+
+        std::unique_ptr<StateSetGenerator> mStateSetGenerator;
+
+        static constexpr auto mMaxUBOLights = 500;
+        static constexpr auto mFFPMaxLights = 8;
     };
 
     /// To receive lighting, objects must be decorated by a LightListCallback. Light list callbacks must be added via
@@ -264,8 +258,7 @@ namespace SceneUtil
         size_t mLastFrameNumber;
         LightManager::LightList mLightList;
         std::set<SceneUtil::LightSource*> mIgnoredLightSources;
-    };
-
+    }; 
 }
 
 #endif

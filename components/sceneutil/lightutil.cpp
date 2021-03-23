@@ -58,7 +58,7 @@ namespace SceneUtil
         light->setQuadraticAttenuation(quadraticAttenuation);
     }
 
-    void addLight (osg::Group* node, const ESM::Light* esmLight, unsigned int partsysMask, unsigned int lightMask, bool isExterior, bool useFFPLighting)
+    void addLight(osg::Group* node, const ESM::Light* esmLight, unsigned int partsysMask, unsigned int lightMask, bool isExterior, bool useFFPLighting)
     {
         SceneUtil::FindByNameVisitor visitor("AttachLight");
         node->accept(visitor);
@@ -97,7 +97,7 @@ namespace SceneUtil
 
         float radius = esmLight->mData.mRadius;
         // arbitrary multipler to reduce light popping, this is hard to avoid with per-object lighting
-        // we offset this multipler in shaders
+        // we offset this multipler in shaders and the light sources view bound
         if (!useFFPLighting)
             radius *= 2.0;
         lightSource->setRadius(radius);
@@ -116,7 +116,7 @@ namespace SceneUtil
 
         lightSource->setLight(light);
 
-        osg::ref_ptr<SceneUtil::LightController> ctrl (new SceneUtil::LightController(useFFPLighting));
+        osg::ref_ptr<SceneUtil::LightController> ctrl (new SceneUtil::LightController);
         ctrl->setDiffuse(light->getDiffuse());
         if (esmLight->mData.mFlags & ESM::Light::Flicker)
             ctrl->setType(SceneUtil::LightController::LT_Flicker);
