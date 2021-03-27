@@ -896,7 +896,7 @@ namespace SceneUtil
         auto* light = lightSource->getLight(frameNum);
         auto& buf = getLightBuffer(frameNum);
         buf->setDiffuse(index, light->getDiffuse());
-        buf->setAmbient(index, light->getSpecular());
+        buf->setAmbient(index, light->getAmbient());
         buf->setAttenuation(index, light->getConstantAttenuation(), light->getLinearAttenuation(), light->getQuadraticAttenuation());
         buf->setRadius(index, lightSource->getRadius());
         buf->setPosition(index, light->getPosition() * (*viewMatrix));
