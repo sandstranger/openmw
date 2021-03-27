@@ -28,8 +28,7 @@ namespace Shader
 
     enum class UBOBinding
     {
-        SunLightBuffer = 0,
-        PointLightBuffer
+        LightBuffer
     };
 
     /// @brief Reads shader template files and turns them into a concrete shader, based on a list of define's.

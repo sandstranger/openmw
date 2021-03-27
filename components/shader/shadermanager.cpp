@@ -357,10 +357,7 @@ namespace Shader
             program->addBindAttribLocation("aOffset", 6);
             program->addBindAttribLocation("aRotation", 7);
             if (mLightingMethod == SceneUtil::LightingMethod::SingleUBO)
-            {
-                program->addBindUniformBlock("SunlightBuffer", static_cast<int>(UBOBinding::SunLightBuffer));
-                program->addBindUniformBlock("PointLightBuffer", static_cast<int>(UBOBinding::PointLightBuffer));
-            }
+                program->addBindUniformBlock("LightBufferBinding", static_cast<int>(UBOBinding::LightBuffer));
             found = mPrograms.insert(std::make_pair(std::make_pair(vertexShader, fragmentShader), program)).first;
         }
         return found->second;

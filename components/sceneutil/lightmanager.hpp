@@ -8,7 +8,6 @@
 #include <memory>
 
 #include <osg/Light>
-
 #include <osg/Group>
 #include <osg/NodeVisitor>
 #include <osg/observer_ptr>
@@ -19,17 +18,9 @@ namespace osgUtil
 {
     class CullVisitor;
 }
-
-namespace osg
-{
-    class UniformBufferBinding;
-    class UniformBufferObject;
-}
-
 namespace SceneUtil
 {
-    class SunLightBuffer;
-    class PointLightBuffer;
+    class LightBuffer;
     class StateSetGenerator;
 
     enum class LightingMethod
@@ -114,6 +105,7 @@ namespace SceneUtil
         {
             Diffuse,
             Ambient,
+            Specular,
             Position,
             Attenuation
         };
@@ -138,6 +130,8 @@ namespace SceneUtil
 
         LightManager(const LightManager& copy, const osg::CopyOp& copyop);
 
+        ~LightManager();
+
         /// @param mask This mask is compared with the current Camera's cull mask to determine if lighting is desired.
         /// By default, it's ~0u i.e. always on.
         /// If you have some views that do not require lighting, then set the Camera's cull mask to not include
@@ -157,43 +151,46 @@ namespace SceneUtil
 
         const std::vector<LightSourceViewBound>& getLightsInViewSpace(osg::Camera* camera, const osg::RefMatrix* viewMatrix, size_t frameNum);
 
-        osg::ref_ptr<osg::StateSet> getLightListStateSet(const LightList& lightList, size_t frameNum);
+        osg::ref_ptr<osg::StateSet> getLightListStateSet(const LightList& lightList, size_t frameNum, const osg::RefMatrix* viewMatrix);
 
         void setSunlight(osg::ref_ptr<osg::Light> sun);
         osg::ref_ptr<osg::Light> getSunlight();
 
-        osg::ref_ptr<SunLightBuffer> getSunBuffer();
-
         bool usingFFP() const;
+
         LightingMethod getLightingMethod() const;
 
         int getMaxLights() const;
+
         int getMaxLightsInScene() const;
 
         auto& getDummies() { return mDummies; }
 
-        auto& getLightData(size_t frameNum) { return mLightData[frameNum%2]; }
-
-        std::map<std::string, std::string> getLightDefines() const;
+        auto& getLightIndexMap(size_t frameNum) { return mLightIndexMaps[frameNum%2]; }
+        
+        auto& getLightBuffer(size_t frameNum) { return mLightBuffers[frameNum%2]; }
 
         auto& getLightUniform(int index, UniformKey key) { return mLightUniforms[index][key]; }
+
+        std::map<std::string, std::string> getLightDefines() const;
 
     private:
 
         friend class LightManagerStateAttribute;
-        friend class SunlightCallback;
+        friend class LightManagerCullCallback;
 
         void setLightingMethod(LightingMethod method);
+        void setMaxLights(int value);
 
-        void updateGPUPointLight(int index, LightSource* lightSource, size_t frameNum);
+        void updateGPUPointLight(int index, LightSource* lightSource, size_t frameNum, const osg::RefMatrix* viewMatrix);
 
         std::vector<LightSourceTransform> mLights;
 
-        typedef std::vector<LightSourceViewBound> LightSourceViewBoundCollection;
+        using LightSourceViewBoundCollection = std::vector<LightSourceViewBound>;
         std::map<osg::observer_ptr<osg::Camera>, LightSourceViewBoundCollection> mLightsInViewSpace;
         
         // < Light list hash , StateSet >
-        typedef std::map<size_t, osg::ref_ptr<osg::StateSet> > LightStateSetMap;
+        using LightStateSetMap = std::map<size_t, osg::ref_ptr<osg::StateSet>>;
         LightStateSetMap mStateSetCache[2];
 
         std::vector<osg::ref_ptr<osg::StateAttribute>> mDummies;
@@ -203,22 +200,24 @@ namespace SceneUtil
         size_t mLightingMask;
 
         osg::ref_ptr<osg::Light> mSun;
-        osg::ref_ptr<SunLightBuffer> mSunBuffer;        
 
-        osg::ref_ptr<PointLightBuffer> mPointBufferMapped[2];
+        osg::ref_ptr<LightBuffer> mLightBuffers[2];
 
         // < Light ID , Buffer Index >
-        using LightDataMap = std::unordered_map<int, int>;
-        LightDataMap mLightData[2];
-        
-        LightingMethod mLightingMethod;
+        using LightIndexMap = std::unordered_map<int, int>;
+        LightIndexMap mLightIndexMaps[2];
 
         using UniformMap = std::vector<std::unordered_map<UniformKey, osg::ref_ptr<osg::Uniform>>>;
         UniformMap mLightUniforms;
 
         std::unique_ptr<StateSetGenerator> mStateSetGenerator;
 
-        static constexpr auto mMaxUBOLights = 500;
+        LightingMethod mLightingMethod;
+
+        float mPointLightRadiusMultiplier;
+
+        int mMaxLights;
+
         static constexpr auto mFFPMaxLights = 8;
     };
 

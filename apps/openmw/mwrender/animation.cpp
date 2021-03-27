@@ -1613,9 +1613,7 @@ namespace MWRender
     {
         bool exterior = mPtr.isInCell() && mPtr.getCell()->getCell()->isExterior();
 
-        bool ffp = mResourceSystem->getSceneManager()->getLightingMethod() == SceneUtil::LightingMethod::FFP;
-
-        SceneUtil::addLight(parent, esmLight, Mask_ParticleSystem, Mask_Lighting, exterior, ffp);
+        SceneUtil::addLight(parent, esmLight, Mask_ParticleSystem, Mask_Lighting, exterior);
     }
 
     void Animation::addEffect (const std::string& model, int effectId, bool loop, const std::string& bonename, const std::string& texture)

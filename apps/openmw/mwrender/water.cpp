@@ -673,7 +673,7 @@ void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, R
     program->addShader(fragmentShader);
     auto method = mResourceSystem->getSceneManager()->getLightingMethod();
     if (method == SceneUtil::LightingMethod::SingleUBO)
-        program->addBindUniformBlock("SunlightBuffer", 0);
+        program->addBindUniformBlock("LightBufferBinding", static_cast<int>(Shader::UBOBinding::LightBuffer));
     shaderStateset->setAttributeAndModes(program, osg::StateAttribute::ON);
 
     node->setStateSet(shaderStateset);
