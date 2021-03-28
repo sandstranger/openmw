@@ -33,11 +33,9 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
     vec3 ambientOut, diffuseOut;
     // This light gets added a second time in the loop to fix Mesa users' slowdown, so we need to negate its contribution here.
     perLight(ambientOut, diffuseOut, 0, viewPos, viewNormal);
+
 #if PER_PIXEL_LIGHTING
     diffuseLight = diffuseOut * shadowing - diffuseOut;
-#else
-    shadowDiffuse = diffuseOut;
-    diffuseLight = -diffuseOut;
 #endif
 
     ambientLight = gl_LightModel.ambient.xyz;
