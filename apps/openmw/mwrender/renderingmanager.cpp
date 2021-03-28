@@ -263,6 +263,7 @@ namespace MWRender
         bool forceShaders =
             Settings::Manager::getBool("radial fog", "Shaders") ||
             Settings::Manager::getBool("force shaders", "Shaders") ||
+            Settings::Manager::getBool("enabled", "Groundcover") ||
             Settings::Manager::getBool("enable shadows", "Shadows");
         resourceSystem->getSceneManager()->setForceShaders(forceShaders);
         // FIXME: calling dummy method because terrain needs to know whether lighting is clamped

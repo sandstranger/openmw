@@ -774,11 +774,7 @@ namespace Resource
     {
         Shader::ShaderVisitor* shaderVisitor = new Shader::ShaderVisitor(*mShaderManager.get(), *mImageManager, shaderPrefix);
 
-        if(shaderPrefix == "groundcover")
-            shaderVisitor->setForceShaders(true);
-	else
-            shaderVisitor->setForceShaders(mForceShaders);
-
+        shaderVisitor->setForceShaders(mForceShaders);
         shaderVisitor->setAutoUseNormalMaps(mAutoUseNormalMaps);
         shaderVisitor->setNormalMapPattern(mNormalMapPattern);
         shaderVisitor->setNormalHeightMapPattern(mNormalHeightMapPattern);
