@@ -588,6 +588,7 @@ namespace SceneUtil
         , mLightingMask(~0u)
         , mSun(nullptr)
         , mPointLightRadiusMultiplier(std::max(0.0f, Settings::Manager::getFloat("light bounds multiplier", "Shaders")))
+        , mPointLightFadeEnd(std::max(0, Settings::Manager::getInt("light fade distance", "Shaders")))
     {
         auto lightingModelString = Settings::Manager::getString("lighting method", "Shaders");
         bool validLightingModel = isValidLightingModelString(lightingModelString);
@@ -868,6 +869,16 @@ namespace SceneUtil
 
                 osg::BoundingSphere viewBound = osg::BoundingSphere(osg::Vec3f(0,0,0), radius * mPointLightRadiusMultiplier);
                 transformBoundingSphere(worldViewMat, viewBound);
+
+                static constexpr float fadeDelta = 150.0;
+
+                float fadeMult = std::min(1.f, (mPointLightFadeEnd - viewBound.center().length()) / fadeDelta);
+
+                if (fadeMult <= 0.0)
+                    continue;
+
+                auto* light = transform.mLightSource->getLight(frameNum);
+                light->setDiffuse(light->getDiffuse() * fadeMult);
 
                 LightSourceViewBound l;
                 l.mLightSource = transform.mLightSource;
