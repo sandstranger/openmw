@@ -79,9 +79,7 @@ namespace SceneUtil
 
         void setPosition(int index, const osg::Vec4& value)
         {
-            (*mData)[3*index+1][0] = value[0];
-            (*mData)[3*index+1][1] = value[1];
-            (*mData)[3*index+1][2] = value[2];
+            (*mData)[3*index+1] = value;
         }
 
         void setAttenuation(int index, float c, float l, float q)

@@ -98,8 +98,7 @@ void perLightSun(out vec3 ambientOut, out vec3 diffuseOut, vec3 viewPos, vec3 vi
 
 void perLightPoint(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 viewPos, vec3 viewNormal)
 {
-    vec4 pos = getLight[lightIndex].position;
-    vec3 lightDir = pos.xyz - viewPos;
+    vec3 lightDir = getLight[lightIndex].position.xyz - viewPos;
 
     float lightDistance = length(lightDir);
     lightDir = normalize(lightDir);
