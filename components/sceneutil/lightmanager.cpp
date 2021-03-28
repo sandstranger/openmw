@@ -595,9 +595,16 @@ namespace SceneUtil
         : mStartLight(0)
         , mLightingMask(~0u)
         , mSun(nullptr)
-        , mPointLightRadiusMultiplier(std::max(0.0f, Settings::Manager::getFloat("light bounds multiplier", "Shaders")))
-        , mPointLightFadeEnd(std::max(0, Settings::Manager::getInt("light fade distance", "Shaders")))
+        , mPointLightRadiusMultiplier(std::max(0.f, Settings::Manager::getFloat("light bounds multiplier", "Shaders")))
+        , mPointLightFadeStart(0.f)
     {
+        mPointLightFadeEnd = std::max(0.f, Settings::Manager::getFloat("maximum light distance", "Shaders"));
+        if (mPointLightFadeEnd > 0)
+        {
+            mPointLightFadeStart = std::clamp(Settings::Manager::getFloat("light fade start", "Shaders"), 0.f, 1.f);
+            mPointLightFadeStart = mPointLightFadeEnd * mPointLightFadeStart;
+        }
+
         auto lightingModelString = Settings::Manager::getString("lighting method", "Shaders");
         bool validLightingModel = isValidLightingModelString(lightingModelString);
         if (!validLightingModel)
@@ -878,15 +885,18 @@ namespace SceneUtil
                 osg::BoundingSphere viewBound = osg::BoundingSphere(osg::Vec3f(0,0,0), radius * mPointLightRadiusMultiplier);
                 transformBoundingSphere(worldViewMat, viewBound);
 
-                static constexpr float fadeDelta = 150.0;
+                static const float fadeDelta = mPointLightFadeEnd - mPointLightFadeStart;
 
-                float fadeMult = std::min(1.f, (mPointLightFadeEnd - viewBound.center().length()) / fadeDelta);
+                if (mPointLightFadeEnd != 0.f)
+                {
+                    float fade = 1 - std::clamp((viewBound.center().length() - mPointLightFadeStart) / fadeDelta, 0.f, 1.f);
 
-                if (fadeMult <= 0.0)
-                    continue;
+                    if (fade == 0.f)
+                        continue;
 
-                auto* light = transform.mLightSource->getLight(frameNum);
-                light->setDiffuse(light->getDiffuse() * fadeMult);
+                    auto* light = transform.mLightSource->getLight(frameNum);
+                    light->setDiffuse(light->getDiffuse() * fade);
+                }
 
                 LightSourceViewBound l;
                 l.mLightSource = transform.mLightSource;
