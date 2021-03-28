@@ -98,7 +98,8 @@ void perLightSun(out vec3 ambientOut, out vec3 diffuseOut, vec3 viewPos, vec3 vi
 
 void perLightPoint(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 viewPos, vec3 viewNormal)
 {
-    vec3 lightDir = getLight[lightIndex].position.xyz - viewPos;
+    vec4 pos = getLight[lightIndex].position;
+    vec3 lightDir = pos.xyz - viewPos;
 
     float lightDistance = length(lightDir);
     lightDir = normalize(lightDir);
@@ -132,7 +133,7 @@ void perLightPoint(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec
 #endif
 
 #if @useUBO
-    diffuseOut = unpackRGB(data.x) * lambert;
+    diffuseOut =  unpackRGB(data.x) * lambert * float(int(data.w));
 #else
     diffuseOut = getLight[lightIndex].diffuse.xyz * lambert;
 #endif

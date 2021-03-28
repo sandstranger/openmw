@@ -56,7 +56,15 @@ namespace SceneUtil
 
         void setDiffuse(int index, const osg::Vec4& value)
         {
-            *(unsigned int*)(&(*mData)[3*index][0]) = asRGBA(value);
+            auto signedValue = value;
+            float signBit = 1.0;
+            if (value[0] < 0)
+            {
+                signedValue *= -1.0;
+                signBit = -1.0;
+            }
+            *(unsigned int*)(&(*mData)[3*index][0]) = asRGBA(signedValue);
+            *(int*)(&(*mData)[3*index][3]) = signBit;
         }
 
         void setAmbient(int index, const osg::Vec4& value)
@@ -71,7 +79,9 @@ namespace SceneUtil
 
         void setPosition(int index, const osg::Vec4& value)
         {
-            (*mData)[3*index+1] = value;
+            (*mData)[3*index+1][0] = value[0];
+            (*mData)[3*index+1][1] = value[1];
+            (*mData)[3*index+1][2] = value[2];
         }
 
         void setAttenuation(int index, float c, float l, float q)
