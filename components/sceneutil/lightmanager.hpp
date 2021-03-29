@@ -2,12 +2,12 @@
 #define OPENMW_COMPONENTS_SCENEUTIL_LIGHTMANAGER_H
 
 #include <set>
-#include <cassert>
-#include <unordered_map>
 #include <unordered_set>
+#include <unordered_map>
 #include <memory>
 
 #include <osg/Light>
+
 #include <osg/Group>
 #include <osg/NodeVisitor>
 #include <osg/observer_ptr>
@@ -18,6 +18,7 @@ namespace osgUtil
 {
     class CullVisitor;
 }
+
 namespace SceneUtil
 {
     class LightBuffer;
@@ -98,7 +99,6 @@ namespace SceneUtil
     class LightManager : public osg::Group
     {
     public:
-
         static bool isValidLightingModelString(const std::string& value);
 
         enum class UniformKey
@@ -136,7 +136,7 @@ namespace SceneUtil
         /// By default, it's ~0u i.e. always on.
         /// If you have some views that do not require lighting, then set the Camera's cull mask to not include
         /// the lightingMask for a much faster cull and rendering.
-        void setLightingMask (size_t mask);
+        void setLightingMask(size_t mask);
         size_t getLightingMask() const;
 
         /// Set the first light index that should be used by this manager, typically the number of directional lights in the scene.
@@ -167,7 +167,7 @@ namespace SceneUtil
         auto& getDummies() { return mDummies; }
 
         auto& getLightIndexMap(size_t frameNum) { return mLightIndexMaps[frameNum%2]; }
-        
+
         auto& getLightBuffer(size_t frameNum) { return mLightBuffers[frameNum%2]; }
 
         auto& getLightUniform(int index, UniformKey key) { return mLightUniforms[index][key]; }
@@ -175,9 +175,12 @@ namespace SceneUtil
         std::map<std::string, std::string> getLightDefines() const;
 
     private:
-
         friend class LightManagerStateAttribute;
         friend class LightManagerCullCallback;
+
+        void initFFP(int targetLights);
+        void initPerObjectUniform(int targetLights);
+        void initSingleUBO(int targetLights);
 
         void setLightingMethod(LightingMethod method);
         void setMaxLights(int value);
@@ -188,7 +191,7 @@ namespace SceneUtil
 
         using LightSourceViewBoundCollection = std::vector<LightSourceViewBound>;
         std::map<osg::observer_ptr<osg::Camera>, LightSourceViewBoundCollection> mLightsInViewSpace;
-        
+
         // < Light list hash , StateSet >
         using LightStateSetMap = std::map<size_t, osg::ref_ptr<osg::StateSet>>;
         LightStateSetMap mStateSetCache[2];
@@ -259,7 +262,8 @@ namespace SceneUtil
         size_t mLastFrameNumber;
         LightManager::LightList mLightList;
         std::set<SceneUtil::LightSource*> mIgnoredLightSources;
-    }; 
+    };
+
 }
 
 #endif
