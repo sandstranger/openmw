@@ -885,13 +885,10 @@ namespace SceneUtil
             mStateSetGenerator->update(found->second, lightList, frameNum);
             return found->second;
         }
-        else
-        {
-            auto stateset = mStateSetGenerator->generate(lightList, frameNum);
-            stateSetCache.emplace(hash, stateset);
-            return stateset;
-        }
-        return new osg::StateSet;
+
+        auto stateset = mStateSetGenerator->generate(lightList, frameNum);
+        stateSetCache.emplace(hash, stateset);
+        return stateset;
     }
 
     const std::vector<LightManager::LightSourceViewBound>& LightManager::getLightsInViewSpace(osg::Camera *camera, const osg::RefMatrix* viewMatrix, size_t frameNum)
