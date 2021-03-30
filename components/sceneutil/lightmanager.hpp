@@ -28,7 +28,8 @@ namespace SceneUtil
     {
         FFP,
         SingleUBO,
-        PerObjectUniform
+        PerObjectUniform,
+        Undefined
     };
 
     void configureStateSetSunOverride(LightingMethod method, const osg::Light* light, osg::StateSet* stateset, int mode = osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
@@ -100,6 +101,7 @@ namespace SceneUtil
     {
     public:
         static bool isValidLightingModelString(const std::string& value);
+        static LightingMethod getLightingMethodFromString(const std::string& value);
 
         enum class UniformKey
         {
@@ -224,6 +226,8 @@ namespace SceneUtil
         int mMaxLights;
 
         static constexpr auto mFFPMaxLights = 8;
+
+        static const std::unordered_map<std::string, LightingMethod> mLightingMethodSettingMap;
     };
 
     /// To receive lighting, objects must be decorated by a LightListCallback. Light list callbacks must be added via

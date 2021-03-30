@@ -141,6 +141,7 @@ namespace SceneUtil
     {
         switch (method)
         {
+        case LightingMethod::Undefined:
         case LightingMethod::FFP:
             {
                 break;
@@ -592,10 +593,24 @@ namespace SceneUtil
         LightManager* mLightManager;
     };
 
+    const std::unordered_map<std::string, LightingMethod> LightManager::mLightingMethodSettingMap = {
+         {"legacy", LightingMethod::FFP}
+        ,{"shaders compatibility", LightingMethod::PerObjectUniform}
+        ,{"shaders", LightingMethod::SingleUBO}
+    };
+
     bool LightManager::isValidLightingModelString(const std::string& value)
     {
-        static const std::unordered_set<std::string> validLightingModels = {"legacy", "default", "experimental"};
-        return validLightingModels.count(value) != 0;
+        return LightManager::mLightingMethodSettingMap.find(value) != LightManager::mLightingMethodSettingMap.end();
+    }
+
+    LightingMethod LightManager::getLightingMethodFromString(const std::string& value)
+    {
+        auto it = LightManager::mLightingMethodSettingMap.find(value);
+        if (it != LightManager::mLightingMethodSettingMap.end())
+            return it->second;
+        else
+            return LightingMethod::Undefined;
     }
 
     LightManager::LightManager(bool ffp)
@@ -608,17 +623,22 @@ namespace SceneUtil
     {
         if (ffp)
         {
+            setLightingMethod(LightingMethod::FFP);
             initFFP(LightManager::mFFPMaxLights);
             return;
         }
 
-        auto lightingModelString = Settings::Manager::getString("lighting method", "Shaders");
-        bool validLightingModel = isValidLightingModelString(lightingModelString);
-        if (!validLightingModel)
+        std::string lightingMethodString = Settings::Manager::getString("lighting method", "Shaders");
+        auto lightingMethod = LightManager::getLightingMethodFromString(lightingMethodString);
+        if (lightingMethod == LightingMethod::Undefined)
         {
-            Log(Debug::Error) << "Invalid option for 'lighting model': got '" << lightingModelString
-                              << "', expected legacy, default, or experimental. Falling back to 'default'.";
-            lightingModelString = "default";
+            Log(Debug::Error) << "Invalid option for 'lighting method': got '" << lightingMethodString
+                              << "', expected legacy, shaders compatible, or shaders. Falling back to 'shaders compatible'.";
+            setLightingMethod(LightingMethod::PerObjectUniform);
+        }
+        else
+        {
+            setLightingMethod(lightingMethod);
         }
 
         mPointLightRadiusMultiplier = std::clamp(Settings::Manager::getFloat("light bounds multiplier", "Shaders"), 0.f, 10.f);
@@ -634,17 +654,25 @@ namespace SceneUtil
         bool supportsUBO = exts && exts->isUniformBufferObjectSupported;
         bool supportsGPU4 = exts && exts->isGpuShader4Supported;
 
-        if (!supportsUBO)
-            Log(Debug::Info) << "GL_ARB_uniform_buffer_object not supported: using fallback uniforms";
-        else if (!supportsGPU4)
-            Log(Debug::Info) << "GL_EXT_gpu_shader4 not supported: using fallback uniforms";
+        if (getLightingMethod() == LightingMethod::SingleUBO)
+        {
+            if (!supportsUBO)
+                Log(Debug::Info) << "GL_ARB_uniform_buffer_object not supported: using fallback uniforms";
+            else if (!supportsGPU4)
+                Log(Debug::Info) << "GL_EXT_gpu_shader4 not supported: using fallback uniforms";
+        }
 
         int targetLights = Settings::Manager::getInt("max lights", "Shaders");
 
-        if (!supportsUBO || !supportsGPU4 || lightingModelString == "default")
+        if (!supportsUBO || !supportsGPU4 || getLightingMethod() == LightingMethod::PerObjectUniform)
+        {
+            setLightingMethod(LightingMethod::PerObjectUniform);
             initPerObjectUniform(targetLights);
+        }
         else
+        {
             initSingleUBO(targetLights);
+        }
 
         getOrCreateStateSet()->addUniform(new osg::Uniform("PointLightCount", 0));
 
@@ -711,7 +739,6 @@ namespace SceneUtil
     void LightManager::initFFP(int targetLights)
     {
         setMaxLights(targetLights);
-        setLightingMethod(LightingMethod::FFP);
 
         for (int i = 0; i < getMaxLights(); ++i)
             mDummies.push_back(new FFPLightStateAttribute(i, std::vector<osg::ref_ptr<osg::Light>>()));
@@ -723,7 +750,6 @@ namespace SceneUtil
     {
         auto* stateset = getOrCreateStateSet();
 
-        setLightingMethod(LightingMethod::PerObjectUniform);
         setMaxLights(std::max(2, targetLights));
 
         mLightUniforms.resize(getMaxLights()+1);
@@ -754,7 +780,6 @@ namespace SceneUtil
 
     void LightManager::initSingleUBO(int targetLights)
     {
-        setLightingMethod(LightingMethod::SingleUBO);
         setMaxLights(std::clamp(targetLights, 2, getMaxLightsInScene() / 2));
 
         for (int i = 0; i < 2; ++i)
@@ -784,6 +809,9 @@ namespace SceneUtil
             break;
         case LightingMethod::PerObjectUniform:
             mStateSetGenerator = std::make_unique<StateSetGeneratorPerObjectUniform>();
+            break;
+        case LightingMethod::Undefined:
+            mStateSetGenerator = nullptr;
             break;
         }
         mStateSetGenerator->mLightManager = this;
