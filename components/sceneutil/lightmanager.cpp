@@ -643,7 +643,7 @@ namespace SceneUtil
             mDummyProgram->addBindUniformBlock("LightBufferBinding", static_cast<int>(Shader::UBOBinding::LightBuffer));
             // Needed to query the layout of the buffer object. The layout specifier needed to use the std140 layout is not reliably
             // available, regardless of extensions, until GLSL 140.
-            mLightManager->getOrCreateStateSet()->setAttributeAndModes(mDummyProgram, osg::StateAttribute::ON|osg::StateAttribute::PROTECTED);
+            mLightManager->getOrCreateStateSet()->setAttributeAndModes(mDummyProgram, osg::StateAttribute::ON);
         }
 
         LightManagerStateAttribute(const LightManagerStateAttribute& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY)
