@@ -3,6 +3,8 @@
 #include <BulletCollision/CollisionShapes/btBoxShape.h>
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 
+#include <apps/openmw/mwmechanics/actorutil.hpp>
+#include <apps/openmw/mwworld/cellstore.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
 #include <components/resource/bulletshape.hpp>
 #include <components/debug/debuglog.hpp>
@@ -179,9 +181,9 @@ bool Actor::setPosition(const osg::Vec3f& position)
     if (mSkipSimulation)
         return false;
     bool hasChanged = mPosition != position || mPositionOffset.length() != 0 || mWorldPositionChanged;
-    mPreviousPosition = mPosition + mPositionOffset;
-    mPosition = position + mPositionOffset;
-    mPositionOffset = osg::Vec3f();
+    applyOffsetChange();
+    mPreviousPosition = mPosition;
+    mPosition = position;
     return hasChanged;
 }
 
@@ -195,9 +197,19 @@ void Actor::applyOffsetChange()
 {
     if (mPositionOffset.length() == 0)
         return;
+    if (mPositionOffset.z() != 0)
+    {
+        // Often, offset are set in sequence x, y, z
+        // We don't want actors to be moved under the ground
+        // Check terrain height at new coordinate and update z offset if necessary
+        const auto pos = mWorldPosition + mPositionOffset;
+        const auto terrainHeight = mPtr.getCell()->isExterior() ? MWBase::Environment::get().getWorld()->getTerrainHeightAt(pos) : -std::numeric_limits<float>::max();
+        mPositionOffset.z() = std::max(pos.z(), terrainHeight) - mWorldPosition.z();
+    }
     mWorldPosition += mPositionOffset;
     mPosition += mPositionOffset;
     mPreviousPosition += mPositionOffset;
+    mSimulationPosition += mPositionOffset;
     mPositionOffset = osg::Vec3f();
     mWorldPositionChanged = true;
 }

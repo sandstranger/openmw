@@ -313,6 +313,8 @@ General advices to create assets for this feature:
 
 3. Smooth fading does not work for meshes, which have textures without alpha (e.g. rock).
 
+Groundcover mods can be registered in the openmw.cfg via "groundcover" entries instead of "content" ones:
+
 ::
 
     groundcover=my_grass_mod.esp

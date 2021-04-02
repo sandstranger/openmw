@@ -305,7 +305,7 @@ tile size
 
 :Type:		integer
 :Range:		> 0
-:Default:	128
+:Default:	64
 
 The width and height of each tile.
 
