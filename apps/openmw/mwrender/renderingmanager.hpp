@@ -295,6 +295,7 @@ namespace MWRender
         osg::ref_ptr<StateUpdater> mStateUpdater;
 
         osg::Vec4f mAmbientColor;
+        float mMinimumAmbientLuminance;
         float mNightEyeFactor;
 
         float mNearClip;
