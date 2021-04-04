@@ -107,12 +107,9 @@ namespace Resource
 
         void setApplyLightingToEnvMaps(bool apply);
 
-<<<<<<< HEAD
-=======
         void setLightingMethod(SceneUtil::LightingMethod method);
         SceneUtil::LightingMethod getLightingMethod() const;
         
->>>>>>> glassmancody.info/openmw-why_are_the_christmas_lights_still_up
         void setConvertAlphaTestToAlphaToCoverage(bool convert);
 
         void setShaderPath(const std::string& path);
@@ -199,10 +196,9 @@ namespace Resource
         bool mAutoUseSpecularMaps;
         std::string mSpecularMapPattern;
         bool mApplyLightingToEnvMaps;
-<<<<<<< HEAD
-=======
+
         SceneUtil::LightingMethod mLightingMethod;
->>>>>>> glassmancody.info/openmw-why_are_the_christmas_lights_still_up
+
         bool mConvertAlphaTestToAlphaToCoverage;
 
         osg::ref_ptr<MultiObjectCache> mInstanceCache;

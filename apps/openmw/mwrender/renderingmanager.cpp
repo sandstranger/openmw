@@ -416,6 +416,9 @@ namespace MWRender
 
             mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(groundcoverRoot, mTerrainStorage.get(), Mask_Groundcover, lodFactor, chunkSize));
 
+            if (resourceSystem->getSceneManager()->getLightingMethod() != SceneUtil::LightingMethod::FFP)
+                groundcoverRoot->setCullCallback(new SceneUtil::LightListCallback);
+
             mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
             static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
             mResourceSystem->addResourceManager(mGroundcoverPaging.get());
