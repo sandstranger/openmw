@@ -31,7 +31,7 @@ vec2 swafader = vec2(-3000.0, 3000.0);
 
 // fade objects normal, specular and env maps at start distance, skip them at end distance
 //#define NORMAL_MAP_FADING
-const vec2 nmfader = vec2(5555.0, 6666.0);
+const vec2 nmfader = vec2(7455.0, 8196.0);
 
 // some extra grass displacement during storms
 #define STORM_MODE

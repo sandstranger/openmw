@@ -15,7 +15,11 @@ centroid varying vec3 passLighting;
 #include "vertexcolors.glsl"
 
 #ifdef LINEAR_LIGHTING
-  #include "linear_lighting.glsl"
+#if @ffpLighting
+    #include "linear_lighting_legacy.glsl"
+#else
+    #include "linear_lighting.glsl"
+#endif
 #else
   #include "lighting.glsl"
 #endif

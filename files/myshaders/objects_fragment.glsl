@@ -99,7 +99,11 @@ varying float depth;
 
 #if PER_PIXEL_LIGHTING
   #ifdef LINEAR_LIGHTING
+#if @ffpLighting
+    #include "linear_lighting_legacy.glsl"
+#else
     #include "linear_lighting.glsl"
+#endif
   #else
     #include "lighting.glsl"
   #endif
@@ -280,7 +284,7 @@ gl_FragData[0].xyz *= lighting;
     }
     #else
         vec4 specTex = texture2D(specularMap, diffuseMapUV);
-        float shininess = specTex.a * 255.0;
+        float shininess = specTex.a * 255.0 * 10.0;
         vec3 matSpec = specTex.xyz;
         gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos.xyz), shininess, matSpec) * shadowpara;
     #endif
@@ -324,6 +328,4 @@ if(simpleWater)
     if (noAlpha) 
          gl_FragData[0].a = 1.0;
 #endif
-
-//gl_FragData[0].x = 1.0;
  }
