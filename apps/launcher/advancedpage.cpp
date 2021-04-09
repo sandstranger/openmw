@@ -1,5 +1,7 @@
 #include "advancedpage.hpp"
 
+#include <unordered_map>
+
 #include <components/config/gamesettings.hpp>
 #include <components/config/launchersettings.hpp>
 #include <QFileDialog>
@@ -124,6 +126,13 @@ bool Launcher::AdvancedPage::loadSettings()
 
         loadSettingBool(activeGridObjectPagingCheckBox, "object paging active grid", "Terrain");
         viewingDistanceComboBox->setValue(convertToCells(mEngineSettings.getInt("viewing distance", "Camera")));
+
+        int lightingMethod = 1;
+        if (mEngineSettings.getString("lighting method", "Shaders") == "legacy")
+            lightingMethod = 0;
+        else if (mEngineSettings.getString("lighting method", "Shaders") == "shaders")
+            lightingMethod = 2;
+        lightingMethodComboBox->setCurrentIndex(lightingMethod);
     }
 
     // Camera
@@ -246,6 +255,9 @@ void Launcher::AdvancedPage::saveSettings()
         {
             mEngineSettings.setInt("viewing distance", "Camera", convertToUnits(viewingDistance));
         }
+
+        static std::unordered_map<int, std::string> lightingMethodMap = {{0, "legacy"}, {1, "shaders compatibility"}, {2, "shaders"}};
+        mEngineSettings.setString("lighting method", "Shaders", lightingMethodMap[lightingMethodComboBox->currentIndex()]);
     }
 
     // Camera

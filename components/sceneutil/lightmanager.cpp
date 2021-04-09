@@ -415,6 +415,11 @@ namespace SceneUtil
 
         META_StateAttribute(NifOsg, LightStateAttributePerObjectUniform, osg::StateAttribute::LIGHT)
 
+        void resize(int numLights)
+        {
+            mLights.resize(std::min(static_cast<size_t>(numLights), mLights.size()));
+        }
+
         void apply(osg::State &state) const override
         {
             auto* lightUniform = mLightManager->getStateSet()->getUniform("LightBuffer");
@@ -511,6 +516,9 @@ namespace SceneUtil
 
             uOldCount->get(oldCount);
 
+            // max lights count can change during runtime
+            oldCount = std::min(mLightManager->getMaxLights(), oldCount);
+
             auto& lightData = mLightManager->getLightIndexMap(frameNum);
 
             for (int i = 0; i < oldCount; ++i)
@@ -543,7 +551,7 @@ namespace SceneUtil
 
             stateset->setAttributeAndModes(new LightStateAttributePerObjectUniform(std::move(lights), mLightManager), osg::StateAttribute::ON);
 
-            stateset->addUniform(new osg::Uniform("PointLightCount", static_cast<int>(lightList.size())));
+            stateset->addUniform(new osg::Uniform("PointLightCount", static_cast<int>(lightList.size() + 1)));
 
             return stateset;
         }
@@ -743,16 +751,16 @@ namespace SceneUtil
         std::string generateDummyShader(int maxLightsInScene)
         {
             return "#version 120\n"
-            "#extension GL_ARB_uniform_buffer_object : require\n"
-            "struct LightData {\n"
-            "   ivec4 packedColors;\n"
-            "   vec4 position;\n"
-            "   vec4 attenuation;\n"
-            "};\n"
-            "uniform LightBufferBinding {\n"
+            "#extension GL_ARB_uniform_buffer_object : require                                      \n"
+            "struct LightData {                                                                     \n"
+            "   ivec4 packedColors;                                                                 \n"
+            "   vec4 position;                                                                      \n"
+            "   vec4 attenuation;                                                                   \n"
+            "};                                                                                     \n"
+            "uniform LightBufferBinding {                                                           \n"
             "   LightData LightBuffer[" + std::to_string(mLightManager->getMaxLightsInScene()) + "];\n"
-            "};\n"
-            "void main() { gl_Position = vec4(0.0); }\n";
+            "};                                                                                     \n"
+            "void main() { gl_Position = vec4(0.0); }                                               \n";
         }
 
         LightManager* mLightManager;
@@ -777,6 +785,14 @@ namespace SceneUtil
             return it->second;
         else
             return LightingMethod::Undefined;
+    }
+
+    std::string LightManager::getLightingMethodString(LightingMethod method)
+    {
+        for (const auto& p : LightManager::mLightingMethodSettingMap)
+            if (p.second == method)
+                return p.first;
+        return "";
     }
 
     LightManager::LightManager(bool ffp)
@@ -878,10 +894,15 @@ namespace SceneUtil
 
         defines["maxLights"] = std::to_string(getMaxLights());
         defines["maxLightsInScene"] = std::to_string(getMaxLightsInScene());
-        defines["lightingModel"] = std::to_string(static_cast<int>(mLightingMethod));
-        defines["useUBO"] = std::to_string(mLightingMethod == LightingMethod::SingleUBO);
+        defines["lightingMethodFFP"] = getLightingMethod() == LightingMethod::FFP ? "1" : "0";
+        defines["lightingMethodPerObjectUniform"] = getLightingMethod() == LightingMethod::PerObjectUniform ? "1" : "0";
+        defines["lightingMethodUBO"] = getLightingMethod() == LightingMethod::SingleUBO ? "1" : "0";
+        defines["useUBO"] = std::to_string(getLightingMethod() == LightingMethod::SingleUBO);
         // exposes bitwise operators
-        defines["useGPUShader4"] = std::to_string(mLightingMethod == LightingMethod::SingleUBO);
+        defines["useGPUShader4"] = std::to_string(getLightingMethod() == LightingMethod::SingleUBO);
+        defines["getLight"] = getLightingMethod() == LightingMethod::FFP ? "gl_LightSource" : "LightBuffer";
+        defines["startLight"] =  getLightingMethod() == LightingMethod::SingleUBO ? "0" : "1";
+        defines["endLight"] = getLightingMethod() == LightingMethod::FFP ? defines["maxLights"] : "PointLightCount";
 
         return defines;
     }
@@ -889,6 +910,61 @@ namespace SceneUtil
     void LightManager::processChangedSettings(const Settings::CategorySettingVector& changed)
     {
         updateSettings();
+    }
+
+    void LightManager::updateMaxLights()
+    {
+        if (usingFFP())
+            return;
+
+        setMaxLights(std::clamp(Settings::Manager::getInt("max lights", "Shaders"), mMaxLightsLowerLimit, mMaxLightsUpperLimit));
+
+        if (getLightingMethod() == LightingMethod::PerObjectUniform)
+        {
+            auto* prevUniform = getStateSet()->getUniform("LightBuffer");
+            osg::ref_ptr<osg::Uniform> newUniform = new osg::Uniform(osg::Uniform::FLOAT_MAT4, "LightBuffer", getMaxLights());
+
+            for (int i = 0; i < getMaxLights(); ++i)
+            {
+                osg::Matrixf prevLightData;
+                prevUniform->getElement(i, prevLightData);
+                newUniform->setElement(i, prevLightData);
+            }
+
+            getStateSet()->removeUniform(prevUniform);
+            getStateSet()->addUniform(newUniform);
+
+            for (int i = 0; i < 2; ++i)
+            {
+                for (auto& pair : mStateSetCache[i])
+                    static_cast<LightStateAttributePerObjectUniform*>(pair.second->getAttribute(osg::StateAttribute::LIGHT))->resize(getMaxLights());
+                mStateSetCache[i].clear();
+            }
+        }
+        else
+        {
+            for (int i = 0; i < 2; ++i)
+            {
+                for (auto& pair : mStateSetCache[i])
+                {
+                    auto& stateset = pair.second;
+                    osg::Uniform* uOldArray = stateset->getUniform("PointLightIndex");
+                    osg::Uniform* uOldCount = stateset->getUniform("PointLightCount");
+
+                    int prevCount;
+                    uOldCount->get(prevCount);
+                    int newCount = std::min(getMaxLights(), prevCount);
+                    uOldCount->set(newCount);
+
+                    osg::ref_ptr<osg::IntArray> newArray = uOldArray->getIntArray();
+                    newArray->resize(newCount);
+
+                    stateset->removeUniform(uOldArray);
+                    stateset->addUniform(new osg::Uniform("PointLightIndex", newArray));
+                }
+                mStateSetCache[i].clear();
+            }
+        }
     }
 
     void LightManager::updateSettings()
@@ -920,15 +996,15 @@ namespace SceneUtil
         auto* stateset = getOrCreateStateSet();
 
         setLightingMethod(LightingMethod::PerObjectUniform);
-        setMaxLights(std::clamp(targetLights, 2, 64));
+        setMaxLights(std::clamp(targetLights, mMaxLightsLowerLimit, LightManager::mMaxLightsUpperLimit));
 
-        stateset->addUniform(new osg::Uniform(osg::Uniform::FLOAT_MAT4, "LightBuffer", getMaxLights() + 1));
+        stateset->addUniform(new osg::Uniform(osg::Uniform::FLOAT_MAT4, "LightBuffer", getMaxLights()));
     }
 
     void LightManager::initSingleUBO(int targetLights)
     {
         setLightingMethod(LightingMethod::SingleUBO);
-        setMaxLights(std::clamp(targetLights, 2, 64));
+        setMaxLights(std::clamp(targetLights, mMaxLightsLowerLimit, LightManager::mMaxLightsUpperLimit));
 
         for (int i = 0; i < 2; ++i)
         {
@@ -976,14 +1052,14 @@ namespace SceneUtil
 
     void LightManager::setStartLight(int start)
     {
-        if (!usingFFP()) return;
-
         mStartLight = start;
+
+        if (!usingFFP()) return;
 
         // Set default light state to zero
         // This is necessary because shaders don't respect glDisable(GL_LIGHTX) so in addition to disabling
         // we'll have to set a light state that has no visible effect
-        for (int i = start; i <  getMaxLights(); ++i)
+        for (int i = start; i < getMaxLights(); ++i)
         {
             osg::ref_ptr<DisableLight> defaultLight (new DisableLight(i));
             getOrCreateStateSet()->setAttributeAndModes(defaultLight, osg::StateAttribute::OFF);
@@ -1000,7 +1076,7 @@ namespace SceneUtil
         getLightIndexMap(frameNum).clear();
         mLights.clear();
         mLightsInViewSpace.clear();
-
+        return;
         // Do an occasional cleanup for orphaned lights.
         for (int i = 0; i < 2; ++i)
         {
@@ -1085,18 +1161,15 @@ namespace SceneUtil
                 osg::BoundingSphere viewBound = osg::BoundingSphere(osg::Vec3f(0,0,0), radius * mPointLightRadiusMultiplier);
                 transformBoundingSphere(worldViewMat, viewBound);
 
-                if (!isReflectionCamera)
+                if (!isReflectionCamera && mPointLightFadeEnd != 0.f)
                 {
-                    static const float fadeDelta = mPointLightFadeEnd - mPointLightFadeStart;
-                    if (mPointLightFadeEnd != 0.f)
-                    {
-                        float fade = 1 - std::clamp((viewBound.center().length() - mPointLightFadeStart) / fadeDelta, 0.f, 1.f);
-                        if (fade == 0.f)
-                            continue;
+                    const float fadeDelta = mPointLightFadeEnd - mPointLightFadeStart;
+                    float fade = 1 - std::clamp((viewBound.center().length() - mPointLightFadeStart) / fadeDelta, 0.f, 1.f);
+                    if (fade == 0.f)
+                        continue;
 
-                        auto* light = transform.mLightSource->getLight(frameNum);
-                        light->setDiffuse(light->getDiffuse() * fade);
-                    }
+                    auto* light = transform.mLightSource->getLight(frameNum);
+                    light->setDiffuse(light->getDiffuse() * fade);
                 }
 
                 LightSourceViewBound l;
@@ -1133,6 +1206,7 @@ namespace SceneUtil
 
     LightSource::LightSource()
         : mRadius(0.f)
+        , mActorFade(1.f)
     {
         setUpdateCallback(new CollectLightCallback);
         mId = sLightId++;
@@ -1141,6 +1215,7 @@ namespace SceneUtil
     LightSource::LightSource(const LightSource &copy, const osg::CopyOp &copyop)
         : osg::Node(copy, copyop)
         , mRadius(copy.mRadius)
+        , mActorFade(copy.mActorFade)
     {
         mId = sLightId++;
 

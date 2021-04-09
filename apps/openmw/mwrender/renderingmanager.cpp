@@ -289,6 +289,7 @@ namespace MWRender
         // Let LightManager choose which backend to use based on our hint, mostly depends on support for UBOs
         resourceSystem->getSceneManager()->getShaderManager().setLightingMethod(sceneRoot->getLightingMethod());
         resourceSystem->getSceneManager()->setLightingMethod(sceneRoot->getLightingMethod());
+        Settings::Manager::setString("lighting method", "Shaders", SceneUtil::LightManager::getLightingMethodString(sceneRoot->getLightingMethod()));
 
         mMinimumAmbientLuminance = std::clamp(Settings::Manager::getFloat("minimum interior brightness", "Shaders"), 0.f, 1.f);
 
@@ -1257,14 +1258,36 @@ namespace MWRender
             else if (it->first == "Shaders" && it->second == "minimum interior brightness")
             {
                 mMinimumAmbientLuminance = std::clamp(Settings::Manager::getFloat("minimum interior brightness", "Shaders"), 0.f, 1.f);
-                if (MWMechanics::getPlayer().getCell())
+                if (MWMechanics::getPlayer().isInCell())
                     configureAmbient(MWMechanics::getPlayer().getCell()->getCell());
             }
             else if (it->first == "Shaders" && (it->second == "light bounds multiplier" ||
                                                 it->second == "maximum light distance" ||
-                                                it->second == "light fade start"))
+                                                it->second == "light fade start" ||
+                                                it->second == "max lights"))
             {
-                static_cast<SceneUtil::LightManager*>(getLightRoot())->processChangedSettings(changed);
+                auto* lightManager = static_cast<SceneUtil::LightManager*>(getLightRoot());
+                lightManager->processChangedSettings(changed);
+
+                if (it->second == "max lights" && !lightManager->usingFFP())
+                {
+                    mViewer->stopThreading();
+
+                    lightManager->updateMaxLights();
+
+                    auto defines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
+                    for (auto& define : lightManager->getLightDefines())
+                        defines[define.first] = define.second;
+                    mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(defines);
+
+                    mSceneRoot->removeUpdateCallback(mStateUpdater);
+                    mStateUpdater = new StateUpdater;
+                    mSceneRoot->addUpdateCallback(mStateUpdater);
+                    mStateUpdater->setFogEnd(mViewDistance);
+                    updateAmbient();
+
+                    mViewer->startThreading();
+                }
             }
         }
     }
