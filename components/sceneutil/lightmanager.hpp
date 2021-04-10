@@ -179,6 +179,9 @@ namespace SceneUtil
 
         auto& getLightBuffer(size_t frameNum) { return mLightBuffers[frameNum%2]; }
 
+        osg::Matrixf getSunlightBuffer(size_t frameNum) const { return mSunlightBuffers[frameNum%2]; }
+        void setSunlightBuffer(const osg::Matrixf& buffer, size_t frameNum) { mSunlightBuffers[frameNum%2] = buffer; }
+
         std::map<std::string, std::string> getLightDefines() const;
 
         void processChangedSettings(const Settings::CategorySettingVector& changed);
@@ -217,6 +220,8 @@ namespace SceneUtil
 
         osg::ref_ptr<LightBuffer> mLightBuffers[2];
 
+        osg::Matrixf mSunlightBuffers[2];
+
         // < Light ID , Buffer Index >
         using LightIndexMap = std::unordered_map<int, int>;
         LightIndexMap mLightIndexMaps[2];
@@ -228,7 +233,6 @@ namespace SceneUtil
         float mPointLightRadiusMultiplier;
         float mPointLightFadeEnd;
         float mPointLightFadeStart;
-        float mPointLightFadeDelta;
 
         int mMaxLights;
 

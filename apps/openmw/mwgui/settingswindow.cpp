@@ -17,6 +17,8 @@
 #include <components/misc/constants.hpp>
 #include <components/widgets/sharedstatebutton.hpp>
 #include <components/settings/settings.hpp>
+#include <components/resource/resourcesystem.hpp>
+#include <components/resource/scenemanager.hpp>
 #include <components/sceneutil/lightmanager.hpp>
 
 #include "../mwbase/environment.hpp"
@@ -285,36 +287,6 @@ namespace MWGui
         int waterReflectionDetail = Settings::Manager::getInt("reflection detail", "Water");
         waterReflectionDetail = std::min(4, std::max(0, waterReflectionDetail));
         mWaterReflectionDetail->setIndexSelected(waterReflectionDetail);
-
-        auto lightingMethod = SceneUtil::LightManager::getLightingMethodFromString(Settings::Manager::getString("lighting method", "Shaders"));
-        mLightingMethodText->setCaption(SceneUtil::LightManager::getLightingMethodString(lightingMethod));
-
-        if (lightingMethod == SceneUtil::LightingMethod::FFP || !Settings::Manager::getBool("force shaders", "Shaders"))
-        {
-            MyGUI::Widget* parent = mLightSettingOverlay->getParent();
-            mLightSettingOverlay->setEnabled(false);
-            mLightSettingOverlay->setAlpha(0.8);
-            parent->setUserString("ToolTipType", "Layout");
-            parent->setUserString("ToolTipLayout", "TextToolTip");
-            parent->setUserString("Caption_Text", "Unavailable with current settings.");
-            parent->setEnabled(true);
-        }
-        else
-        {
-            std::string captionText;
-            if (lightingMethod == SceneUtil::LightingMethod::FFP)
-                captionText =
-                    "Emulates fixed function pipeline lighting, advanced light settings are disabled when this mode is active";
-            else if (lightingMethod == SceneUtil::LightingMethod::PerObjectUniform)
-                captionText =
-                    "Removes limit of 8 lights per object, fixes lighting attenuation, and enables groundcover lighting and light fade."
-                    "\n\nDesigned for compatibility across hardware, and is not meant for large max light counts.";
-            else if (lightingMethod == SceneUtil::LightingMethod::SingleUBO)
-                captionText =
-                    "Removes limit of 8 lights per object, fixes lighting attenuation, and enables groundcover lighting and light fade."
-                    "\n\nDesigned for more modern hardware and large max light counts.";
-            mLightingMethodText->setUserString("Caption_Text", captionText);
-        }
 
         mWindowBorderButton->setEnabled(!Settings::Manager::getBool("fullscreen", "Video"));
 
@@ -617,6 +589,39 @@ namespace MWGui
         layoutControlsBox();
     }
 
+    void SettingsWindow::updateLightSettings()
+    {
+        auto lightingMethod = MWBase::Environment::get().getResourceSystem()->getSceneManager()->getLightingMethod();
+        mLightingMethodText->setCaption(SceneUtil::LightManager::getLightingMethodString(lightingMethod));
+
+        if (lightingMethod == SceneUtil::LightingMethod::FFP || !Settings::Manager::getBool("force shaders", "Shaders"))
+        {
+            MyGUI::Widget* parent = mLightSettingOverlay->getParent();
+            mLightSettingOverlay->setEnabled(false);
+            mLightSettingOverlay->setAlpha(0.8);
+            parent->setUserString("ToolTipType", "Layout");
+            parent->setUserString("ToolTipLayout", "TextToolTip");
+            parent->setUserString("Caption_Text", "Unavailable with current settings.");
+            parent->setEnabled(true);
+        }
+        else
+        {
+            std::string captionText;
+            if (lightingMethod == SceneUtil::LightingMethod::FFP)
+                captionText =
+                    "Emulates fixed function pipeline lighting, advanced light settings are disabled when this mode is active";
+            else if (lightingMethod == SceneUtil::LightingMethod::PerObjectUniform)
+                captionText =
+                    "Removes limit of 8 lights per object, fixes lighting attenuation, and enables groundcover lighting and light fade."
+                    "\n\nDesigned for compatibility across hardware, and is not meant for large max light counts.";
+            else if (lightingMethod == SceneUtil::LightingMethod::SingleUBO)
+                captionText =
+                    "Removes limit of 8 lights per object, fixes lighting attenuation, and enables groundcover lighting and light fade."
+                    "\n\nDesigned for more modern hardware and large max light counts.";
+            mLightingMethodText->setUserString("Caption_Text", captionText);
+        }
+    }
+
     void SettingsWindow::layoutControlsBox()
     {
         const int h = 18;
@@ -679,6 +684,7 @@ namespace MWGui
     {
         highlightCurrentResolution();
         updateControlsBox();
+        updateLightSettings();
         resetScrollbars();
         MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mOkButton);
     }
