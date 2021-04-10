@@ -206,10 +206,9 @@ namespace MWRender
         bool explicitlyForceShaders = Settings::Manager::getBool("force shaders", "Shaders");
         // Shadows and radial fog have problems with fixed-function mode
         bool forceShaders = Settings::Manager::getBool("radial fog", "Shaders") || explicitlyForceShaders || Settings::Manager::getBool("enable shadows", "Shadows");
-        bool clampLighting = Settings::Manager::getBool("clamp lighting", "Shaders");
         resourceSystem->getSceneManager()->setForceShaders(forceShaders);
         // FIXME: calling dummy method because terrain needs to know whether lighting is clamped
-        resourceSystem->getSceneManager()->setClampLighting(clampLighting);
+        resourceSystem->getSceneManager()->setClampLighting(Settings::Manager::getBool("clamp lighting", "Shaders"));
         resourceSystem->getSceneManager()->setAutoUseNormalMaps(Settings::Manager::getBool("auto use object normal maps", "Shaders"));
         resourceSystem->getSceneManager()->setNormalMapPattern(Settings::Manager::getString("normal map pattern", "Shaders"));
         resourceSystem->getSceneManager()->setNormalHeightMapPattern(Settings::Manager::getString("normal height map pattern", "Shaders"));
