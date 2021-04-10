@@ -875,7 +875,6 @@ namespace SceneUtil
             initSingleUBO(targetLights);
 
         getOrCreateStateSet()->addUniform(new osg::Uniform("PointLightCount", 0));
-        getOrCreateStateSet()->setAttributeAndModes(new LightManagerStateAttributePerObjectUniform(this), osg::StateAttribute::ON);
 
         addCullCallback(new LightManagerCullCallback(this));
     }
@@ -1029,6 +1028,7 @@ namespace SceneUtil
         setLightingMethod(LightingMethod::PerObjectUniform);
         setMaxLights(std::clamp(targetLights, mMaxLightsLowerLimit, LightManager::mMaxLightsUpperLimit));
 
+        stateset->setAttributeAndModes(new LightManagerStateAttributePerObjectUniform(this), osg::StateAttribute::ON);
         stateset->addUniform(new osg::Uniform(osg::Uniform::FLOAT_MAT4, "LightBuffer", getMaxLights()));
     }
 
