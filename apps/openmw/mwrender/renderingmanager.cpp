@@ -636,9 +636,9 @@ namespace MWRender
 
         if (needsAdjusting)
         {
-            static constexpr float pR = 0.2126;
-            static constexpr float pG = 0.7152;
-            static constexpr float pB = 0.0722;
+            constexpr float pR = 0.2126;
+            constexpr float pG = 0.7152;
+            constexpr float pB = 0.0722;
 
             // we already work in linear RGB so no conversions are needed for the luminosity function
             float relativeLuminance = pR*ambient.r() + pG*ambient.g() + pB*ambient.b();
