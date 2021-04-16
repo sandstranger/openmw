@@ -51,6 +51,4 @@ if(gl_FragData[0].a != 0.0)
 #if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
-
-    //gl_FragData[0].x = 1.0;
 }

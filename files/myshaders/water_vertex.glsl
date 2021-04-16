@@ -4,13 +4,6 @@ varying vec3  screenCoordsPassthrough;
 varying vec4  position;
 varying float linearDepth;
 
-#include "helpsettings.glsl"
-
-#ifdef HEIGHT_FOG
-varying vec3 fogH;
-uniform mat4 osg_ViewMatrixInverse;
-#endif
-
 void main(void)
 {
     gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
@@ -27,8 +20,4 @@ void main(void)
 
     linearDepth = gl_Position.z;
 
-
-#ifdef HEIGHT_FOG
-    fogH = (osg_ViewMatrixInverse * (gl_ModelViewMatrix * gl_Vertex)).xyz;
-#endif
 }

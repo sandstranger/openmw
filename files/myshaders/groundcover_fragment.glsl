@@ -60,8 +60,6 @@ else
     if (gl_FragData[0].a != alphaRef)
         discard;
 
-if(gl_FragData[0].a != 0.0)
-{
 #ifdef LINEAR_LIGHTING
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(2.2));
 #endif
@@ -78,8 +76,6 @@ if(gl_FragData[0].a != 0.0)
         gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, gl_LightSource[0].diffuse.x));
 #endif
 
-}
-
     bool isUnderwater = false;
 #if @underwaterFog
     isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 && gl_LightSource[0].diffuse.x != 0.0;
@@ -94,7 +90,4 @@ if(gl_FragData[0].a != 0.0)
 #if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
-
-
-//if(@groundcoverFadeEnd == @groundcoverFadeStart) gl_FragData[0].xyz = vec3(1.0, 0.0, 0.0);
 }

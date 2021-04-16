@@ -31,11 +31,7 @@ varying vec3 passNormal;
 #if !PER_PIXEL_LIGHTING
 centroid varying vec3 passLighting;
   #ifdef LINEAR_LIGHTING
-#if @ffpLighting
-    #include "linear_lighting_legacy.glsl"
-#else
     #include "linear_lighting.glsl"
-#endif
   #else
     #include "lighting.glsl"
   #endif

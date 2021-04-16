@@ -46,11 +46,7 @@ varying vec3 passNormal;
 centroid varying vec3 passLighting;
 #else
   #ifdef LINEAR_LIGHTING
-#if @ffpLighting
-    #include "linear_lighting_legacy.glsl"
-#else
     #include "linear_lighting.glsl"
-#endif
   #else
     #include "lighting.glsl"
   #endif
@@ -163,6 +159,4 @@ void main()
 #if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
-
-//gl_FragData[0].x = 1.0;
 }

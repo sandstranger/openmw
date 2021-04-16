@@ -27,13 +27,9 @@ varying vec3 passViewPos;
 centroid varying vec3 passLighting;
 
 #ifdef LINEAR_LIGHTING
-#if @ffpLighting
-    #include "linear_lighting_legacy.glsl"
-#else
     #include "linear_lighting.glsl"
-#endif
 #else
-  #include "lighting.glsl"
+   #include "lighting.glsl"
 #endif
 
 uniform mat4 osg_ViewMatrixInverse;
@@ -107,7 +103,7 @@ vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
     vec3 shadowDiffuseLighting;
     vec3 diffuseLight, ambientLight;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
-    passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
+    passLighting = diffuseLight + ambientLight;
 #endif
 
 #if @underwaterFog
