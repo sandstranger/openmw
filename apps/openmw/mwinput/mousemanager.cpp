@@ -29,7 +29,6 @@ namespace MWInput
         , mCameraYMultiplier(Settings::Manager::getFloat("camera y multiplier", "Input"))
         , mBindingsManager(bindingsManager)
         , mInputWrapper(inputWrapper)
-        , mInvUiScalingFactor(1.f)
         , mGuiCursorX(0)
         , mGuiCursorY(0)
         , mMouseWheel(0)
@@ -43,8 +42,9 @@ namespace MWInput
         int w,h;
         SDL_GetWindowSize(window, &w, &h);
 
-        mGuiCursorX = mInvUiScalingFactor * w / 2.f;
-        mGuiCursorY = mInvUiScalingFactor * h / 2.f;
+        float uiScale = MWBase::Environment::get().getWindowManager()->getScalingFactor();
+        mGuiCursorX = w / (2.f * uiScale);
+        mGuiCursorY = h / (2.f * uiScale);
     }
 
     void MouseManager::processChangedSettings(const Settings::CategorySettingVector& changed)
@@ -79,8 +79,9 @@ namespace MWInput
 
             // We keep track of our own mouse position, so that moving the mouse while in
             // game mode does not move the position of the GUI cursor
-            mGuiCursorX = static_cast<float>(arg.x) * mInvUiScalingFactor;
-            mGuiCursorY = static_cast<float>(arg.y) * mInvUiScalingFactor;
+            float uiScale = MWBase::Environment::get().getWindowManager()->getScalingFactor();
+            mGuiCursorX = static_cast<float>(arg.x) / uiScale;
+            mGuiCursorY = static_cast<float>(arg.y) / uiScale;
 
             mMouseWheel = static_cast<int>(arg.z);
 
@@ -249,6 +250,7 @@ namespace MWInput
 
     void MouseManager::warpMouse()
     {
-        mInputWrapper->warpMouse(static_cast<int>(mGuiCursorX / mInvUiScalingFactor), static_cast<int>(mGuiCursorY / mInvUiScalingFactor));
+        float uiScale = MWBase::Environment::get().getWindowManager()->getScalingFactor();
+        mInputWrapper->warpMouse(static_cast<int>(mGuiCursorX*uiScale), static_cast<int>(mGuiCursorY*uiScale));
     }
 }
