@@ -114,7 +114,6 @@ namespace MWGui
   class TrainingWindow;
   class SpellIcons;
   class MerchantRepair;
-  class Repair;
   class SoulgemDialog;
   class Recharge;
   class CompanionWindow;
@@ -208,6 +207,8 @@ namespace MWGui
     void getMousePosition(float &x, float &y) override;
     void setDragDrop(bool dragDrop) override;
     bool getWorldMouseOver() override;
+
+    float getScalingFactor() override;
 
     bool toggleFogOfWar() override;
     bool toggleFullHelp() override; ///< show extra info in item tooltips (owner, script)
@@ -518,6 +519,8 @@ namespace MWGui
     std::unique_ptr<KeyboardNavigation> mKeyboardNavigation;
 
     SDLUtil::VideoWrapper* mVideoWrapper;
+
+    float mScalingFactor;
 
     /**
      * Called when MyGUI tries to retrieve a tag's value. Tags must be denoted in #{tag} notation and will be replaced upon setting a user visible text/property.

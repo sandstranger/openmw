@@ -123,6 +123,7 @@ void Actor::updatePosition()
     mPreviousPosition = mWorldPosition;
     mPosition = mWorldPosition;
     mSimulationPosition = mWorldPosition;
+    mPositionOffset = osg::Vec3f();
     mStandingOnPtr = nullptr;
     mSkipSimulation = true;
 }
@@ -198,16 +199,6 @@ void Actor::applyOffsetChange()
 {
     if (mPositionOffset.length() == 0)
         return;
-    if (mPositionOffset.z() != 0)
-    {
-        // Often, offset are set in sequence x, y, z
-        // We don't want actors to be moved under the ground
-        // Check terrain height at new coordinate and update z offset if necessary
-        const auto pos = mWorldPosition + mPositionOffset;
-        const auto terrainHeight = mPtr.getCell()->isExterior() ? MWBase::Environment::get().getWorld()->getTerrainHeightAt(pos) : -std::numeric_limits<float>::max();
-        mPositionOffset.z() = std::max(pos.z(), terrainHeight) - mWorldPosition.z();
-    }
-    mWorldPosition += mPositionOffset;
     mPosition += mPositionOffset;
     mPreviousPosition += mPositionOffset;
     mSimulationPosition += mPositionOffset;

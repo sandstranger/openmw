@@ -115,6 +115,10 @@
     Bug #5906: Sunglare doesn't work with Mesa drivers and AMD GPUs
     Bug #5912: ImprovedBound mod doesn't work
     Bug #5914: BM: The Swimmer can't reach destination
+<<<<<<< HEAD
+=======
+    Bug #5923: Clicking on empty spaces between journal entries might show random topics
+>>>>>>> e350d7d4ffdc944bb9c6de3a9759f4c131e803cf
     Bug #5934: AddItem command doesn't accept negative values
     Feature #390: 3rd person look "over the shoulder"
     Feature #832: OpenMW-CS: Handle deleted references
@@ -150,8 +154,13 @@
     Feature #5730: Add graphic herbalism option to the launcher and documents
     Feature #5771: ori command should report where a mesh is loaded from and whether the x version is used.
     Feature #5813: Instanced groundcover support
+<<<<<<< HEAD
     Feature #5828: Support more than 8 lights
     Feature #5814: Bsatool should be able to create BSA archives, not only to extract it
+=======
+    Feature #5814: Bsatool should be able to create BSA archives, not only to extract it
+    Feature #5828: Support more than 8 lights
+>>>>>>> e350d7d4ffdc944bb9c6de3a9759f4c131e803cf
     Feature #5910: Fall back to delta time when physics can't keep up
     Task #5480: Drop Qt4 support
     Task #5520: Improve cell name autocompleter implementation
