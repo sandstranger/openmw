@@ -24,7 +24,6 @@ set(SHADER_FILES
     ../myshaders/terrain_fragment.glsl
     ../myshaders/lighting.glsl
     ../myshaders/lighting_util.glsl
-    ../myshaders/parallax.glsl
     ../myshaders/s360_fragment.glsl
     ../myshaders/s360_vertex.glsl
     ../myshaders/shadows_vertex.glsl

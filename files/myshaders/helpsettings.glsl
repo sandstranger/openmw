@@ -1,5 +1,5 @@
 //#define LINEAR_LIGHTING
-#define ATTEN_FIX
+//#define ATTEN_FIX
 
 // contrast for day and night
 // night setting also affects interiors

@@ -110,8 +110,6 @@ void main(void)
     passTangent = gl_MultiTexCoord7.xyzw;
 #endif
 
-
-
     passColor = gl_Color;
 
 #if PER_PIXEL_LIGHTING || @specularMap
@@ -139,7 +137,6 @@ if(osg_ViewMatrixInverse[3].z < -1.0 && !isInterior && !isPlayer)
 }
 #endif
 
-
 #if !PER_PIXEL_LIGHTING
 #ifdef LINEAR_LIGHTING
     passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
@@ -147,8 +144,7 @@ if(osg_ViewMatrixInverse[3].z < -1.0 && !isInterior && !isPlayer)
     vec3 shadowDiffuseLighting;
     vec3 diffuseLight, ambientLight;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
-    passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
+    passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz + shadowDiffuseLighting;
 #endif
 #endif
-
 }

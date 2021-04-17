@@ -64,7 +64,7 @@ void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 vie
 
 // cull non-FFP point lighting by radius, light is guaranteed to not fall outside this bound with our cutoff
 #if !@lightingMethodFFP
-    if (lightDistance > lcalcRadius(lightIndex) * 1.5)
+    if (lightDistance > lcalcRadius(lightIndex) * 2.0)
     {
         ambientOut = vec3(0.0);
         diffuseOut = vec3(0.0);
@@ -156,7 +156,7 @@ vec3 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
            lightResult.xyz += ambientLight + diffuseLight;
     }
 
-#ifdef LINEAR_LIGHTING
+//#ifndef GRASS
     vec3 ambientmapped = Remap(gl_LightModel.ambient.xyz * gl_LightModel.ambient.xyz, vec3(ambmin), vec3(1.0));
 	  vec3 ambientcon = vec3(mix(gl_LightModel.ambient.xyz * gl_LightModel.ambient.xyz * aoutexp, ambientmapped * aintexp, interiorb));
 	
@@ -186,12 +186,26 @@ vec3 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
     lightResult.xyz += ambientcon;
 	  lightResult.xyz += skylight;
 	  lightResult.xyz *= vec3(vcoff) + vcexp * ambient * ambient;
-#endif
 
     if (colorMode == ColorMode_Emission)
         lightResult.xyz += vertexColor.xyz;
     else
         lightResult.xyz += mix(emivnight, emivday, lcalcDiffuse(0).x) * gl_FrontMaterial.emission.xyz;
+//#endif
 
     return lightResult.xyz;
+}
+
+vec3 getSpecular(vec3 viewNormal, vec3 viewDirection, float shininess, vec3 matSpec)
+{
+    vec3 sunDir = lcalcPosition(0);
+    vec3 sunSpec = lcalcSpecular(0).xyz;
+
+    vec3 lightDir = normalize(sunDir);
+    float NdotL = dot(viewNormal, lightDir);
+    if (NdotL <= 0.0)
+        return vec3(0.0);
+    vec3 halfVec = normalize(lightDir - viewDirection);
+    float NdotH = dot(viewNormal, halfVec);
+    return pow(max(NdotH, 0.0), max(1e-4, shininess)) * sunSpec * matSpec;
 }

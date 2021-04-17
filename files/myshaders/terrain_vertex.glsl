@@ -87,7 +87,7 @@ if(osg_ViewMatrixInverse[3].z < -1.0)
     vec3 shadowDiffuseLighting;
     vec3 diffuseLight, ambientLight;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
-    passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
+    passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz + shadowDiffuseLighting;
 #endif
 #endif
 }

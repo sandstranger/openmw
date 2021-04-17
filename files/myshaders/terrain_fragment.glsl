@@ -41,7 +41,6 @@ varying vec3 passViewPos;
 varying vec3 passNormal;
 #endif
 
-
 #if !PER_PIXEL_LIGHTING
 centroid varying vec3 passLighting;
 #else
