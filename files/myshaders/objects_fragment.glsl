@@ -60,7 +60,7 @@ uniform bool simpleWater;
 uniform bool skip;
 #endif
 
-#if (PER_PIXEL_LIGHTING && defined(LINEAR_LIGHTING)) || @underwaterFog
+#if (/*PER_PIXEL_LIGHTING*/ defined(ATTEN_FIX) && defined(LINEAR_LIGHTING)) || @underwaterFog
 uniform bool isInterior;
 #endif
 

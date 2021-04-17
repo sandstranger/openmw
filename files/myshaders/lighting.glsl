@@ -70,6 +70,9 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
 
 #if PER_PIXEL_LIGHTING
     diffuseLight = diffuseOut * shadowing;
+#else
+    shadowDiffuse = diffuseOut;
+    diffuseLight = vec3(0.0);
 #endif
 
     for (int i = @startLight; i < @endLight; ++i)
@@ -83,4 +86,18 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
         diffuseLight += diffuseOut;
     }
 
+}
+
+vec3 getSpecular(vec3 viewNormal, vec3 viewDirection, float shininess, vec3 matSpec)
+{
+    vec3 sunDir = lcalcPosition(0);
+    vec3 sunSpec = lcalcSpecular(0).xyz;
+
+    vec3 lightDir = normalize(sunDir);
+    float NdotL = dot(viewNormal, lightDir);
+    if (NdotL <= 0.0)
+        return vec3(0.0);
+    vec3 halfVec = normalize(lightDir - viewDirection);
+    float NdotH = dot(viewNormal, halfVec);
+    return pow(max(NdotH, 0.0), max(1e-4, shininess)) * sunSpec * matSpec;
 }

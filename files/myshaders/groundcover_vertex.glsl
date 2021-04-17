@@ -100,10 +100,9 @@ vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
 #ifdef LINEAR_LIGHTING
     passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
 #else
-    vec3 shadowDiffuseLighting;
-    vec3 diffuseLight, ambientLight;
+    vec3 diffuseLight, ambientLight, shadowDiffuseLighting;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
-    passLighting = diffuseLight + ambientLight;
+    passLighting = diffuseLight + ambientLight + shadowDiffuseLighting;
 #endif
 
 #if @underwaterFog
