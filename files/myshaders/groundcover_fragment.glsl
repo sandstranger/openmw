@@ -29,14 +29,7 @@ centroid varying vec3 passLighting;
 
 #include "effects.glsl"
 #include "fog.glsl"
-
 #include "alpha.glsl"
-//uniform float alphaRef;
-
-float calc_coverage(float a, float alpha_ref, float falloff_rate)
-{
-    return clamp(falloff_rate * (a - alpha_ref) + alpha_ref, 0.0, 1.0);
-}
 
 void main()
 {
@@ -51,20 +44,8 @@ if(@groundcoverFadeEnd != @groundcoverFadeStart)
     gl_FragData[0] = vec4(1.0);
 #endif
 
-    float fade = smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, depth);
-
-/*
-if(@groundcoverFadeEnd != @groundcoverFadeStart)
-    gl_FragData[0].a = calc_coverage(gl_FragData[0].a, (1.0+(fade*127.0))/255.0, 4.0);
-else
-    gl_FragData[0].a = calc_coverage(gl_FragData[0].a, 1.0/255.0, 4.0);
-
-    if (gl_FragData[0].a != alphaRef)
-        discard;
-*/
-
-    if (euclideanDepth > @groundcoverFadeStart)
-        gl_FragData[0].a *= 1.0-smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, euclideanDepth);
+    if (depth > @groundcoverFadeStart)
+        gl_FragData[0].a *= 1.0-smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, depth);
 
     alphaTest();
 
