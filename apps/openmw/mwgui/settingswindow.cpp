@@ -406,14 +406,26 @@ namespace MWGui
         MWBase::Environment::get().getWindowManager()->interactiveMessageBox(message, {"#{sOK}"}, true);
 
         Settings::Manager::setString("lighting method", "Shaders", _sender->getItemNameAt(pos));
+
+        const std::string settingspath = (g_cfgMgr->getUserConfigPath() / "settings.cfg").string();
+        Settings::Manager::saveUser(settingspath);
+
         apply();
     }
 
     void SettingsWindow::onMaxLightsChanged(MyGUI::ComboBox* _sender, size_t pos)
     {
         int count = 8 * (pos + 1);
-
         Settings::Manager::setInt("max lights", "Shaders", count);
+
+        if(Settings::Manager::getBool("enabled", "Groundcover") || Settings::Manager::getBool("underwater fog", "Water"))
+        {
+            std::string message = "This change requires a restart to take effect.";
+            MWBase::Environment::get().getWindowManager()->interactiveMessageBox(message, {"#{sOK}"}, true);
+            const std::string settingspath = (g_cfgMgr->getUserConfigPath() / "settings.cfg").string();
+            Settings::Manager::saveUser(settingspath);
+        }
+
         apply();
         configureWidgets(mMainWidget, false);
     }

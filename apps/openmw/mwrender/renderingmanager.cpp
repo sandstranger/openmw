@@ -267,6 +267,7 @@ namespace MWRender
         bool forceShaders = Settings::Manager::getBool("radial fog", "Shaders")
                             || Settings::Manager::getBool("force shaders", "Shaders")
                             || Settings::Manager::getBool("enable shadows", "Shadows")
+                            || Settings::Manager::getBool("underwater fog", "Water")
                             || Settings::Manager::getBool("enabled", "Groundcover")
                             || lightingMethod != SceneUtil::LightingMethod::FFP;
         resourceSystem->getSceneManager()->setForceShaders(forceShaders);
@@ -494,26 +495,6 @@ namespace MWRender
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isInterior", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isPlayer", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("skip", false));
-
-        // Hopefully, anything genuinely requiring the default alpha func of GL_ALWAYS explicitly sets it
-        mRootNode->getOrCreateStateSet()->setAttribute(Shader::RemovedAlphaFunc::getInstance(GL_ALWAYS));
-        // The transparent renderbin sets alpha testing on because that was faster on old GPUs. It's now slower and breaks things.
-        mRootNode->getOrCreateStateSet()->setMode(GL_ALPHA_TEST, osg::StateAttribute::OFF);
-
-        // Hopefully, anything genuinely requiring the default alpha func of GL_ALWAYS explicitly sets it
-        mRootNode->getOrCreateStateSet()->setAttribute(Shader::RemovedAlphaFunc::getInstance(GL_ALWAYS));
-        // The transparent renderbin sets alpha testing on because that was faster on old GPUs. It's now slower and breaks things.
-        mRootNode->getOrCreateStateSet()->setMode(GL_ALPHA_TEST, osg::StateAttribute::OFF);
-
-        // Hopefully, anything genuinely requiring the default alpha func of GL_ALWAYS explicitly sets it
-        mRootNode->getOrCreateStateSet()->setAttribute(Shader::RemovedAlphaFunc::getInstance(GL_ALWAYS));
-        // The transparent renderbin sets alpha testing on because that was faster on old GPUs. It's now slower and breaks things.
-        mRootNode->getOrCreateStateSet()->setMode(GL_ALPHA_TEST, osg::StateAttribute::OFF);
-
-        // Hopefully, anything genuinely requiring the default alpha func of GL_ALWAYS explicitly sets it
-        mRootNode->getOrCreateStateSet()->setAttribute(Shader::RemovedAlphaFunc::getInstance(GL_ALWAYS));
-        // The transparent renderbin sets alpha testing on because that was faster on old GPUs. It's now slower and breaks things.
-        mRootNode->getOrCreateStateSet()->setMode(GL_ALPHA_TEST, osg::StateAttribute::OFF);
 
         // Hopefully, anything genuinely requiring the default alpha func of GL_ALWAYS explicitly sets it
         mRootNode->getOrCreateStateSet()->setAttribute(Shader::RemovedAlphaFunc::getInstance(GL_ALWAYS));
@@ -1268,13 +1249,15 @@ namespace MWRender
                 {
                     mViewer->stopThreading();
 
-                    lightManager->updateMaxLights();
+                    if(!Settings::Manager::getBool("enabled", "Groundcover") && !Settings::Manager::getBool("underwater fog", "Water"))
+                    {
+                        lightManager->updateMaxLights();
 
-                    auto defines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
-                    for (const auto& [name, key] : lightManager->getLightDefines())
-                        defines[name] = key;
-                    mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(defines);
-
+                        auto defines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
+                        for (const auto& [name, key] : lightManager->getLightDefines())
+                            defines[name] = key;
+                        mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(defines);
+                    }
                     mSceneRoot->removeUpdateCallback(mStateUpdater);
                     mStateUpdater = new StateUpdater;
                     mSceneRoot->addUpdateCallback(mStateUpdater);
