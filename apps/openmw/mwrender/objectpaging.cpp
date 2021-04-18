@@ -717,7 +717,7 @@ namespace MWRender
         udc->addUserObject(templateRefs);
 
         if (mGroundcover)
-            mSceneManager->recreateShaders(group, "groundcover");
+            mSceneManager->recreateShaders(group, "groundcover", false, true);
 
         return group;
     }

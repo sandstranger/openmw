@@ -268,7 +268,6 @@ namespace MWRender
                             || Settings::Manager::getBool("force shaders", "Shaders")
                             || Settings::Manager::getBool("enable shadows", "Shadows")
                             || Settings::Manager::getBool("underwater fog", "Water")
-                            || Settings::Manager::getBool("enabled", "Groundcover")
                             || lightingMethod != SceneUtil::LightingMethod::FFP;
         resourceSystem->getSceneManager()->setForceShaders(forceShaders);
         // FIXME: calling dummy method because terrain needs to know whether lighting is clamped
