@@ -1248,16 +1248,14 @@ namespace MWRender
                 if (it->second == "max lights" && !lightManager->usingFFP())
                 {
                     mViewer->stopThreading();
-
-                    if(!Settings::Manager::getBool("enabled", "Groundcover") && !Settings::Manager::getBool("underwater fog", "Water"))
-                    {
+/*
                         lightManager->updateMaxLights();
 
                         auto defines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
                         for (const auto& [name, key] : lightManager->getLightDefines())
                             defines[name] = key;
                         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(defines);
-                    }
+*/
                     mSceneRoot->removeUpdateCallback(mStateUpdater);
                     mStateUpdater = new StateUpdater;
                     mSceneRoot->addUpdateCallback(mStateUpdater);
