@@ -35,13 +35,9 @@ centroid varying vec3 passLighting;
 uniform mat4 osg_ViewMatrixInverse;
 uniform float osg_SimulationTime;
 
-uniform float windSpeed;
+uniform vec3 windData;
 uniform vec3 playerPos;
 attribute float originalCoords;
-
-#ifdef STORM_MODE
-uniform vec2 stormDir;
-#endif
 
 vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
 {
@@ -49,7 +45,7 @@ vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
 
     vec4 worldPos = osg_ViewMatrixInverse * vec4(viewPos, 1.0);
 
-    vec2 WindVec = vec2(windSpeed);
+    vec2 WindVec = vec2(windData.x);
 
     float v = length(WindVec);
     vec2 displace = vec2(2.0 * WindVec + 0.1);
@@ -69,6 +65,8 @@ vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
     ret.xy += clamp(0.02 * h, 0.0, 1.0) * (harmonics * displace + stomp.xy);
 
 #ifdef STORM_MODE
+    vec2 stormDir = vec2(windData.y, windData.z);
+
     if(stormDir != vec2(0.0) && h > 0.0) {
         ret.xy += h*stormDir;
         ret.z -= length(ret.xy)/3.14;

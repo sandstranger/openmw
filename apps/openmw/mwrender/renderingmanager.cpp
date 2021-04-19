@@ -83,14 +83,9 @@ namespace MWRender
         {
         }
 
-        void setWindSpeed(float windSpeed)
+        void setWindData(osg::Vec3f windData)
         {
-            mWindSpeed = windSpeed;
-        }
-
-        void setStormDir(osg::Vec2f stormDir)
-        {
-            mStormDir = stormDir;
+            mWindSpeed = windData;
         }
 
         void setPlayerPos(osg::Vec3f playerPos)
@@ -101,11 +96,8 @@ namespace MWRender
     protected:
         void setDefaults(osg::StateSet *stateset) override
         {
-            osg::ref_ptr<osg::Uniform> windUniform = new osg::Uniform("windSpeed", 0.0f);
+            osg::ref_ptr<osg::Uniform> windUniform = new osg::Uniform("windUniform", 0.0f);
             stateset->addUniform(windUniform.get());
-
-            osg::ref_ptr<osg::Uniform> stormDirUniform = new osg::Uniform("stormDir", osg::Vec2f(0.f, 0.f));
-            stateset->addUniform(stormDirUniform.get());
 
             osg::ref_ptr<osg::Uniform> playerPosUniform = new osg::Uniform("playerPos", osg::Vec3f(0.f, 0.f, 0.f));
             stateset->addUniform(playerPosUniform.get());
@@ -113,13 +105,9 @@ namespace MWRender
 
         void apply(osg::StateSet *stateset, osg::NodeVisitor *nv) override
         {
-            osg::ref_ptr<osg::Uniform> windUniform = stateset->getUniform("windSpeed");
+            osg::ref_ptr<osg::Uniform> windUniform = stateset->getUniform("windUniform");
             if (windUniform != nullptr)
-                windUniform->set(mWindSpeed);
-
-            osg::ref_ptr<osg::Uniform> stormDirUniform = stateset->getUniform("stormDir");
-            if (stormDirUniform != nullptr)
-                stormDirUniform->set(mStormDir);
+                windUniform->set(mWindData);
 
             osg::ref_ptr<osg::Uniform> playerPosUniform = stateset->getUniform("playerPos");
             if (playerPosUniform != nullptr)
@@ -127,8 +115,7 @@ namespace MWRender
         }
 
     private:
-        float mWindSpeed;
-        osg::Vec2f mStormDir;
+        osg::Vec3f mWindData;
         osg::Vec3f mPlayerPos;
     };
 
@@ -791,8 +778,7 @@ namespace MWRender
                 float windSpeed = mSky->getBaseWindSpeed();
 		osg::Vec2f stormDir = mSky->getSmoothedStormDir();
 
-                mGroundcoverUpdater->setWindSpeed(windSpeed);
-		mGroundcoverUpdater->setStormDir(stormDir);
+                mGroundcoverUpdater->setWindData(osg::Vec3f(windSpeed, stormDir[0], stormDir[1]));
                 mGroundcoverUpdater->setPlayerPos(playerPos);
             }
         }
