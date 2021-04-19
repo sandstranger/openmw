@@ -717,7 +717,12 @@ namespace MWRender
         udc->addUserObject(templateRefs);
 
         if (mGroundcover)
+        {
+            mSceneManager->reinstateRemovedState(group);
+            osg::ref_ptr<osg::AlphaFunc> alpha = new osg::AlphaFunc(osg::AlphaFunc::GEQUAL, 128.f / 255.f);
+            group->getOrCreateStateSet()->setAttributeAndModes(alpha.get(), osg::StateAttribute::ON);
             mSceneManager->recreateShaders(group, "groundcover", false, true);
+        }
 
         return group;
     }
