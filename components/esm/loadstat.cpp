@@ -4,6 +4,8 @@
 #include "esmwriter.hpp"
 #include "defs.hpp"
 
+#include <components/settings/settings.hpp>
+
 namespace ESM
 {
     unsigned int Static::sRecordId = REC_STAT;
