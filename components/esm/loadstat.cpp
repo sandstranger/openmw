@@ -38,7 +38,14 @@ namespace ESM
         if (!hasName)
             esm.fail("Missing NAME subrecord");
 
-        mIsGroundcover = esm.isGroundcoverFile();
+        if(Settings::Manager::getBool("auto use groundcover", "Groundcover"))
+        {
+            std::string mesh = Misc::StringUtils::lowerCase (mModel);
+            if (mesh.find("grass\\") == 0)
+                mIsGroundcover = true;
+        }
+        else
+            mIsGroundcover = esm.isGroundcoverFile();
     }
     void Static::save(ESMWriter &esm, bool isDeleted) const
     {
