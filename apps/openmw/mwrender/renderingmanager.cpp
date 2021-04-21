@@ -312,6 +312,8 @@ namespace MWRender
         float groundcoverDistance = (Constants::CellSizeInUnits * Settings::Manager::getInt("distance", "Groundcover") - 1024) * 0.93;
         globalDefines["groundcoverFadeStart"] = std::to_string(groundcoverDistance * Settings::Manager::getFloat("fade start", "Groundcover"));
         globalDefines["groundcoverFadeEnd"] = std::to_string(groundcoverDistance);
+        globalDefines["groundcoverStompMode"] = std::to_string(std::clamp(Settings::Manager::getInt("stomp mode", "Groundcover"), 0, 2));
+        globalDefines["groundcoverStompIntensity"] = std::to_string(std::clamp(Settings::Manager::getInt("stomp intensity", "Groundcover"), 0, 2));
 
 	globalDefines["underwaterFog"] = Settings::Manager::getBool("underwater fog", "Water") && Settings::Manager::getBool("force shaders", "Shaders") ?  "1" : "0";
 
@@ -714,7 +716,7 @@ namespace MWRender
         }
         else if (mode == Render_Scene)
         {
-            int mask = mViewer->getCamera()->getCullMask();
+            unsigned int mask = mViewer->getCamera()->getCullMask();
             bool enabled = mask&Mask_Scene;
             enabled = !enabled;
             if (enabled)
@@ -871,7 +873,7 @@ namespace MWRender
             return false;
         }
 
-        int maskBackup = mPlayerAnimation->getObjectRoot()->getNodeMask();
+        unsigned int maskBackup = mPlayerAnimation->getObjectRoot()->getNodeMask();
 
         if (mCamera->isFirstPerson())
             mPlayerAnimation->getObjectRoot()->setNodeMask(0);
@@ -916,8 +918,7 @@ namespace MWRender
     {
         RenderingManager::RayResult result;
         result.mHit = false;
-        result.mHitRefnum.mContentFile = -1;
-        result.mHitRefnum.mIndex = -1;
+        result.mHitRefnum.unset();
         result.mRatio = 0;
         if (intersector->containsIntersections())
         {
@@ -973,7 +974,7 @@ namespace MWRender
         mIntersectionVisitor->setFrameStamp(mViewer->getFrameStamp());
         mIntersectionVisitor->setIntersector(intersector);
 
-        int mask = ~0;
+        unsigned int mask = ~0u;
         mask &= ~(Mask_RenderToTexture|Mask_Sky|Mask_Debug|Mask_Effect|Mask_Water|Mask_SimpleWater|Mask_Groundcover);
         if (ignorePlayer)
             mask &= ~(Mask_Player);

@@ -120,6 +120,7 @@
     Bug #5923: Clicking on empty spaces between journal entries might show random topics
 >>>>>>> e350d7d4ffdc944bb9c6de3a9759f4c131e803cf
     Bug #5934: AddItem command doesn't accept negative values
+    Bug #5975: NIF controllers from sheath meshes are used
     Feature #390: 3rd person look "over the shoulder"
     Feature #832: OpenMW-CS: Handle deleted references
     Feature #1536: Show more information about level on menu
@@ -130,6 +131,7 @@
     Feature #3983: Wizard: Add link to buy Morrowind
     Feature #4894: Consider actors as obstacles for pathfinding
     Feature #4899: Alpha-To-Coverage Anti-Aliasing for alpha testing
+    Feature #4917: Do not trigger NavMesh update when RecastMesh update should not change NavMesh
     Feature #4977: Use the "default icon.tga" when an item's icon is not found
     Feature #5043: Head Bobbing
     Feature #5199: OpenMW-CS: Improve scene view colors
