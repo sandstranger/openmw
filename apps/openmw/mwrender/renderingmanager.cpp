@@ -77,15 +77,14 @@ namespace MWRender
     {
     public:
         GroundcoverUpdater()
-            : mWindSpeed(0.f)
-            , mStormDir(osg::Vec2f())
+            : mWindData(osg::Vec3f())
             , mPlayerPos(osg::Vec3f())
         {
         }
 
         void setWindData(osg::Vec3f windData)
         {
-            mWindSpeed = windData;
+            mWindData = windData;
         }
 
         void setPlayerPos(osg::Vec3f playerPos)
@@ -96,7 +95,7 @@ namespace MWRender
     protected:
         void setDefaults(osg::StateSet *stateset) override
         {
-            osg::ref_ptr<osg::Uniform> windUniform = new osg::Uniform("windUniform", 0.0f);
+            osg::ref_ptr<osg::Uniform> windUniform = new osg::Uniform("windData", osg::Vec3f(0.f, 0.f, 0.f));
             stateset->addUniform(windUniform.get());
 
             osg::ref_ptr<osg::Uniform> playerPosUniform = new osg::Uniform("playerPos", osg::Vec3f(0.f, 0.f, 0.f));
@@ -105,7 +104,7 @@ namespace MWRender
 
         void apply(osg::StateSet *stateset, osg::NodeVisitor *nv) override
         {
-            osg::ref_ptr<osg::Uniform> windUniform = stateset->getUniform("windUniform");
+            osg::ref_ptr<osg::Uniform> windUniform = stateset->getUniform("windData");
             if (windUniform != nullptr)
                 windUniform->set(mWindData);
 

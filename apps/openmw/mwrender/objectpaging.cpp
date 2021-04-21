@@ -8,6 +8,7 @@
 #include <osg/MatrixTransform>
 #include <osg/Material>
 #include <osgUtil/IncrementalCompileOperation>
+#include <osg/AlphaFunc>
 
 #include <components/esm/esmreader.hpp>
 #include <components/misc/resourcehelpers.hpp>
