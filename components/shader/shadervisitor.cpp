@@ -373,7 +373,9 @@ namespace Shader
 
         bool isParticle = dynamic_cast<osgParticle::ParticleSystem *>(reqs.mNode) ? true : false;
 
-        if (isParticle && Settings::Manager::getBool("particle shading", "Shaders") == false)
+        auto lightingMethod = SceneUtil::LightManager::getLightingMethodFromString(Settings::Manager::getString("lighting method", "Shaders"));
+
+        if (isParticle && Settings::Manager::getBool("particle shading", "Shaders") == false && lightingMethod == SceneUtil::LightingMethod::FFP)
             return;
 
         osg::Node& node = *reqs.mNode;

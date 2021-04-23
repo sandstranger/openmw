@@ -146,5 +146,6 @@ if(osg_ViewMatrixInverse[3].z < -1.0 && !isInterior && !isPlayer)
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
     passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz + shadowDiffuseLighting;
 #endif
+    clampLightingResult(passLighting);
 #endif
 }

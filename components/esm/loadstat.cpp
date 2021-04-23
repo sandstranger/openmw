@@ -40,7 +40,7 @@ namespace ESM
         if (!hasName)
             esm.fail("Missing NAME subrecord");
 
-        if(Settings::Manager::getBool("auto use groundcover", "Groundcover"))
+        if(Settings::Manager::getBool("auto use groundcover", "Groundcover") && Settings::Manager::getBool("enabled", "Groundcover"))
         {
             std::string mesh = Misc::StringUtils::lowerCase (mModel);
             if (mesh.find("grass\\") == 0)

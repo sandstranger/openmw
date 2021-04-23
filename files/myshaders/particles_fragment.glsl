@@ -16,6 +16,19 @@ varying float depth;
 #include "vertexcolors.glsl"
 #include "fog.glsl"
 
+#if !PER_PIXEL_LIGHTING && !@lightingMethodFFP && defined(LINEAR_LIGHTING)
+uniform mat4 LightBuffer[@maxLights];
+
+vec3 lcalcDiffuse(int lightIndex)
+{
+#if @lightingMethodPerObjectUniform
+    return @getLight[lightIndex][2].xyz;
+#else
+    return @getLight[lightIndex].diffuse.xyz;
+#endif
+}
+#endif
+
 vec3 SpecialContrast(vec3 x, float suncon) 
 {
 	vec3 contrasted = x*x*x*(x*(x*6.0 - 15.0) + 10.0);
@@ -31,20 +44,13 @@ void main()
     gl_FragData[0] = vec4(1.0);
 #endif
 
-if(gl_FragData[0].a != 0.0)
-{
-
-#if @clamp
-    gl_FragData[0].xyz *= clamp(passLighting, vec3(0.0), vec3(1.0));
-#else
-    gl_FragData[0].xyz *= max(passLighting, 0.0);
-#endif
+if(gl_FragData[0].a == 0.0)
+    discard;
 
 #ifdef LINEAR_LIGHTING
         gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(2.2+(@gamma.0/1000.0)-1.0)));
-        gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, gl_LightSource[0].diffuse.x));
+        gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
 #endif
-}
 
     applyFog(false, depth);
 

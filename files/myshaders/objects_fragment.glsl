@@ -60,7 +60,7 @@ uniform bool simpleWater;
 uniform bool skip;
 #endif
 
-#if (/*PER_PIXEL_LIGHTING*/ defined(ATTEN_FIX) && defined(LINEAR_LIGHTING)) || @underwaterFog
+#if defined(LINEAR_LIGHTING) || @underwaterFog
 uniform bool isInterior;
 #endif
 
@@ -102,6 +102,19 @@ varying float depth;
 #include "effects.glsl"
 #include "fog.glsl"
 #include "alpha.glsl"
+
+#if !PER_PIXEL_LIGHTING && !@lightingMethodFFP && defined(LINEAR_LIGHTING)
+uniform mat4 LightBuffer[@maxLights];
+
+vec3 lcalcDiffuse(int lightIndex)
+{
+#if @lightingMethodPerObjectUniform
+    return @getLight[lightIndex][2].xyz;
+#else
+    return @getLight[lightIndex].diffuse.xyz;
+#endif
+}
+#endif
 
 void main()
 {
@@ -249,12 +262,7 @@ if(gl_FragData[0].a != 0.0)
     doLighting(passViewPos, normalize(viewNormal), shadowpara, diffuseLight, ambientLight);
     lighting = diffuseColor.xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
 #endif
-#endif
-
-#if @clamp
-    lighting = clamp(lighting, vec3(0.0), vec3(1.0));
-#else
-    lighting = max(lighting, 0.0);
+    clampLightingResult(lighting);
 #endif
 
 gl_FragData[0].xyz *= lighting;
@@ -283,7 +291,7 @@ gl_FragData[0].xyz *= lighting;
 #ifdef LINEAR_LIGHTING
         gl_FragData[0].xyz = Uncharted2ToneMapping(gl_FragData[0].xyz);
         gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(2.2+(@gamma.0/1000.0)-1.0)));
-        gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, gl_LightSource[0].diffuse.x));
+        gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
 #endif
 
 #ifdef SIMPLE_WATER_TWEAK
@@ -300,7 +308,7 @@ if(simpleWater)
 
     bool isUnderwater = false;
 #if @underwaterFog
-    isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 &&  !simpleWater && !skip && !isInterior && !isPlayer;
+    isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 &&  !simpleWater && !skip && !isInterior && !isPlayer && !@translucentFramebuffer;
 #endif
 
 #if @radialFog
