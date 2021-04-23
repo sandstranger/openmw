@@ -2,8 +2,6 @@
 
 #define PARTICLE
 
-#define PER_PIXEL_LIGHTING 0
-
 #if @diffuseMap
 uniform sampler2D diffuseMap;
 varying vec2 diffuseMapUV;
@@ -16,7 +14,7 @@ varying float depth;
 #include "vertexcolors.glsl"
 #include "fog.glsl"
 
-#if !PER_PIXEL_LIGHTING && !@lightingMethodFFP && defined(LINEAR_LIGHTING)
+#if !@lightingMethodFFP && defined(LINEAR_LIGHTING)
 uniform mat4 LightBuffer[@maxLights];
 
 vec3 lcalcDiffuse(int lightIndex)
@@ -44,8 +42,10 @@ void main()
     gl_FragData[0] = vec4(1.0);
 #endif
 
-if(gl_FragData[0].a == 0.0)
-    discard;
+    if(gl_FragData[0].a == 0.0)
+        discard;
+
+    gl_FragData[0].xyz *= passLighting;
 
 #ifdef LINEAR_LIGHTING
         gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(2.2+(@gamma.0/1000.0)-1.0)));

@@ -32,7 +32,7 @@ centroid varying vec3 passLighting;
 #include "alpha.glsl"
 
 
-#if !PER_PIXEL_LIGHTING && !@lightingMethodFFP && defined(LINEAR_LIGHTING)
+#if !@lightingMethodFFP && defined(LINEAR_LIGHTING)
 uniform mat4 LightBuffer[@maxLights];
 
 vec3 lcalcDiffuse(int lightIndex)
@@ -66,6 +66,8 @@ if(@groundcoverFadeEnd != @groundcoverFadeStart)
 #ifdef LINEAR_LIGHTING
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(2.2));
 #endif
+
+    gl_FragData[0].xyz *= passLighting;
 
 #ifdef LINEAR_LIGHTING
         gl_FragData[0].xyz = Uncharted2ToneMapping(gl_FragData[0].xyz);

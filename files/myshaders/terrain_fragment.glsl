@@ -21,7 +21,7 @@ varying float depth;
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
 
-#if defined(TERRAIN_PARALLAX_SOFT_SHADOWS) || @underwaterFog
+#if @terrainParallaxShadows || @underwaterFog
 uniform mat4 osg_ViewMatrixInverse;
 #endif
 
@@ -96,7 +96,7 @@ void main()
     vec3 objectPos = (gl_ModelViewMatrixInverse * vec4(passViewPos, 1)).xyz;
     vec3 eyeDir = normalize(cameraPos - objectPos);
 
-    #ifdef TERRAIN_PARALLAX_SOFT_SHADOWS
+    #if @terrainParallaxShadows
         shadowpara = getParallaxShadow(normalTex.a, adjustedUV);
     #endif
 
@@ -123,8 +123,8 @@ void main()
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(2.2));
 #endif
 
-   vec4 diffuseColor = getDiffuseColor();
-   gl_FragData[0].a *= diffuseColor.a;
+    vec4 diffuseColor = getDiffuseColor();
+    gl_FragData[0].a *= diffuseColor.a;
 
     vec3 lighting;
 

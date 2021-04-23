@@ -77,11 +77,7 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
 
     for (int i = @startLight; i < @endLight; ++i)
     {
-#if @lightingMethodUBO
-        perLightPoint(ambientOut, diffuseOut, PointLightIndex[i], viewPos, viewNormal);
-#else
         perLightPoint(ambientOut, diffuseOut, i, viewPos, viewNormal);
-#endif
         ambientLight += ambientOut;
         diffuseLight += diffuseOut;
     }

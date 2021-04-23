@@ -315,7 +315,9 @@ namespace MWRender
         globalDefines["groundcoverStompMode"] = std::to_string(std::clamp(Settings::Manager::getInt("stomp mode", "Groundcover"), 0, 2));
         globalDefines["groundcoverStompIntensity"] = std::to_string(std::clamp(Settings::Manager::getInt("stomp intensity", "Groundcover"), 0, 2));
 
-	globalDefines["underwaterFog"] = Settings::Manager::getBool("underwater fog", "Water") && Settings::Manager::getBool("force shaders", "Shaders") ?  "1" : "0";
+	globalDefines["underwaterFog"] = Settings::Manager::getBool("underwater fog", "Water");
+	globalDefines["objectsParallaxShadows"] = Settings::Manager::getBool("objects parallax soft shadows", "Shaders");
+	globalDefines["terrainParallaxShadows"] = Settings::Manager::getBool("terrain parallax soft shadows", "Shaders");
 
         static int gammacor = 1000;
         const char *s = getenv("OPENMW_GAMMA");
@@ -401,6 +403,14 @@ namespace MWRender
 
             if (resourceSystem->getSceneManager()->getLightingMethod() != SceneUtil::LightingMethod::FFP)
                 groundcoverRoot->setCullCallback(new SceneUtil::LightListCallback);
+
+            osg::StateSet* stateset = groundcoverRoot->getOrCreateStateSet();
+            stateset->removeAttribute(osg::StateAttribute::MATERIAL);
+            stateset->removeAttribute(osg::StateAttribute::ALPHAFUNC);
+            stateset->removeMode(GL_ALPHA_TEST);
+            stateset->removeAttribute(osg::StateAttribute::BLENDFUNC);
+            stateset->removeMode(GL_BLEND);
+            stateset->setRenderBinToInherit();
 
             mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
             static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
