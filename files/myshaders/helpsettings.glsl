@@ -6,11 +6,6 @@
 const float conday = 1.0;
 const float connight = 0.75;
 
-// self shadowing for parallax maps
-//#define TERRAIN_PARALLAX_SOFT_SHADOWS
-//#define OBJECTS_PARALLAX_SOFT_SHADOWS
-#define MAX_PARAL_LIGHTS 1
-
 //#define HEIGHT_FOG
 //#define DYNAMICHFOG
 //#define ANIMATED_HEIGHT_FOG

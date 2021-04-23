@@ -66,11 +66,9 @@ vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
     harmonics.xy += vec2((1.0 + 0.14*v) * sin(3.0*osg_SimulationTime +  worldPos.xy / 500.0));
     harmonics.xy += vec2((1.0 + 0.28*v) * sin(5.0*osg_SimulationTime  +  worldPos.xy / 200.0));
 
-    float d = length(worldPos.xyz - playerPos);
-
     vec2 stomp = vec2(0.0);
 #if STOMP
-    float d = length(worldpos.xy - playerPos.xy);
+    float d = length(worldPos.xy - playerPos.xy);
 #if STOMP_INTENSITY_LEVEL == 0
     // Gentle intensity
     const float STOMP_RANGE = 50.0; // maximum distance from player that grass is affected by stomping
@@ -85,10 +83,10 @@ vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
     const float STOMP_DISTANCE = 60.0;
 #endif
     if (d < STOMP_RANGE && d > 0.0)
-        stomp = (STOMP_DISTANCE / d - STOMP_DISTANCE / STOMP_RANGE) * (worldpos.xy - playerPos.xy);
+        stomp = (STOMP_DISTANCE / d - STOMP_DISTANCE / STOMP_RANGE) * (worldPos.xy - playerPos.xy);
 
 #ifdef STOMP_HEIGHT_SENSITIVE
-    stomp *= clamp((worldpos.z - playerPos.z) / h, 0.0, 1.0);
+    stomp *= clamp((worldPos.z - playerPos.z) / h, 0.0, 1.0);
 #endif
 #endif
 

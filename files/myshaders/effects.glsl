@@ -22,7 +22,7 @@ float getParallaxShadow(float height, vec2 UV)
         vec3 point = (osg_ViewMatrixInverse * vec4(0.0,0.0,0.0,1.0)).xyz;
 #endif
 
-        for (int i=0; i<MAX_PARAL_LIGHTS; ++i)
+        for (int i=0; i<1/*MAX_PARAL_LIGHTS*/; ++i)
         {
             float soften = (i==0) ? 5.0 : 50.0;
             vec3 lightdir = lcalcPosition(i);
