@@ -53,6 +53,7 @@ namespace Shader
         , mAutoUseNormalMaps(false)
         , mAutoUseSpecularMaps(false)
         , mApplyLightingToEnvMaps(false)
+        , mConvertAlphaTestToAlphaToCoverage(false)
         , mTranslucentFramebuffer(false)
         , mShaderManager(shaderManager)
         , mImageManager(imageManager)
@@ -280,8 +281,7 @@ namespace Shader
 
         const osg::StateSet::AttributeList& attributes = stateset->getAttributeList();
         osg::StateSet::AttributeList removedAttributes;
-        osg::ref_ptr<osg::StateSet> removedState;
-        if (removedState = getRemovedState(*stateset))
+        if (osg::ref_ptr<osg::StateSet> removedState = getRemovedState(*stateset))
             removedAttributes = removedState->getAttributeList();
         for (const auto& attributeMap : { attributes, removedAttributes })
         {
@@ -373,7 +373,9 @@ namespace Shader
 
         bool isParticle = dynamic_cast<osgParticle::ParticleSystem *>(reqs.mNode) ? true : false;
 
-        if (isParticle && Settings::Manager::getBool("particle shading", "Shaders") == false)
+        auto lightingMethod = SceneUtil::LightManager::getLightingMethodFromString(Settings::Manager::getString("lighting method", "Shaders"));
+
+        if (isParticle && Settings::Manager::getBool("particle shading", "Shaders") == false && lightingMethod == SceneUtil::LightingMethod::FFP)
             return;
 
         osg::Node& node = *reqs.mNode;
@@ -485,8 +487,7 @@ namespace Shader
 
         writableStateSet->removeAttribute(osg::StateAttribute::PROGRAM);
 
-        osg::ref_ptr<osg::StateSet> removedState;
-        if (removedState = getRemovedState(*writableStateSet))
+        if (osg::ref_ptr<osg::StateSet> removedState = getRemovedState(*writableStateSet))
         {
             // user data is normally shallow copied so shared with the original stateset
             osg::ref_ptr<osg::UserDataContainer> writableUserData;

@@ -20,8 +20,9 @@ varying float depth;
 
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
+#include "lighting_util.glsl"
 
-#if defined(TERRAIN_PARALLAX_SOFT_SHADOWS) || @underwaterFog
+#if @terrainParallaxShadows || @underwaterFog
 uniform mat4 osg_ViewMatrixInverse;
 #endif
 
@@ -40,7 +41,6 @@ varying vec3 passViewPos;
 #if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG))
 varying vec3 passNormal;
 #endif
-
 
 #if !PER_PIXEL_LIGHTING
 centroid varying vec3 passLighting;
@@ -84,7 +84,7 @@ void main()
     vec3 objectPos = (gl_ModelViewMatrixInverse * vec4(passViewPos, 1)).xyz;
     vec3 eyeDir = normalize(cameraPos - objectPos);
 
-    #ifdef TERRAIN_PARALLAX_SOFT_SHADOWS
+    #if @terrainParallaxShadows
         shadowpara = getParallaxShadow(normalTex.a, adjustedUV);
     #endif
 
@@ -111,8 +111,8 @@ void main()
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(2.2));
 #endif
 
-   vec4 diffuseColor = getDiffuseColor();
-   gl_FragData[0].a *= diffuseColor.a;
+    vec4 diffuseColor = getDiffuseColor();
+    gl_FragData[0].a *= diffuseColor.a;
 
     vec3 lighting;
 
@@ -126,16 +126,10 @@ void main()
     doLighting(passViewPos, normalize(viewNormal), shadowpara, diffuseLight, ambientLight);
     lighting = diffuseColor.xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
 #endif
-#endif
-
-#if @clamp
-    lighting = clamp(lighting, vec3(0.0), vec3(1.0));
-#else
-    lighting = max(lighting, 0.0);
+    clampLightingResult(lighting);
 #endif
 
     gl_FragData[0].xyz *= lighting;
-
 
 #if @specularMap
     float shininess = 128.0; // TODO: make configurable
@@ -146,7 +140,7 @@ void main()
 #ifdef LINEAR_LIGHTING
     gl_FragData[0].xyz = Uncharted2ToneMapping(gl_FragData[0].xyz);
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(2.2+(@gamma.0/1000.0)-1.0)));
-    gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, gl_LightSource[0].diffuse.x));
+    gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
 #endif
 
     bool isUnderwater = false;
@@ -159,6 +153,4 @@ void main()
 #if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
-
-//gl_FragData[0].x = 1.0;
 }

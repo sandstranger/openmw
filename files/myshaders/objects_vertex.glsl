@@ -59,6 +59,7 @@ uniform bool isPlayer;
 #endif
 
 #if !PER_PIXEL_LIGHTING
+  #include "lighting_util.glsl"
   centroid varying vec3 passLighting;
   #ifdef LINEAR_LIGHTING
     #include "linear_lighting.glsl"
@@ -110,8 +111,6 @@ void main(void)
     passTangent = gl_MultiTexCoord7.xyzw;
 #endif
 
-
-
     passColor = gl_Color;
 
 #if PER_PIXEL_LIGHTING || @specularMap
@@ -141,14 +140,16 @@ if(osg_ViewMatrixInverse[3].z < -1.0 && !isInterior && !isPlayer)
 
 
 #if !PER_PIXEL_LIGHTING
+vec3 shadowDiffuseLighting;
 #ifdef LINEAR_LIGHTING
     passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
 #else
-    vec3 shadowDiffuseLighting;
     vec3 diffuseLight, ambientLight;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
     passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
 #endif
+    clampLightingResult(passLighting);
+    shadowDiffuseLighting *= getDiffuseColor().xyz;
+    passLighting += shadowDiffuseLighting;
 #endif
-
 }

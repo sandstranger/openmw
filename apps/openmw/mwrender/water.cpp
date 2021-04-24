@@ -28,6 +28,7 @@
 #include <components/sceneutil/shadow.hpp>
 #include <components/sceneutil/util.hpp>
 #include <components/sceneutil/waterutil.hpp>
+#include <components/sceneutil/lightmanager.hpp>
 
 #include <components/misc/constants.hpp>
 
@@ -408,12 +409,13 @@ public:
     void setInterior(bool isInterior)
     {
         int reflectionDetail = Settings::Manager::getInt("reflection detail", "Water");
-        reflectionDetail = std::min(4, std::max(isInterior ? 2 : 0, reflectionDetail));
+        reflectionDetail = std::min(5, std::max(isInterior ? 2 : 0, reflectionDetail));
         unsigned int extraMask = 0;
         if(reflectionDetail >= 1) extraMask |= Mask_Terrain;
         if(reflectionDetail >= 2) extraMask |= Mask_Static;
         if(reflectionDetail >= 3) extraMask |= Mask_Effect|Mask_ParticleSystem|Mask_Object;
         if(reflectionDetail >= 4) extraMask |= Mask_Player|Mask_Actor;
+        if(reflectionDetail >= 5) extraMask |= Mask_Groundcover;
         setCullMask(Mask_Scene|Mask_Sky|Mask_Lighting|extraMask);
     }
 
@@ -679,6 +681,9 @@ void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, R
     osg::ref_ptr<osg::Program> program (new osg::Program);
     program->addShader(vertexShader);
     program->addShader(fragmentShader);
+    auto method = mResourceSystem->getSceneManager()->getLightingMethod();
+    if (method == SceneUtil::LightingMethod::SingleUBO)
+        program->addBindUniformBlock("LightBufferBinding", static_cast<int>(Shader::UBOBinding::LightBuffer));
     shaderStateset->setAttributeAndModes(program, osg::StateAttribute::ON);
 
     node->setStateSet(shaderStateset);
@@ -781,11 +786,11 @@ void Water::update(float dt)
 void Water::updateVisible()
 {
     bool visible = mEnabled && mToggled;
-    mWaterNode->setNodeMask(visible ? ~0 : 0);
+    mWaterNode->setNodeMask(visible ? ~0u : 0u);
     if (mRefraction)
-        mRefraction->setNodeMask(visible ? Mask_RenderToTexture : 0);
+        mRefraction->setNodeMask(visible ? Mask_RenderToTexture : 0u);
     if (mReflection)
-        mReflection->setNodeMask(visible ? Mask_RenderToTexture : 0);
+        mReflection->setNodeMask(visible ? Mask_RenderToTexture : 0u);
 }
 
 bool Water::toggle()

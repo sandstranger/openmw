@@ -226,6 +226,8 @@ namespace Resource
         , mAutoUseNormalMaps(false)
         , mAutoUseSpecularMaps(false)
         , mApplyLightingToEnvMaps(false)
+        , mLightingMethod(SceneUtil::LightingMethod::FFP)
+        , mConvertAlphaTestToAlphaToCoverage(false)
         , mInstanceCache(new MultiObjectCache)
         , mSharedStateManager(new SharedStateManager)
         , mImageManager(imageManager)
@@ -248,10 +250,12 @@ namespace Resource
         return mForceShaders;
     }
 
-    void SceneManager::recreateShaders(osg::ref_ptr<osg::Node> node, const std::string& shaderPrefix, bool translucentFramebuffer)
+    void SceneManager::recreateShaders(osg::ref_ptr<osg::Node> node, const std::string& shaderPrefix, bool translucentFramebuffer, bool forceShadersForNode)
     {
         osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor(createShaderVisitor(shaderPrefix, translucentFramebuffer));
         shaderVisitor->setAllowedToModifyStateSets(false);
+        if (forceShadersForNode)
+            shaderVisitor->setForceShaders(true);
         node->accept(*shaderVisitor);
     }
 
@@ -299,6 +303,26 @@ namespace Resource
     void SceneManager::setApplyLightingToEnvMaps(bool apply)
     {
         mApplyLightingToEnvMaps = apply;
+    }
+
+    void SceneManager::setSupportedLightingMethods(const SceneUtil::LightManager::SupportedMethods& supported)
+    {
+        mSupportedLightingMethods = supported;
+    }
+
+    bool SceneManager::isSupportedLightingMethod(SceneUtil::LightingMethod method) const
+    {
+        return mSupportedLightingMethods[static_cast<int>(method)];
+    }
+
+    void SceneManager::setLightingMethod(SceneUtil::LightingMethod method)
+    {
+        mLightingMethod = method;
+    }
+
+    SceneUtil::LightingMethod SceneManager::getLightingMethod() const
+    {
+        return mLightingMethod;
     }
 
     void SceneManager::setConvertAlphaTestToAlphaToCoverage(bool convert)

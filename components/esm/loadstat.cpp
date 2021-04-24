@@ -4,6 +4,8 @@
 #include "esmwriter.hpp"
 #include "defs.hpp"
 
+#include <components/settings/settings.hpp>
+
 namespace ESM
 {
     unsigned int Static::sRecordId = REC_STAT;
@@ -38,7 +40,14 @@ namespace ESM
         if (!hasName)
             esm.fail("Missing NAME subrecord");
 
-        mIsGroundcover = esm.isGroundcoverFile();
+        if(Settings::Manager::getBool("auto use groundcover", "Groundcover") && Settings::Manager::getBool("enabled", "Groundcover"))
+        {
+            std::string mesh = Misc::StringUtils::lowerCase (mModel);
+            if (mesh.find("grass\\") == 0)
+                mIsGroundcover = true;
+        }
+        else
+            mIsGroundcover = esm.isGroundcoverFile();
     }
     void Static::save(ESMWriter &esm, bool isDeleted) const
     {

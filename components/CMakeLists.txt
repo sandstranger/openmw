@@ -87,7 +87,7 @@ add_component_dir (esmterrain
     )
 
 add_component_dir (misc
-    constants utf8stream stringops resourcehelpers rng messageformatparser weakcache
+    constants utf8stream stringops resourcehelpers rng messageformatparser weakcache thread
     )
 
 add_component_dir (debug
@@ -182,6 +182,8 @@ add_component_dir(detournavigator
     navigator
     findrandompointaroundcircle
     raycast
+    navmeshtileview
+    oscillatingrecastmeshobject
     )
 
 set (ESM_UI ${CMAKE_SOURCE_DIR}/files/ui/contentselector.ui

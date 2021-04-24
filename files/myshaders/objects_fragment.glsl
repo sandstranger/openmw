@@ -2,12 +2,6 @@
 
 #define OBJECT
 
-/*
-#if @useGPUShader4
-    #extension GL_EXT_gpu_shader4: require
-#endif
-*/
-
 #if @diffuseMap
 uniform sampler2D diffuseMap;
 varying vec2 diffuseMapUV;
@@ -57,6 +51,7 @@ uniform mat2 bumpMapMatrix;
 
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
+#include "lighting_util.glsl"
 
 #if @radialFog || @underwaterFog || defined(SIMPLE_WATER_TWEAK)
 uniform bool simpleWater;
@@ -66,7 +61,7 @@ uniform bool simpleWater;
 uniform bool skip;
 #endif
 
-#if (PER_PIXEL_LIGHTING && defined(LINEAR_LIGHTING)) || @underwaterFog
+#if defined(LINEAR_LIGHTING) || @underwaterFog
 uniform bool isInterior;
 #endif
 
@@ -155,7 +150,7 @@ float shadowpara = 1.0;
     vec3 eyeDir = normalize(cameraPos - objectPos);
     adjustedDiffuseUV += getParallaxOffset(eyeDir, tbnTranspose, normalTex.a, (passTangent.w > 0.0) ? -1.f : 1.f);
 
-    #ifdef OBJECTS_PARALLAX_SOFT_SHADOWS
+    #if @objectsParallaxShadows
         shadowpara = getParallaxShadow(normalTex.a, adjustedDiffuseUV);
         #ifdef NORMAL_MAP_FADING
             if(nmFade != 0.0) shadowpara = mix(shadowpara, 1.0, nmFade);
@@ -255,12 +250,7 @@ if(gl_FragData[0].a != 0.0)
     doLighting(passViewPos, normalize(viewNormal), shadowpara, diffuseLight, ambientLight);
     lighting = diffuseColor.xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
 #endif
-#endif
-
-#if @clamp
-    lighting = clamp(lighting, vec3(0.0), vec3(1.0));
-#else
-    lighting = max(lighting, 0.0);
+    clampLightingResult(lighting);
 #endif
 
 gl_FragData[0].xyz *= lighting;
@@ -289,7 +279,7 @@ gl_FragData[0].xyz *= lighting;
 #ifdef LINEAR_LIGHTING
         gl_FragData[0].xyz = Uncharted2ToneMapping(gl_FragData[0].xyz);
         gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(2.2+(@gamma.0/1000.0)-1.0)));
-        gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, gl_LightSource[0].diffuse.x));
+        gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
 #endif
 
 #ifdef SIMPLE_WATER_TWEAK
@@ -305,8 +295,8 @@ if(simpleWater)
 }
 
     bool isUnderwater = false;
-#if @underwaterFog
-    isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 &&  !simpleWater && !skip && !isInterior && !isPlayer;
+#if @underwaterFog && !@translucentFramebuffer
+    isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 && !simpleWater && !skip && !isInterior && !isPlayer;
 #endif
 
 #if @radialFog
@@ -324,6 +314,4 @@ if(simpleWater)
     if (noAlpha) 
          gl_FragData[0].a = 1.0;
 #endif
-
-//gl_FragData[0].x = 1.0;
  }

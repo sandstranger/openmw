@@ -1,5 +1,4 @@
 #include "lightsettings.glsl"
-#define MAX_LIGHTS 8
 
 vec3 ToLinearColApprox(vec3 col) {
     return col * col;
@@ -32,52 +31,63 @@ float orenNayarDiffuse(
 
 void LightSun(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 viewPos, vec3 viewNormal, vec4 diffuse, vec3 ambient)
 {
-    vec3 lightDir;
+    vec3 lightDir = normalize(lcalcPosition(0).xyz);
+    vec3 sunbounce = mix(vec3(0.0), lcalcDiffuse(lightIndex), gl_LightModel.ambient.xyz);
 
-    lightDir = gl_LightSource[lightIndex].position.xyz - (viewPos.xyz * gl_LightSource[lightIndex].position.w);
-    lightDir = normalize(lightDir);
+    float lambert = dot(viewNormal.xyz, -lightDir);
 
-    vec3 sunbounce = mix(vec3(0.0), gl_LightSource[lightIndex].diffuse.xyz, gl_LightModel.ambient.xyz);
-	  sunbounce = sunbexp * mix(sunbounce, vec3(0.18), 0.5 * gl_LightSource[lightIndex].diffuse.x) * clamp((dot(viewNormal.xyz, -lightDir) + 0.4) /((1.0 + 0.4) * (1.0 + 0.4)), 0.0 ,1.0);
+#ifndef GRASS
+    lambert = max(lambert, 0.0);
+#else
+    float eyeCosine = dot(normalize(viewPos), viewNormal.xyz);
+    if (lambert < 0.0)
+    {
+        lambert = -lambert;
+        eyeCosine = -eyeCosine;
+    }
+    lambert *= clamp(-8.0 * (1.0 - 0.3) * eyeCosine + 1.0, 0.3, 1.0);
+#endif
+
+	  sunbounce = sunbexp * mix(sunbounce, vec3(0.18), 0.5 * lcalcDiffuse(lightIndex).x) * clamp((lambert + 0.4) /((1.0 + 0.4) * (1.0 + 0.4)), 0.0 ,1.0);
 		
     ambientOut = sunbounce;    
-    diffuseOut = sunexp * diffuse.xyz * ToLinearColApprox(gl_LightSource[lightIndex].diffuse.xyz) * orenNayarDiffuse(lightDir, viewNormal.xyz,viewNormal.xyz, 0.1);
+    diffuseOut = sunexp * diffuse.xyz * ToLinearColApprox(lcalcDiffuse(lightIndex)) * orenNayarDiffuse(lightDir, viewNormal.xyz,viewNormal.xyz, 0.1);
 }
 
 void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 viewPos, vec3 viewNormal, vec4 diffuse, vec3 ambient)
 {
-    vec3 lightDir;
-    float lightDistance;
-
-    lightDir = gl_LightSource[lightIndex].position.xyz - (viewPos.xyz * gl_LightSource[lightIndex].position.w);
-    lightDistance = length(lightDir);
+    vec3 lightDir = lcalcPosition(lightIndex) - viewPos.xyz;
+    float lightDistance = length(lightDir);
     lightDir = normalize(lightDir);
 
-    #ifdef ATTEN_FIX
-        float illumination = clamp(1.0 / (gl_LightSource[lightIndex].constantAttenuation * 0.1 + 0.01 * gl_LightSource[lightIndex].linearAttenuation * lightDistance * lightDistance) - 0.054, 0.0, 1.0);
-        illumination = clamp(illumination * illumination, 0.0, 1.0);
-    #else
-        float illumination = clamp(1.0 / (gl_LightSource[lightIndex].constantAttenuation + gl_LightSource[lightIndex].linearAttenuation * lightDistance + gl_LightSource[lightIndex].quadraticAttenuation * lightDistance * lightDistance), 0.0, 1.0);
-    #endif
+// cull non-FFP point lighting by radius, light is guaranteed to not fall outside this bound with our cutoff
+#if !@lightingMethodFFP
+    if (lightDistance > lcalcRadius(lightIndex) * 2.0)
+    {
+        ambientOut = vec3(0.0);
+        diffuseOut = vec3(0.0);
+        return;
+    }
+#endif
 
-    ambientOut = vec3(0.0); // * gl_LightSource[lightIndex].ambient.xyz * illumination;
-    diffuseOut = mix(pnightexp, pdayexp, gl_LightSource[0].diffuse.x) * diffuse.xyz * ToLinearColApprox(gl_LightSource[lightIndex].diffuse.xyz) * clamp(dot(viewNormal.xyz, lightDir), 0.0, 1.0) * illumination;
+    float illumination = lcalcIllumination(lightIndex, lightDistance);
+
+    float lambert = dot(viewNormal.xyz, lightDir) * illumination;
+#ifndef GRASS
+    lambert = clamp(lambert, 0.0, 1.0);
+#else
+    float eyeCosine = dot(normalize(viewPos), viewNormal.xyz);
+    if (lambert < 0.0)
+    {
+        lambert = -lambert;
+        eyeCosine = -eyeCosine;
+    }
+    lambert *= clamp(-8.0 * (1.0 - 0.3) * eyeCosine + 1.0, 0.3, 1.0);
+#endif
+
+    ambientOut = vec3(0.0);
+    diffuseOut = mix(pnightexp, pdayexp, lcalcDiffuse(0).x) * diffuse.xyz * ToLinearColApprox(lcalcDiffuse(lightIndex)) * lambert;
 }
-
-void perNegativeLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 viewPos, vec3 viewNormal, vec4 diffuse, vec3 ambient)
-{
-    vec3 lightDir;
-    float lightDistance;
-
-    lightDir = gl_LightSource[lightIndex].position.xyz - (viewPos.xyz * gl_LightSource[lightIndex].position.w);
-    lightDistance = length(lightDir);
-    lightDir = normalize(lightDir);
-    float illumination = clamp(1.0 / (gl_LightSource[lightIndex].constantAttenuation + gl_LightSource[lightIndex].linearAttenuation * lightDistance + gl_LightSource[lightIndex].quadraticAttenuation * lightDistance * lightDistance), 0.0, 1.0);
-
-    ambientOut = ambient * gl_LightSource[lightIndex].ambient.xyz * illumination;
-    diffuseOut = diffuse.xyz * gl_LightSource[lightIndex].diffuse.xyz * max(dot(viewNormal.xyz, lightDir), 0.0) * illumination;
-}
-
 
 #if PER_PIXEL_LIGHTING
 vec3 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor, float shadowing)
@@ -87,6 +97,7 @@ vec3 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
 {
     vec4 diffuse;
     vec3 ambient;
+
     if (colorMode == ColorMode_AmbientAndDiffuse)
     {
         diffuse = vertexColor;
@@ -107,10 +118,9 @@ vec3 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
         diffuse = gl_FrontMaterial.diffuse;
         ambient = gl_FrontMaterial.ambient.xyz;
     }
+
     vec4 lightResult = vec4(0.0, 0.0, 0.0, diffuse.a);
-
-    vec3 diffuseLight, ambientLight;
-
+    vec3 ambientLight, diffuseLight;
     LightSun(ambientLight, diffuseLight, 0, viewPos, viewNormal, diffuse, ambient);
 
     float interiorb = 0.0;
@@ -129,22 +139,22 @@ vec3 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
         lightResult.xyz += diffuseLight * shadowing - diffuseLight; // This light gets added a second time in the loop to fix Mesa users' slowdown, so we need to negate its contribution here.
     #endif
 
-    for (int i=1; i<MAX_LIGHTS; ++i)
+    for (int i = @startLight; i < @endLight; ++i)
     {
         diffuseLight = vec3(0.0);
-        if(gl_LightSource[i].diffuse.x > 0.0)
-            perLight(ambientLight, diffuseLight, i, viewPos, viewNormal, diffuse, ambient);
+
+        perLight(ambientLight, diffuseLight, i, viewPos, viewNormal, diffuse, ambient);
 
 #ifdef OBJECT
-        else if(isInterior)
-            perNegativeLight(ambientLight, diffuseLight, i, viewPos, viewNormal, diffuse, ambient);
+    if(lcalcDiffuse(i).x < 0.0 && isInterior)
+        diffuseLight *= vec3(-1.0);
 #endif
 
        if(diffuseLight != vec3(0.0))
            lightResult.xyz += ambientLight + diffuseLight;
     }
 
-#ifdef LINEAR_LIGHTING
+//#ifndef GRASS
     vec3 ambientmapped = Remap(gl_LightModel.ambient.xyz * gl_LightModel.ambient.xyz, vec3(ambmin), vec3(1.0));
 	  vec3 ambientcon = vec3(mix(gl_LightModel.ambient.xyz * gl_LightModel.ambient.xyz * aoutexp, ambientmapped * aintexp, interiorb));
 	
@@ -162,8 +172,8 @@ vec3 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
 
     vec3 skyterm1 = mix(nightoc * overcast, dayoc * overcast, ambisky);
 	  vec3 skyterm2 = daysky * skylight;
-    vec3 skyterm3 = gl_LightSource[0].diffuse.xyz * gl_LightSource[0].diffuse.xyz * dayskysun;
-	  skylight = 0.10 * mix(skyterm1, skyterm2 + skyterm3,  gl_LightSource[0].diffuse.x * gl_LightSource[0].diffuse.x);
+    vec3 skyterm3 = lcalcDiffuse(0) * lcalcDiffuse(0) * dayskysun;
+	  skylight = 0.10 * mix(skyterm1, skyterm2 + skyterm3,  lcalcDiffuse(0).x * lcalcDiffuse(0).x);
 	
 	  ambientcon *= ambientcontribution * max(0.0, pow(1.0 - fres,2.0)) + mix(skylight, vec3(1.0), interiorb) * max(0.0, fres);
 	
@@ -174,12 +184,12 @@ vec3 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
     lightResult.xyz += ambientcon;
 	  lightResult.xyz += skylight;
 	  lightResult.xyz *= vec3(vcoff) + vcexp * ambient * ambient;
-#endif
 
     if (colorMode == ColorMode_Emission)
         lightResult.xyz += vertexColor.xyz;
     else
-        lightResult.xyz += mix(emivnight, emivday, gl_LightSource[0].diffuse.x) * gl_FrontMaterial.emission.xyz;
+        lightResult.xyz += mix(emivnight, emivday, lcalcDiffuse(0).x) * gl_FrontMaterial.emission.xyz;
+//#endif
 
     return lightResult.xyz;
 }

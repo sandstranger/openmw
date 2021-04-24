@@ -8,6 +8,7 @@
 #include <osg/MatrixTransform>
 #include <osg/Material>
 #include <osgUtil/IncrementalCompileOperation>
+#include <osg/AlphaFunc>
 
 #include <components/esm/esmreader.hpp>
 #include <components/misc/resourcehelpers.hpp>
@@ -460,7 +461,7 @@ namespace MWRender
                             refs[ref.mRefNum] = ref;
                         }
                     }
-                    catch (std::exception& e)
+                    catch (std::exception&)
                     {
                         continue;
                     }
@@ -717,7 +718,12 @@ namespace MWRender
         udc->addUserObject(templateRefs);
 
         if (mGroundcover)
-            mSceneManager->recreateShaders(group, "groundcover");
+        {
+            mSceneManager->reinstateRemovedState(group);
+            osg::ref_ptr<osg::AlphaFunc> alpha = new osg::AlphaFunc(osg::AlphaFunc::GEQUAL, 128.f / 255.f);
+            group->getOrCreateStateSet()->setAttributeAndModes(alpha.get(), osg::StateAttribute::ON);
+            mSceneManager->recreateShaders(group, "groundcover", false, true);
+        }
 
         return group;
     }

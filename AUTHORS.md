@@ -49,6 +49,7 @@ Programmers
     Cédric Mocquillon
     Chris Boyce (slothlife)
     Chris Robinson (KittyCat)
+    Cody Glassman (Wazabear)
     Coleman Smith (olcoal)
     Cory F. Cohen (cfcohen)
     Cris Mihalache (Mirceam)
@@ -89,6 +90,7 @@ Programmers
     Internecine
     Jackerty
     Jacob Essex (Yacoby)
+    Jacob Turnbull (Tankinfrank)
     Jake Westrip (16bitint)
     James Carty (MrTopCat)
     James Moore (moore.work)
@@ -184,6 +186,7 @@ Programmers
     sergoz
     ShadowRadiance
     Siimacore
+    Simon Meulenbeek (simonmb)
     sir_herrbatka
     smbas
     Sophie Kirschner (pineapplemachine)
@@ -197,6 +200,7 @@ Programmers
     Sylvain Thesnieres (Garvek)
     t6
     terrorfisch
+    Tess (tescoShoppah)
     thegriglat
     Thomas Luppi (Digmaster)
     tlmullis

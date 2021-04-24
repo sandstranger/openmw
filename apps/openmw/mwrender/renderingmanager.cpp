@@ -52,6 +52,7 @@
 #include "../mwgui/loadingscreen.hpp"
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
+#include "../mwmechanics/actorutil.hpp"
 
 #include "sky.hpp"
 #include "effectmanager.hpp"
@@ -76,20 +77,14 @@ namespace MWRender
     {
     public:
         GroundcoverUpdater()
-            : mWindSpeed(0.f)
-            , mStormDir(osg::Vec2f())
+            : mWindData(osg::Vec3f())
             , mPlayerPos(osg::Vec3f())
         {
         }
 
-        void setWindSpeed(float windSpeed)
+        void setWindData(osg::Vec3f windData)
         {
-            mWindSpeed = windSpeed;
-        }
-
-        void setStormDir(osg::Vec2f stormDir)
-        {
-            mStormDir = stormDir;
+            mWindData = windData;
         }
 
         void setPlayerPos(osg::Vec3f playerPos)
@@ -100,11 +95,8 @@ namespace MWRender
     protected:
         void setDefaults(osg::StateSet *stateset) override
         {
-            osg::ref_ptr<osg::Uniform> windUniform = new osg::Uniform("windSpeed", 0.0f);
+            osg::ref_ptr<osg::Uniform> windUniform = new osg::Uniform("windData", osg::Vec3f(0.f, 0.f, 0.f));
             stateset->addUniform(windUniform.get());
-
-            osg::ref_ptr<osg::Uniform> stormDirUniform = new osg::Uniform("stormDir", osg::Vec2f(0.f, 0.f));
-            stateset->addUniform(stormDirUniform.get());
 
             osg::ref_ptr<osg::Uniform> playerPosUniform = new osg::Uniform("playerPos", osg::Vec3f(0.f, 0.f, 0.f));
             stateset->addUniform(playerPosUniform.get());
@@ -112,13 +104,9 @@ namespace MWRender
 
         void apply(osg::StateSet *stateset, osg::NodeVisitor *nv) override
         {
-            osg::ref_ptr<osg::Uniform> windUniform = stateset->getUniform("windSpeed");
+            osg::ref_ptr<osg::Uniform> windUniform = stateset->getUniform("windData");
             if (windUniform != nullptr)
-                windUniform->set(mWindSpeed);
-
-            osg::ref_ptr<osg::Uniform> stormDirUniform = stateset->getUniform("stormDir");
-            if (stormDirUniform != nullptr)
-                stormDirUniform->set(mStormDir);
+                windUniform->set(mWindData);
 
             osg::ref_ptr<osg::Uniform> playerPosUniform = stateset->getUniform("playerPos");
             if (playerPosUniform != nullptr)
@@ -126,8 +114,7 @@ namespace MWRender
         }
 
     private:
-        float mWindSpeed;
-        osg::Vec2f mStormDir;
+        osg::Vec3f mWindData;
         osg::Vec3f mPlayerPos;
     };
 
@@ -252,19 +239,22 @@ namespace MWRender
         , mWorkQueue(workQueue)
         , mUnrefQueue(new SceneUtil::UnrefQueue)
         , mNavigator(navigator)
+        , mMinimumAmbientLuminance(0.f)
         , mNightEyeFactor(0.f)
         , mFieldOfViewOverridden(false)
         , mFieldOfViewOverride(0.f)
     {
+        auto lightingMethod = SceneUtil::LightManager::getLightingMethodFromString(Settings::Manager::getString("lighting method", "Shaders"));
+
         resourceSystem->getSceneManager()->setParticleSystemMask(MWRender::Mask_ParticleSystem);
         resourceSystem->getSceneManager()->setShaderPath(resourcePath + "/shaders");
-        // Shadows and radial fog have problems with fixed-function mode.
-        // Groundcover fading and animation are implemented via shader too.
-        bool forceShaders =
-            Settings::Manager::getBool("radial fog", "Shaders") ||
-            Settings::Manager::getBool("force shaders", "Shaders") ||
-            Settings::Manager::getBool("enabled", "Groundcover") ||
-            Settings::Manager::getBool("enable shadows", "Shadows");
+
+        // Shadows and radial fog have problems with fixed-function mode
+        bool forceShaders = Settings::Manager::getBool("radial fog", "Shaders")
+                            || Settings::Manager::getBool("force shaders", "Shaders")
+                            || Settings::Manager::getBool("enable shadows", "Shadows")
+                            || Settings::Manager::getBool("underwater fog", "Water")
+                            || lightingMethod != SceneUtil::LightingMethod::FFP;
         resourceSystem->getSceneManager()->setForceShaders(forceShaders);
         // FIXME: calling dummy method because terrain needs to know whether lighting is clamped
         resourceSystem->getSceneManager()->setClampLighting(Settings::Manager::getBool("clamp lighting", "Shaders"));
@@ -276,7 +266,13 @@ namespace MWRender
         resourceSystem->getSceneManager()->setApplyLightingToEnvMaps(Settings::Manager::getBool("apply lighting to environment maps", "Shaders"));
         resourceSystem->getSceneManager()->setConvertAlphaTestToAlphaToCoverage(Settings::Manager::getBool("antialias alpha test", "Shaders") && Settings::Manager::getInt("antialiasing", "Video") > 1);
 
-        osg::ref_ptr<SceneUtil::LightManager> sceneRoot = new SceneUtil::LightManager;
+        // Let LightManager choose which backend to use based on our hint. For methods besides legacy lighting, this depends on support for various OpenGL extensions.
+        osg::ref_ptr<SceneUtil::LightManager> sceneRoot = new SceneUtil::LightManager(lightingMethod == SceneUtil::LightingMethod::FFP);
+        resourceSystem->getSceneManager()->getShaderManager().setLightingMethod(sceneRoot->getLightingMethod());
+        resourceSystem->getSceneManager()->setLightingMethod(sceneRoot->getLightingMethod());
+        resourceSystem->getSceneManager()->setSupportedLightingMethods(sceneRoot->getSupportedLightingMethods());
+        mMinimumAmbientLuminance = std::clamp(Settings::Manager::getFloat("minimum interior brightness", "Shaders"), 0.f, 1.f);
+
         sceneRoot->setLightingMask(Mask_Lighting);
         mSceneRoot = sceneRoot;
         sceneRoot->setStartLight(1);
@@ -298,6 +294,7 @@ namespace MWRender
         mShadowManager.reset(new SceneUtil::ShadowManager(sceneRoot, mRootNode, shadowCastingTraversalMask, indoorShadowCastingTraversalMask, mResourceSystem->getSceneManager()->getShaderManager()));
 
         Shader::ShaderManager::DefineMap shadowDefines = mShadowManager->getShadowDefines();
+        Shader::ShaderManager::DefineMap lightDefines = sceneRoot->getLightDefines();
         Shader::ShaderManager::DefineMap globalDefines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
 
         for (auto itr = shadowDefines.begin(); itr != shadowDefines.end(); itr++)
@@ -309,11 +306,18 @@ namespace MWRender
         globalDefines["radialFog"] = Settings::Manager::getBool("radial fog", "Shaders") ? "1" : "0";
         globalDefines["useGPUShader4"] = "0";
 
+        for (auto itr = lightDefines.begin(); itr != lightDefines.end(); itr++)
+            globalDefines[itr->first] = itr->second;
+
         float groundcoverDistance = (Constants::CellSizeInUnits * Settings::Manager::getInt("distance", "Groundcover") - 1024) * 0.93;
         globalDefines["groundcoverFadeStart"] = std::to_string(groundcoverDistance * Settings::Manager::getFloat("fade start", "Groundcover"));
         globalDefines["groundcoverFadeEnd"] = std::to_string(groundcoverDistance);
+        globalDefines["groundcoverStompMode"] = std::to_string(std::clamp(Settings::Manager::getInt("stomp mode", "Groundcover"), 0, 2));
+        globalDefines["groundcoverStompIntensity"] = std::to_string(std::clamp(Settings::Manager::getInt("stomp intensity", "Groundcover"), 0, 2));
 
-	globalDefines["underwaterFog"] = Settings::Manager::getBool("underwater fog", "Water") && Settings::Manager::getBool("force shaders", "Shaders") ?  "1" : "0";
+	globalDefines["underwaterFog"] = Settings::Manager::getBool("underwater fog", "Water") ? "1" : "0";
+	globalDefines["objectsParallaxShadows"] = Settings::Manager::getBool("objects parallax soft shadows", "Shaders") ? "1" : "0";
+	globalDefines["terrainParallaxShadows"] = Settings::Manager::getBool("terrain parallax soft shadows", "Shaders") ? "1" : "0";
 
         static int gammacor = 1000;
         const char *s = getenv("OPENMW_GAMMA");
@@ -397,6 +401,17 @@ namespace MWRender
 
             mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(groundcoverRoot, mTerrainStorage.get(), Mask_Groundcover, lodFactor, chunkSize));
 
+            if (resourceSystem->getSceneManager()->getLightingMethod() != SceneUtil::LightingMethod::FFP)
+                groundcoverRoot->setCullCallback(new SceneUtil::LightListCallback);
+
+            osg::StateSet* stateset = groundcoverRoot->getOrCreateStateSet();
+            stateset->removeAttribute(osg::StateAttribute::MATERIAL);
+            stateset->removeAttribute(osg::StateAttribute::ALPHAFUNC);
+            stateset->removeMode(GL_ALPHA_TEST);
+            stateset->removeAttribute(osg::StateAttribute::BLENDFUNC);
+            stateset->removeMode(GL_BLEND);
+            stateset->setRenderBinToInherit();
+
             mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
             static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
             mResourceSystem->addResourceManager(mGroundcoverPaging.get());
@@ -420,6 +435,7 @@ namespace MWRender
         mSunLight->setAmbient(osg::Vec4f(0,0,0,1));
         mSunLight->setSpecular(osg::Vec4f(0,0,0,0));
         mSunLight->setConstantAttenuation(1.f);
+        sceneRoot->setSunlight(mSunLight);
         sceneRoot->addChild(source);
 
         sceneRoot->getOrCreateStateSet()->setMode(GL_CULL_FACE, osg::StateAttribute::ON);
@@ -476,21 +492,6 @@ namespace MWRender
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isInterior", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isPlayer", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("skip", false));
-
-        // Hopefully, anything genuinely requiring the default alpha func of GL_ALWAYS explicitly sets it
-        mRootNode->getOrCreateStateSet()->setAttribute(Shader::RemovedAlphaFunc::getInstance(GL_ALWAYS));
-        // The transparent renderbin sets alpha testing on because that was faster on old GPUs. It's now slower and breaks things.
-        mRootNode->getOrCreateStateSet()->setMode(GL_ALPHA_TEST, osg::StateAttribute::OFF);
-
-        // Hopefully, anything genuinely requiring the default alpha func of GL_ALWAYS explicitly sets it
-        mRootNode->getOrCreateStateSet()->setAttribute(Shader::RemovedAlphaFunc::getInstance(GL_ALWAYS));
-        // The transparent renderbin sets alpha testing on because that was faster on old GPUs. It's now slower and breaks things.
-        mRootNode->getOrCreateStateSet()->setMode(GL_ALPHA_TEST, osg::StateAttribute::OFF);
-
-        // Hopefully, anything genuinely requiring the default alpha func of GL_ALWAYS explicitly sets it
-        mRootNode->getOrCreateStateSet()->setAttribute(Shader::RemovedAlphaFunc::getInstance(GL_ALWAYS));
-        // The transparent renderbin sets alpha testing on because that was faster on old GPUs. It's now slower and breaks things.
-        mRootNode->getOrCreateStateSet()->setMode(GL_ALPHA_TEST, osg::StateAttribute::OFF);
 
         // Hopefully, anything genuinely requiring the default alpha func of GL_ALWAYS explicitly sets it
         mRootNode->getOrCreateStateSet()->setAttribute(Shader::RemovedAlphaFunc::getInstance(GL_ALWAYS));
@@ -606,7 +607,32 @@ namespace MWRender
 
     void RenderingManager::configureAmbient(const ESM::Cell *cell)
     {
-        setAmbientColour(SceneUtil::colourFromRGB(cell->mAmbi.mAmbient));
+        bool needsAdjusting = false;
+        if (mResourceSystem->getSceneManager()->getLightingMethod() != SceneUtil::LightingMethod::FFP)
+            needsAdjusting = !cell->isExterior() && !(cell->mData.mFlags & ESM::Cell::QuasiEx);
+
+        auto ambient = SceneUtil::colourFromRGB(cell->mAmbi.mAmbient);
+
+        if (needsAdjusting)
+        {
+            constexpr float pR = 0.2126;
+            constexpr float pG = 0.7152;
+            constexpr float pB = 0.0722;
+
+            // we already work in linear RGB so no conversions are needed for the luminosity function
+            float relativeLuminance = pR*ambient.r() + pG*ambient.g() + pB*ambient.b();
+            if (relativeLuminance < mMinimumAmbientLuminance)
+            {
+                // brighten ambient so it reaches the minimum threshold but no more, we want to mess with content data as least we can
+                float targetBrightnessIncreaseFactor = mMinimumAmbientLuminance / relativeLuminance;
+                if (ambient.r() == 0.f && ambient.g() == 0.f && ambient.b() == 0.f)
+                    ambient = osg::Vec4(mMinimumAmbientLuminance, mMinimumAmbientLuminance, mMinimumAmbientLuminance, ambient.a());
+                else
+                    ambient *= targetBrightnessIncreaseFactor;
+            }
+        }
+
+        setAmbientColour(ambient);
 
         osg::Vec4f diffuse = SceneUtil::colourFromRGB(cell->mAmbi.mSunlight);
         mSunLight->setDiffuse(diffuse);
@@ -700,7 +726,7 @@ namespace MWRender
         }
         else if (mode == Render_Scene)
         {
-            int mask = mViewer->getCamera()->getCullMask();
+            unsigned int mask = mViewer->getCamera()->getCullMask();
             bool enabled = mask&Mask_Scene;
             enabled = !enabled;
             if (enabled)
@@ -763,8 +789,7 @@ namespace MWRender
                 float windSpeed = mSky->getBaseWindSpeed();
 		osg::Vec2f stormDir = mSky->getSmoothedStormDir();
 
-                mGroundcoverUpdater->setWindSpeed(windSpeed);
-		mGroundcoverUpdater->setStormDir(stormDir);
+                mGroundcoverUpdater->setWindData(osg::Vec3f(windSpeed, stormDir[0], stormDir[1]));
                 mGroundcoverUpdater->setPlayerPos(playerPos);
             }
         }
@@ -858,7 +883,7 @@ namespace MWRender
             return false;
         }
 
-        int maskBackup = mPlayerAnimation->getObjectRoot()->getNodeMask();
+        unsigned int maskBackup = mPlayerAnimation->getObjectRoot()->getNodeMask();
 
         if (mCamera->isFirstPerson())
             mPlayerAnimation->getObjectRoot()->setNodeMask(0);
@@ -903,7 +928,7 @@ namespace MWRender
     {
         RenderingManager::RayResult result;
         result.mHit = false;
-        result.mHitRefnum.mContentFile = -1;
+        result.mHitRefnum.unset();
         result.mRatio = 0;
         if (intersector->containsIntersections())
         {
@@ -959,7 +984,7 @@ namespace MWRender
         mIntersectionVisitor->setFrameStamp(mViewer->getFrameStamp());
         mIntersectionVisitor->setIntersector(intersector);
 
-        int mask = ~0;
+        unsigned int mask = ~0u;
         mask &= ~(Mask_RenderToTexture|Mask_Sky|Mask_Debug|Mask_Effect|Mask_Water|Mask_SimpleWater|Mask_Groundcover);
         if (ignorePlayer)
             mask &= ~(Mask_Player);
@@ -1194,9 +1219,47 @@ namespace MWRender
             else if (it->first == "General" && (it->second == "texture filter" ||
                                                 it->second == "texture mipmap" ||
                                                 it->second == "anisotropy"))
+            {
                 updateTextureFiltering();
+            }
             else if (it->first == "Water")
+            {
                 mWater->processChangedSettings(changed);
+            }
+            else if (it->first == "Shaders" && it->second == "minimum interior brightness")
+            {
+                mMinimumAmbientLuminance = std::clamp(Settings::Manager::getFloat("minimum interior brightness", "Shaders"), 0.f, 1.f);
+                if (MWMechanics::getPlayer().isInCell())
+                    configureAmbient(MWMechanics::getPlayer().getCell()->getCell());
+            }
+            else if (it->first == "Shaders" && (it->second == "light bounds multiplier" ||
+                                                it->second == "maximum light distance" ||
+                                                it->second == "light fade start" ||
+                                                it->second == "max lights"))
+            {
+                auto* lightManager = static_cast<SceneUtil::LightManager*>(getLightRoot());
+                lightManager->processChangedSettings(changed);
+
+                if (it->second == "max lights" && !lightManager->usingFFP())
+                {
+                    mViewer->stopThreading();
+/*
+                        lightManager->updateMaxLights();
+
+                        auto defines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
+                        for (const auto& [name, key] : lightManager->getLightDefines())
+                            defines[name] = key;
+                        mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(defines);
+*/
+                    mSceneRoot->removeUpdateCallback(mStateUpdater);
+                    mStateUpdater = new StateUpdater;
+                    mSceneRoot->addUpdateCallback(mStateUpdater);
+                    mStateUpdater->setFogEnd(mViewDistance);
+                    updateAmbient();
+
+                    mViewer->startThreading();
+                }
+            }
         }
     }
 

@@ -1,15 +1,10 @@
 //#define LINEAR_LIGHTING
-#define ATTEN_FIX
+//#define ATTEN_FIX
 
 // contrast for day and night
 // night setting also affects interiors
 const float conday = 1.0;
 const float connight = 0.75;
-
-// self shadowing for parallax maps
-//#define TERRAIN_PARALLAX_SOFT_SHADOWS
-//#define OBJECTS_PARALLAX_SOFT_SHADOWS
-#define MAX_PARAL_LIGHTS 1
 
 //#define HEIGHT_FOG
 //#define DYNAMICHFOG
@@ -31,7 +26,7 @@ vec2 swafader = vec2(-3000.0, 3000.0);
 
 // fade objects normal, specular and env maps at start distance, skip them at end distance
 //#define NORMAL_MAP_FADING
-const vec2 nmfader = vec2(5555.0, 6666.0);
+const vec2 nmfader = vec2(7455.0, 8196.0);
 
 // some extra grass displacement during storms
 #define STORM_MODE
