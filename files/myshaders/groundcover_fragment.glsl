@@ -27,23 +27,10 @@ uniform float osg_SimulationTime;
 
 centroid varying vec3 passLighting;
 
+#include "lighting_util.glsl"
 #include "effects.glsl"
 #include "fog.glsl"
 #include "alpha.glsl"
-
-
-#if !@lightingMethodFFP && defined(LINEAR_LIGHTING)
-uniform mat4 LightBuffer[@maxLights];
-
-vec3 lcalcDiffuse(int lightIndex)
-{
-#if @lightingMethodPerObjectUniform
-    return @getLight[lightIndex][2].xyz;
-#else
-    return @getLight[lightIndex].diffuse.xyz;
-#endif
-}
-#endif
 
 void main()
 {

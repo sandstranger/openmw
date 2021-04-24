@@ -51,6 +51,7 @@ uniform mat2 bumpMapMatrix;
 
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
+#include "lighting_util.glsl"
 
 #if @radialFog || @underwaterFog || defined(SIMPLE_WATER_TWEAK)
 uniform bool simpleWater;
@@ -102,19 +103,6 @@ varying float depth;
 #include "effects.glsl"
 #include "fog.glsl"
 #include "alpha.glsl"
-
-#if !PER_PIXEL_LIGHTING && !@lightingMethodFFP && defined(LINEAR_LIGHTING)
-uniform mat4 LightBuffer[@maxLights];
-
-vec3 lcalcDiffuse(int lightIndex)
-{
-#if @lightingMethodPerObjectUniform
-    return @getLight[lightIndex][2].xyz;
-#else
-    return @getLight[lightIndex].diffuse.xyz;
-#endif
-}
-#endif
 
 void main()
 {

@@ -13,6 +13,7 @@ centroid varying vec3 passLighting;
 
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
+#include "lighting_util.glsl"
 
 #ifdef LINEAR_LIGHTING
   #include "linear_lighting.glsl"
@@ -37,14 +38,16 @@ void main(void)
 #endif
 
 vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
+vec3 shadowDiffuseLighting;
 
 #ifdef LINEAR_LIGHTING
     passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
 #else
-    vec3 shadowDiffuseLighting;
     vec3 diffuseLight, ambientLight;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
-    passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz + shadowDiffuseLighting;
+    passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
 #endif
     clampLightingResult(passLighting);
+    shadowDiffuseLighting *= getDiffuseColor().xyz;
+    passLighting += shadowDiffuseLighting;
 }

@@ -157,7 +157,7 @@ uniform float rainIntensity;
 #define PER_PIXEL_LIGHTING 0
 
 #include "helpsettings.glsl"
-#include "lighting.glsl"
+#include "lighting_util.glsl"
 #include "fog.glsl"
 
 float frustumDepth;

@@ -20,6 +20,7 @@ varying float depth;
 
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
+#include "lighting_util.glsl"
 
 #if @terrainParallaxShadows || @underwaterFog
 uniform mat4 osg_ViewMatrixInverse;
@@ -53,19 +54,6 @@ centroid varying vec3 passLighting;
 
 #include "effects.glsl"
 #include "fog.glsl"
-
-#if !PER_PIXEL_LIGHTING && !@lightingMethodFFP && defined(LINEAR_LIGHTING)
-uniform mat4 LightBuffer[@maxLights];
-
-vec3 lcalcDiffuse(int lightIndex)
-{
-#if @lightingMethodPerObjectUniform
-    return @getLight[lightIndex][2].xyz;
-#else
-    return @getLight[lightIndex].diffuse.xyz;
-#endif
-}
-#endif
 
 void main()
 {

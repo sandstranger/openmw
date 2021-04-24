@@ -1,6 +1,4 @@
 #include "lightsettings.glsl"
-#include "lighting_util.glsl"
-
 
 vec3 ToLinearColApprox(vec3 col) {
     return col * col;
@@ -194,18 +192,4 @@ vec3 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
 //#endif
 
     return lightResult.xyz;
-}
-
-vec3 getSpecular(vec3 viewNormal, vec3 viewDirection, float shininess, vec3 matSpec)
-{
-    vec3 sunDir = lcalcPosition(0);
-    vec3 sunSpec = lcalcSpecular(0).xyz;
-
-    vec3 lightDir = normalize(sunDir);
-    float NdotL = dot(viewNormal, lightDir);
-    if (NdotL <= 0.0)
-        return vec3(0.0);
-    vec3 halfVec = normalize(lightDir - viewDirection);
-    float NdotH = dot(viewNormal, halfVec);
-    return pow(max(NdotH, 0.0), max(1e-4, shininess)) * sunSpec * matSpec;
 }

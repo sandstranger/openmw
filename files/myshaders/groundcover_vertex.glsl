@@ -6,6 +6,7 @@
 
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
+#include "lighting_util.glsl"
 
 #if @diffuseMap
 varying vec2 diffuseMapUV;
@@ -27,7 +28,7 @@ varying vec3 passViewPos;
 centroid varying vec3 passLighting;
 
 #ifdef LINEAR_LIGHTING
-    #include "linear_lighting.glsl"
+   #include "linear_lighting.glsl"
 #else
    #include "lighting.glsl"
 #endif
@@ -124,15 +125,18 @@ void main(void)
 
 vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
 
+
+vec3 shadowDiffuseLighting;
 #ifdef LINEAR_LIGHTING
     passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
 #else
-    vec3 diffuseLight, ambientLight, shadowDiffuseLighting;
+    vec3 diffuseLight, ambientLight;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
-    passLighting = diffuseLight + ambientLight + shadowDiffuseLighting;
+    passLighting = diffuseLight + ambientLight;
 #endif
 
     clampLightingResult(passLighting);
+    passLighting += shadowDiffuseLighting;
 
 #if @underwaterFog
     passViewPos = viewPos.xyz;

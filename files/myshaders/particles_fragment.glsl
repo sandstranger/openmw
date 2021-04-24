@@ -12,20 +12,8 @@ varying float depth;
 
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
+#include "lighting_util.glsl"
 #include "fog.glsl"
-
-#if !@lightingMethodFFP && defined(LINEAR_LIGHTING)
-uniform mat4 LightBuffer[@maxLights];
-
-vec3 lcalcDiffuse(int lightIndex)
-{
-#if @lightingMethodPerObjectUniform
-    return @getLight[lightIndex][2].xyz;
-#else
-    return @getLight[lightIndex].diffuse.xyz;
-#endif
-}
-#endif
 
 vec3 SpecialContrast(vec3 x, float suncon) 
 {
