@@ -16,8 +16,6 @@ stages:
     - apt-cache/
     - ccache/
   stage: build
-  rules:
-    - if: '$CI_PIPELINE_SOURCE != "schedule"'
   script:
     - export CCACHE_BASEDIR="`pwd`"
     - export CCACHE_DIR="`pwd`/ccache" && mkdir -pv "$CCACHE_DIR"
@@ -149,6 +147,7 @@ Debian_Clang_tests:
 macOS11_Xcode12:
   extends: .MacOS
   image: macos-11-xcode-12
+  allow_failure: true
   cache:
     key: macOS11_Xcode12.v1
   variables:
@@ -157,7 +156,6 @@ macOS11_Xcode12:
 macOS10.15_Xcode11:
   extends: .MacOS
   image: macos-10.15-xcode-11
-  allow_failure: true
   cache:
     key: macOS10.15_Xcode11.v1
   variables:
@@ -185,8 +183,6 @@ variables: &cs-targets
   - choco install python -y
   - refreshenv
   stage: build
-  rules:
-    - if: '$CI_PIPELINE_SOURCE != "schedule"'
   script:
     - $time = (Get-Date -Format "HH:mm:ss")
     - echo ${time}
@@ -279,8 +275,6 @@ Windows_Ninja_CS_RelWithDebInfo:
   - choco install python -y
   - refreshenv
   stage: build
-  rules:
-    - if: '$CI_PIPELINE_SOURCE != "schedule"'
   script:
     - $time = (Get-Date -Format "HH:mm:ss")
     - echo ${time}

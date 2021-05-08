@@ -23,7 +23,6 @@
 #include <components/resource/bulletshapemanager.hpp>
 #include <components/debug/debuglog.hpp>
 #include <components/esm/loadgmst.hpp>
-#include <components/misc/constants.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
 #include <components/sceneutil/unrefqueue.hpp>
 #include <components/misc/convert.hpp>
@@ -56,7 +55,6 @@
 #include "closestnotmerayresultcallback.hpp"
 #include "contacttestresultcallback.hpp"
 #include "projectileconvexcallback.hpp"
-#include "constants.hpp"
 #include "movementsolver.hpp"
 #include "mtphysics.hpp"
 
@@ -937,7 +935,7 @@ namespace MWPhysics
     ActorFrameData::ActorFrameData(const std::shared_ptr<Actor>& actor, const MWWorld::Ptr standingOn,
             bool waterCollision, osg::Vec3f movement, float slowFall, float waterlevel)
         : mActor(actor), mActorRaw(actor.get()), mStandingOn(standingOn),
-        mDidJump(false), mNeedLand(false), mWaterCollision(waterCollision),
+        mDidJump(false), mNeedLand(false), mWaterCollision(waterCollision), mSkipCollisionDetection(actor->skipCollisions()),
         mWaterlevel(waterlevel), mSlowFall(slowFall), mOldHeight(0), mFallHeight(0), mMovement(movement), mPosition(), mRefpos()
     {
         const MWBase::World *world = MWBase::Environment::get().getWorld();
@@ -954,9 +952,6 @@ namespace MWPhysics
     void ActorFrameData::updatePosition(btCollisionWorld* world)
     {
         mActorRaw->updateWorldPosition();
-        // If physics runs "fast enough", position are interpolated without simulation
-        // By calling this here, we are sure that offsets are applied at least once per frame,
-        // regardless of simulation speed.
         mActorRaw->applyOffsetChange();
         mPosition = mActorRaw->getPosition();
         if (mWaterCollision && mPosition.z() < mWaterlevel && canMoveToWaterSurface(mActorRaw, mWaterlevel, world))

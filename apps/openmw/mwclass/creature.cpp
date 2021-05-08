@@ -25,7 +25,6 @@
 #include "../mwworld/failedaction.hpp"
 #include "../mwworld/customdata.hpp"
 #include "../mwworld/containerstore.hpp"
-#include "../mwphysics/physicssystem.hpp"
 #include "../mwworld/cellstore.hpp"
 #include "../mwworld/localscripts.hpp"
 
@@ -60,7 +59,7 @@ namespace MWClass
 
         CreatureCustomData() = default;
         CreatureCustomData(const CreatureCustomData& other);
-        CreatureCustomData(CreatureCustomData&& other) noexcept = default;
+        CreatureCustomData(CreatureCustomData&& other) = default;
 
         CreatureCustomData& asCreatureCustomData() override
         {
