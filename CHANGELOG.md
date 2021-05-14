@@ -124,6 +124,8 @@
     Bug #5975: NIF controllers from sheath meshes are used
     Bug #5991: Activate should always be allowed for inventory items
     Bug #5995: NiUVController doesn't calculate the UV offset properly
+    Bug #6007: Crash when ending cutscene is playing
+    Bug #6016: Greeting interrupts Fargoth's sneak-walk
     Feature #390: 3rd person look "over the shoulder"
     Feature #832: OpenMW-CS: Handle deleted references
     Feature #1536: Show more information about level on menu
@@ -144,6 +146,7 @@
     Feature #5456: Basic collada animation support
     Feature #5457: Realistic diagonal movement
     Feature #5486: Fixes trainers to choose their training skills based on their base skill points
+    Feature #5500: Prepare enough navmesh tiles before scene loading ends
     Feature #5511: Add in game option to toggle HRTF support in OpenMW
     Feature #5519: Code Patch tab in launcher
     Feature #5524: Resume failed script execution after reload
@@ -167,6 +170,8 @@
     Feature #5828: Support more than 8 lights
 >>>>>>> e350d7d4ffdc944bb9c6de3a9759f4c131e803cf
     Feature #5910: Fall back to delta time when physics can't keep up
+    Feature #6033: Include pathgrid to navigation mesh
+    Feature #6034: Find path based on area cost depending on NPC stats
     Task #5480: Drop Qt4 support
     Task #5520: Improve cell name autocompleter implementation
     Task #5844: Update 'toggle sneak' documentation
