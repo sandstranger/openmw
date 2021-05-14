@@ -62,27 +62,28 @@ float FogMerge(float a, float b)
 }
 #endif
 
-void applyFog(bool isUnderwater, float fogDepth)
+#ifndef WATER
+float getUnderwaterFogValue(float depth)
 {
-    float fogValue = clamp((fogDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
-
-#if @underwaterFog && !defined(WATER) && !defined(PARTICLE)
-    if(isUnderwater)
-    {
-        float deepValue = abs((osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z);
-        float distFogValue = uwdistfog.z * smoothstep(uwdistfog.x, uwdistfog.y, fogDepth);
-        float deepFogValue = uwdeepfog.z * clamp((deepValue - uwdeepfog.x) * (1.0/(uwdeepfog.y-uwdeepfog.x)) , 0.0, 1.0);
-        gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, max(fogValue, clamp(deepFogValue + distFogValue, 0.0, 1.0)));
-    }
-    else
+    float deepValue = abs((osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z);
+    float distFogValue = uwdistfog.z * smoothstep(uwdistfog.x, uwdistfog.y, depth);
+    float deepFogValue = uwdeepfog.z * clamp((deepValue - uwdeepfog.x) * (1.0/(uwdeepfog.y-uwdeepfog.x)) , 0.0, 1.0);
+        
+    return clamp(deepFogValue + distFogValue, 0.0, 1.0);
+}
 #endif
-    {
+
+float getFogValue(float depth)
+{
+    float fogValue = clamp((depth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
+
 #ifdef HEIGHT_FOG
-	      float light = gl_LightSource[0].diffuse.x+gl_LightSource[0].diffuse.y+gl_LightSource[0].diffuse.z;
-	      float fogValueH = clamp((fogDepth - 0.0) * 0.001, 0.0, 1.0);
+	      float light = lcalcDiffuse(0).x + lcalcDiffuse(0).y + lcalcDiffuse(0).z;
+
+	      float fogValueH = clamp((depth - 0.0) * 0.001, 0.0, 1.0);
 	
 	      float ed = CalFog(fogValue);
-	      float edfade = CalFade(fogDepth, light);
+	      float edfade = CalFade(depth, light);
 	      float edhm = calHFog(fogValueH);
 
         float anim = 1.0;
@@ -90,6 +91,9 @@ void applyFog(bool isUnderwater, float fogDepth)
         if(edfade > 0.2) anim = min(1.0, cshadow((fogH.xy + (1.0 + 100.3 * 1.0/*csh*/)) * 5.0 * vec2(1.0,-1.0), 5.0 * osg_SimulationTime));
         edhm *= smoothstep(0.2, 0.6, edfade);
 #endif
+
+//float hcoef = /*1.0 +*/ ((osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z / 12000.0);
+
 
 #ifdef DYNAMICHFOG
         float fogheight = fogheight * max(maxfheight,light);
@@ -105,7 +109,7 @@ void applyFog(bool isUnderwater, float fogDepth)
 	      foghrange = edhm * clamp(exp(-foghrange * fogheight *  0.0001) ,0.0 , 1.0);
         fogValue = max(fogValue, clamp(mix(1.0 - ascale * anim, 1.0, ed) * edfade * FogMerge(ed, foghrange), 0.0, 1.0));
 #endif
-    }
 
-    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
+    return fogValue;
+   // gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 }

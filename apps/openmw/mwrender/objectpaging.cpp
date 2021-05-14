@@ -127,6 +127,8 @@ namespace MWRender
         float mSqrDistance = 0.f;
         osg::Vec3f mViewVector;
         bool mGroundcover = false;
+        osg::Node::NodeMask mCopyMask = ~0u;
+
         mutable std::vector<const osg::Node*> mNodePath;
 
         void copy(const osg::Node* toCopy, osg::Group* attachTo)
@@ -143,6 +145,9 @@ namespace MWRender
 
         osg::Node* operator() (const osg::Node* node) const override
         {
+            if (!(node->getNodeMask() & mCopyMask))
+                return nullptr;
+
             if (const osg::Drawable* d = node->asDrawable())
             {
                 osg::Node* clone = operator()(d);
@@ -268,6 +273,9 @@ namespace MWRender
         }
         osg::Drawable* operator() (const osg::Drawable* drawable) const override
         {
+            if (!(drawable->getNodeMask() & mCopyMask))
+                return nullptr;
+
             if (dynamic_cast<const osgParticle::ParticleSystem*>(drawable))
                 return nullptr;
 
@@ -305,9 +313,11 @@ namespace MWRender
     class AnalyzeVisitor : public osg::NodeVisitor
     {
     public:
-        AnalyzeVisitor()
+        AnalyzeVisitor(osg::Node::NodeMask analyzeMask)
          : osg::NodeVisitor(TRAVERSE_ALL_CHILDREN)
-         , mCurrentStateSet(nullptr) {}
+         , mCurrentStateSet(nullptr)
+         , mCurrentDistance(0.f)
+         , mAnalyzeMask(analyzeMask) {}
 
         typedef std::unordered_map<osg::StateSet*, unsigned int> StateSetCounter;
         struct Result
@@ -318,12 +328,34 @@ namespace MWRender
 
         void apply(osg::Node& node) override
         {
+            if (!(node.getNodeMask() & mAnalyzeMask))
+                return;
+
             if (node.getStateSet())
                 mCurrentStateSet = node.getStateSet();
+
+            if (osg::Switch* sw = node.asSwitch())
+            {
+                for (unsigned int i=0; i<sw->getNumChildren(); ++i)
+                    if (sw->getValue(i))
+                        traverse(*sw->getChild(i));
+                return;
+            }
+            if (osg::LOD* lod = dynamic_cast<osg::LOD*>(&node))
+            {
+                for (unsigned int i=0; i<lod->getNumChildren(); ++i)
+                    if (lod->getMinRange(i) * lod->getMinRange(i) <= mCurrentDistance && mCurrentDistance < lod->getMaxRange(i) * lod->getMaxRange(i))
+                        traverse(*lod->getChild(i));
+                return;
+            }
+
             traverse(node);
         }
         void apply(osg::Geometry& geom) override
         {
+            if (!(geom.getNodeMask() & mAnalyzeMask))
+                return;
+
             if (osg::Array* array = geom.getVertexArray())
                 mResult.mNumVerts += array->getNumElements();
 
@@ -357,6 +389,8 @@ namespace MWRender
         Result mResult;
         osg::StateSet* mCurrentStateSet;
         StateSetCounter mGlobalStateSetCounter;
+        float mCurrentDistance;
+        osg::Node::NodeMask mAnalyzeMask;
     };
 
     class DebugVisitor : public osg::NodeVisitor
@@ -497,7 +531,14 @@ namespace MWRender
         typedef std::map<osg::ref_ptr<const osg::Node>, InstanceList> NodeMap;
         NodeMap nodes;
         osg::ref_ptr<RefnumSet> refnumSet = activeGrid ? new RefnumSet : nullptr;
-        AnalyzeVisitor analyzeVisitor;
+
+        // Mask_UpdateVisitor is used in such cases in NIF loader:
+        // 1. For collision nodes, which is not supposed to be rendered.
+        // 2. For nodes masked via Flag_Hidden (VisController can change this flag value at runtime).
+        // Since ObjectPaging does not handle VisController, we can just ignore both types of nodes.
+        constexpr auto copyMask = ~Mask_UpdateVisitor;
+
+        AnalyzeVisitor analyzeVisitor(copyMask);
         float minSize = mMinSize;
         if (mMinSizeMergeFactor)
             minSize *= mMinSizeMergeFactor;
@@ -573,6 +614,7 @@ namespace MWRender
                 continue;
             }
 
+            analyzeVisitor.mCurrentDistance = dSqr;
             auto emplaced = nodes.emplace(cnode, InstanceList());
             if (emplaced.second)
             {
@@ -591,6 +633,8 @@ namespace MWRender
         osgUtil::StateToCompile stateToCompile(0, nullptr);
         CopyOp copyop;
         copyop.mGroundcover = mGroundcover;
+        copyop.mCopyMask = copyMask;
+
         for (const auto& pair : nodes)
         {
             const osg::Node* cnode = pair.first;
