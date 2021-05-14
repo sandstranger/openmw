@@ -12,7 +12,7 @@ varying float depth;
 varying vec3 fogH;
 #endif
 
-#ifdef UNDERWATER_DISTORTION || HEIGHT_FOG
+#if defined(UNDERWATER_DISTORTION) || defined(HEIGHT_FOG)
 uniform mat4 osg_ViewMatrixInverse;
 #endif
 

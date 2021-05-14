@@ -37,6 +37,8 @@ void main(void)
     diffuseMapUV = (gl_TextureMatrix[@diffuseMapUV] * gl_MultiTexCoord@diffuseMapUV).xy;
 #endif
 
+passColor = gl_Color;
+
 vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
 vec3 shadowDiffuseLighting;
 

@@ -1,8 +1,14 @@
 #version 120
     
+#include "helpsettings.glsl"
 varying vec3  screenCoordsPassthrough;
 varying vec4  position;
 varying float linearDepth;
+
+#ifdef HEIGHT_FOG
+varying vec3 fogH;
+uniform mat4 osg_ViewMatrixInverse;
+#endif
 
 void main(void)
 {
@@ -20,4 +26,7 @@ void main(void)
 
     linearDepth = gl_Position.z;
 
+#ifdef HEIGHT_FOG
+    fogH = (osg_ViewMatrixInverse * (gl_ModelViewMatrix * gl_Vertex)).xyz;
+#endif
 }
