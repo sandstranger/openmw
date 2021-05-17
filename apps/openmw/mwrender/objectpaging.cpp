@@ -492,7 +492,7 @@ namespace MWRender
                                 }
                             }
 
-                            if (ref.mRefNum.fromGroundcoverFile()) continue;
+                           // if (ref.mRefNum.fromGroundcoverFile()) continue;
                             refs[ref.mRefNum] = std::move(ref);
                         }
                     }
