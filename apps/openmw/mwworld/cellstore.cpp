@@ -560,7 +560,7 @@ namespace MWWorld
             try
             {
                 // Reopen the ESM reader and seek to the right position.
-                int index = mCell->mContextList.at(i).index;
+                int index = mCell->mContextList[i].index;
                 mCell->restore (esm[index], i);
 
                 ESM::CellRef ref;
@@ -579,7 +579,8 @@ namespace MWWorld
                         continue;
                     }
 
-                    mIds.push_back (Misc::StringUtils::lowerCase (ref.mRefID));
+                    Misc::StringUtils::lowerCaseInPlace(ref.mRefID);
+                    mIds.push_back(std::move(ref.mRefID));
                 }
             }
             catch (std::exception& e)
@@ -618,7 +619,7 @@ namespace MWWorld
             try
             {
                 // Reopen the ESM reader and seek to the right position.
-                int index = mCell->mContextList.at(i).index;
+                int index = mCell->mContextList[i].index;
                 mCell->restore (esm[index], i);
 
                 ESM::CellRef ref;

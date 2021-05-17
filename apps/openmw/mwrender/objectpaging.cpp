@@ -468,7 +468,7 @@ namespace MWRender
                 {
                     try
                     {
-                        unsigned int index = cell->mContextList.at(i).index;
+                        unsigned int index = cell->mContextList[i].index;
                         if (esm.size()<=index)
                             esm.resize(index+1);
                         cell->restore(esm[index], i);
@@ -477,8 +477,8 @@ namespace MWRender
                         bool deleted = false;
                         while(cell->getNextRef(esm[index], ref, deleted))
                         {
-                            Misc::StringUtils::lowerCaseInPlace(ref.mRefID);
                             if (std::find(cell->mMovedRefs.begin(), cell->mMovedRefs.end(), ref.mRefNum) != cell->mMovedRefs.end()) continue;
+                            Misc::StringUtils::lowerCaseInPlace(ref.mRefID);
                             int type = store.findStatic(ref.mRefID);
                             if (!typeFilter(type,size>=2)) continue;
                             if (deleted) { refs.erase(ref.mRefNum); continue; }
@@ -492,7 +492,8 @@ namespace MWRender
                                 }
                             }
 
-                            refs[ref.mRefNum] = ref;
+                            if (ref.mRefNum.fromGroundcoverFile()) continue;
+                            refs[ref.mRefNum] = std::move(ref);
                         }
                     }
                     catch (std::exception&)
@@ -503,12 +504,12 @@ namespace MWRender
                 for (ESM::CellRefTracker::const_iterator it = cell->mLeasedRefs.begin(); it != cell->mLeasedRefs.end(); ++it)
                 {
                     ESM::CellRef ref = it->first;
-                    Misc::StringUtils::lowerCaseInPlace(ref.mRefID);
                     bool deleted = it->second;
                     if (deleted) { refs.erase(ref.mRefNum); continue; }
+                    Misc::StringUtils::lowerCaseInPlace(ref.mRefID);
                     int type = store.findStatic(ref.mRefID);
                     if (!typeFilter(type,size>=2)) continue;
-                    refs[ref.mRefNum] = ref;
+                    refs[ref.mRefNum] = std::move(ref);
                 }
             }
         }
@@ -825,7 +826,7 @@ namespace MWRender
         ccf.mCell = cell;
         mCache->call(ccf);
         if (ccf.mToClear.empty()) return false;
-        for (auto chunk : ccf.mToClear)
+        for (const auto& chunk : ccf.mToClear)
             mCache->removeFromObjectCache(chunk);
         return true;
     }
@@ -847,7 +848,7 @@ namespace MWRender
         ccf.mActiveGridOnly = true;
         mCache->call(ccf);
         if (ccf.mToClear.empty()) return false;
-        for (auto chunk : ccf.mToClear)
+        for (const auto& chunk : ccf.mToClear)
             mCache->removeFromObjectCache(chunk);
         return true;
     }

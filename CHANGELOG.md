@@ -80,6 +80,7 @@
     Bug #5603: Setting constant effect cast style doesn't correct effects view
     Bug #5604: Only one valid NIF root node is loaded from a single file
     Bug #5611: Usable items with "0 Uses" should be used only once
+    Bug #5619: Input events are queued during save loading
     Bug #5622: Can't properly interact with the console when in pause menu
     Bug #5627: Bookart not shown if it isn't followed by <BR> statement
     Bug #5633: Damage Spells in effect before god mode is enabled continue to hurt the player character and can kill them
@@ -127,6 +128,7 @@
     Bug #6007: Crash when ending cutscene is playing
     Bug #6016: Greeting interrupts Fargoth's sneak-walk
     Bug #6028: Particle system controller values are incorrectly used
+    Bug #6043: Actor can have torch missing when torch animation is played
     Feature #390: 3rd person look "over the shoulder"
     Feature #832: OpenMW-CS: Handle deleted references
     Feature #1536: Show more information about level on menu
