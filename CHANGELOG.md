@@ -64,6 +64,7 @@
     Bug #5452: Autowalk is being included in savegames
     Bug #5469: Local map is reset when re-entering certain cells
     Bug #5472: Mistify mod causes CTD in 0.46 on Mac
+    Bug #5473: OpenMW-CS: Cell border lines don't update properly on terrain change
     Bug #5479: NPCs who should be walking around town are standing around without walking
     Bug #5484: Zero value items shouldn't be able to be bought or sold for 1 gold
     Bug #5485: Intimidate doesn't increase disposition on marginal wins
@@ -127,7 +128,11 @@
     Bug #5995: NiUVController doesn't calculate the UV offset properly
     Bug #6007: Crash when ending cutscene is playing
     Bug #6016: Greeting interrupts Fargoth's sneak-walk
+    Bug #6022: OpenMW-CS: Terrain selection is not updated when undoing/redoing terrain changes
+    Bug #6023: OpenMW-CS: Clicking on a reference in "Terrain land editing" mode discards corresponding select/edit action
     Bug #6028: Particle system controller values are incorrectly used
+    Bug #6035: OpenMW-CS: Circle brush in "Terrain land editing" mode sometimes includes vertices outside its radius
+    Bug #6036: OpenMW-CS: Terrain selection at the border of cells omits certain corner vertices
     Bug #6043: Actor can have torch missing when torch animation is played
     Bug #6047: Mouse bindings can be triggered during save loading
     Feature #390: 3rd person look "over the shoulder"
@@ -174,6 +179,7 @@
     Feature #5828: Support more than 8 lights
 >>>>>>> e350d7d4ffdc944bb9c6de3a9759f4c131e803cf
     Feature #5910: Fall back to delta time when physics can't keep up
+    Feature #6024: OpenMW-CS: Selecting terrain in "Terrain land editing" should support "Add to selection" and "Remove from selection" modes
     Feature #6033: Include pathgrid to navigation mesh
     Feature #6034: Find path based on area cost depending on NPC stats
     Task #5480: Drop Qt4 support
