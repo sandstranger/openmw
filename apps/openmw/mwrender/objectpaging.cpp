@@ -491,8 +491,6 @@ namespace MWRender
                                     if (!calculator.isInstanceEnabled()) continue;
                                 }
                             }
-
-                           // if (ref.mRefNum.fromGroundcoverFile()) continue;
                             refs[ref.mRefNum] = std::move(ref);
                         }
                     }

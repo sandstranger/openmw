@@ -1382,7 +1382,10 @@ namespace MWRender
     void RenderingManager::setActiveGrid(const osg::Vec4i &grid)
     {
         mTerrain->setActiveGrid(grid);
+        if (mGroundcoverWorld)
+            mGroundcoverWorld->setActiveGrid(grid);
     }
+
     bool RenderingManager::pagingEnableObject(int type, const MWWorld::ConstPtr& ptr, bool enabled)
     {
         if (!ptr.isInCell() || !ptr.getCell()->isExterior() || !mObjectPaging)
