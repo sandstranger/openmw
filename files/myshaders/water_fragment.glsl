@@ -295,7 +295,5 @@ if(fogValue != 1.0)
 
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-#if (@gamma != 1000)
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
-#endif
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
 }

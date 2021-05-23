@@ -152,7 +152,7 @@ if(fogValue != 1.0)
 
 #ifdef LINEAR_LIGHTING
     gl_FragData[0].xyz = Uncharted2ToneMapping(gl_FragData[0].xyz);
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(2.2+(@gamma.0/1000.0)-1.0)));
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0 / (2.2 + @gamma - 1.0)));
     gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
 #endif
 
@@ -169,12 +169,8 @@ else
 #endif
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-#if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
+#if !defined(LINEAR_LIGHTING)
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
 #endif
-
-
-//float hcoef = /*1.0 +*/ ( (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z / 12000.0);
-//gl_FragData[0].x = hcoef;
 
 }
