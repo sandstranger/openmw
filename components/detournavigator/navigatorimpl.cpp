@@ -55,12 +55,10 @@ namespace DetourNavigator
     {
         if (addObject(id, static_cast<const ObjectShapes&>(shapes), transform))
         {
-            mNavMeshManager.addOffMeshConnection(
-                id,
-                toNavMeshCoordinates(mSettings, shapes.mConnectionStart),
-                toNavMeshCoordinates(mSettings, shapes.mConnectionEnd),
-                AreaType_door
-            );
+            const osg::Vec3f start = toNavMeshCoordinates(mSettings, shapes.mConnectionStart);
+            const osg::Vec3f end = toNavMeshCoordinates(mSettings, shapes.mConnectionEnd);
+            mNavMeshManager.addOffMeshConnection(id, start, end, AreaType_door);
+            mNavMeshManager.addOffMeshConnection(id, end, start, AreaType_door);
             return true;
         }
         return false;
@@ -144,6 +142,15 @@ namespace DetourNavigator
         removeUnusedNavMeshes();
         for (const auto& v : mAgents)
             mNavMeshManager.update(playerPosition, v.first);
+    }
+
+    void NavigatorImpl::updatePlayerPosition(const osg::Vec3f& playerPosition)
+    {
+        const TilePosition tilePosition = getTilePosition(mSettings, toNavMeshCoordinates(mSettings, playerPosition));
+        if (mLastPlayerPosition.has_value() && *mLastPlayerPosition == tilePosition)
+            return;
+        update(playerPosition);
+        mLastPlayerPosition = tilePosition;
     }
 
     void NavigatorImpl::setUpdatesEnabled(bool enabled)

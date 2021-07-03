@@ -674,11 +674,6 @@ LocalMap::MapSegment::MapSegment()
 {
 }
 
-LocalMap::MapSegment::~MapSegment()
-{
-
-}
-
 void LocalMap::MapSegment::createFogOfWarTexture()
 {
     if (mFogOfWarTexture)
