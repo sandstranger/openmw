@@ -146,7 +146,7 @@ namespace ESM
             }
         }
 
-        if (saveContext) 
+        if (saveContext)
         {
             mContextList.push_back(esm.getContext());
             esm.skipRecord();
@@ -167,7 +167,7 @@ namespace ESM
 
         if (isDeleted)
         {
-            esm.writeHNCString("DELE", "");
+            esm.writeHNString("DELE", "", 3);
             return;
         }
 
@@ -197,9 +197,12 @@ namespace ESM
             if (mMapColor != 0)
                 esm.writeHNT("NAM5", mMapColor);
         }
+    }
 
-        if (mRefNumCounter != 0)
-            esm.writeHNT("NAM0", mRefNumCounter);
+    void Cell::saveTempMarker(ESMWriter &esm, int tempCount) const
+    {
+        if (tempCount != 0)
+            esm.writeHNT("NAM0", tempCount);
     }
 
     void Cell::restore(ESMReader &esm, int iCtx) const
@@ -221,7 +224,7 @@ namespace ESM
         return region + ' ' + cellGrid;
     }
 
-    bool Cell::getNextRef(ESMReader &esm, CellRef &ref, bool &isDeleted, bool ignoreMoves, MovedCellRef *mref)
+    bool Cell::getNextRef(ESMReader& esm, CellRef& ref, bool& isDeleted)
     {
         isDeleted = false;
 
@@ -229,33 +232,54 @@ namespace ESM
         if (!esm.hasMoreSubs())
             return false;
 
-        // NOTE: We should not need this check. It is a safety check until we have checked
-        // more plugins, and how they treat these moved references.
-        if (esm.isNextSub("MVRF"))
+        // MVRF are FRMR are present in pairs. MVRF indicates that following FRMR describes moved CellRef.
+        // This function has to skip all moved CellRefs therefore read all such pairs to ignored values.
+        while (esm.isNextSub("MVRF"))
         {
-            if (ignoreMoves)
-            {
-                esm.getHT (mref->mRefNum.mIndex);
-                esm.getHNOT (mref->mTarget, "CNDT");
-                adjustRefNum (mref->mRefNum, esm);
-            }
-            else
-            {
-                // skip rest of cell record (moved references), they are handled elsewhere
-                esm.skipRecord(); // skip MVRF, CNDT
+            MovedCellRef movedCellRef;
+            esm.getHT(movedCellRef.mRefNum.mIndex);
+            esm.getHNOT(movedCellRef.mTarget, "CNDT");
+            CellRef skippedCellRef;
+            if (!esm.peekNextSub("FRMR"))
                 return false;
-            }
+            bool skippedDeleted;
+            skippedCellRef.load(esm, skippedDeleted);
         }
 
         if (esm.peekNextSub("FRMR"))
         {
             ref.load (esm, isDeleted);
 
+            // TODO: should count the number of temp refs and validate the number
+
             // Identify references belonging to a parent file and adapt the ID accordingly.
             adjustRefNum (ref.mRefNum, esm);
             return true;
         }
         return false;
+    }
+
+    bool Cell::getNextRef(ESMReader& esm, CellRef& cellRef, bool& deleted, MovedCellRef& movedCellRef, bool& moved)
+    {
+        deleted = false;
+        moved = false;
+
+        if (!esm.hasMoreSubs())
+            return false;
+
+        if (esm.isNextSub("MVRF"))
+        {
+            moved = true;
+            getNextMVRF(esm, movedCellRef);
+        }
+
+        if (!esm.peekNextSub("FRMR"))
+            return false;
+
+        cellRef.load(esm, deleted);
+        adjustRefNum(cellRef.mRefNum, esm);
+
+        return true;
     }
 
     bool Cell::getNextMVRF(ESMReader &esm, MovedCellRef &mref)
@@ -275,7 +299,7 @@ namespace ESM
         mWater = 0;
         mWaterInt = false;
         mMapColor = 0;
-        mRefNumCounter = 0;
+        mRefNumCounter = -1;
 
         mData.mFlags = 0;
         mData.mX = 0;

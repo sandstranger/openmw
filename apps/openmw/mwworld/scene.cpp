@@ -3,6 +3,7 @@
 #include <limits>
 #include <chrono>
 #include <thread>
+#include <atomic>
 
 #include <BulletCollision/CollisionDispatch/btCollisionObject.h>
 #include <BulletCollision/CollisionShapes/btCompoundShape.h>
@@ -25,6 +26,7 @@
 #include "../mwbase/soundmanager.hpp"
 #include "../mwbase/mechanicsmanager.hpp"
 #include "../mwbase/windowmanager.hpp"
+#include "../mwbase/luamanager.hpp"
 
 #include "../mwrender/renderingmanager.hpp"
 #include "../mwrender/landmanager.hpp"
@@ -138,6 +140,8 @@ namespace
 
         if (!physics.getObject(ptr))
             ptr.getClass().insertObject (ptr, model, rotation, physics);
+
+        MWBase::Environment::get().getLuaManager()->objectAddedToScene(ptr);
     }
 
     void addObject(const MWWorld::Ptr& ptr, const MWPhysics::PhysicsSystem& physics, DetourNavigator::Navigator& navigator)
@@ -343,7 +347,10 @@ namespace MWWorld
 
         cell->forEach(visitor);
         for (const auto& ptr : visitor.mObjects)
+        {
             mPhysics->remove(ptr);
+            ptr.mRef->mData.mPhysicsPostponed = false;
+        }
 
         if (cell->getCell()->isExterior())
         {
@@ -382,6 +389,7 @@ namespace MWWorld
                 mRendering.removeActorPath(ptr);
                 mPhysics->remove(ptr);
             }
+            MWBase::Environment::get().getLuaManager()->objectRemovedFromScene(ptr);
         }
 
         const auto cellX = cell->getCell()->getGridX();
@@ -626,6 +634,24 @@ namespace MWWorld
             }
             return cellsPositionsToLoad;
         };
+
+        for(const auto& cell : mActiveCells)
+        {
+            cell->forEach([&](const MWWorld::Ptr& ptr)
+            {
+                if(ptr.mRef->mData.mPhysicsPostponed)
+                {
+                    ptr.mRef->mData.mPhysicsPostponed = false;
+                    if(ptr.mRef->mData.isEnabled() && ptr.mRef->mData.getCount() > 0) {
+                        std::string model = getModel(ptr, MWBase::Environment::get().getResourceSystem()->getVFS());
+                        const auto rotation = makeNodeRotation(ptr, RotationOrder::direct);
+                        ptr.getClass().insertObjectPhysics(ptr, model, rotation, *mPhysics);
+                    }
+                }
+                return true;
+            });
+        }
+
         auto cellsPositionsToLoad = cellsToLoad(mActiveCells,mHalfGridSize);
         auto cellsPositionsToLoadInactive = cellsToLoad(mInactiveCells,mHalfGridSize+1);
 
@@ -842,6 +868,11 @@ namespace MWWorld
 
     Scene::~Scene()
     {
+        for (const osg::ref_ptr<SceneUtil::WorkItem>& v : mWorkItems)
+            v->abort();
+
+        for (const osg::ref_ptr<SceneUtil::WorkItem>& v : mWorkItems)
+            v->waitTillDone();
     }
 
     bool Scene::hasCellChanged() const
@@ -985,6 +1016,7 @@ namespace MWWorld
     {
         MWBase::Environment::get().getMechanicsManager()->remove (ptr);
         MWBase::Environment::get().getSoundManager()->stopSound3D (ptr);
+        MWBase::Environment::get().getLuaManager()->objectRemovedFromScene(ptr);
         const auto navigator = MWBase::Environment::get().getWorld()->getNavigator();
         if (const auto object = mPhysics->getObject(ptr))
         {
@@ -1035,6 +1067,9 @@ namespace MWWorld
 
         void doWork() override
         {
+            if (mAborted)
+                return;
+
             try
             {
                 mSceneManager->getTemplate(mMesh);
@@ -1043,9 +1078,16 @@ namespace MWWorld
             {
             }
         }
+
+        void abort() override
+        {
+            mAborted = true;
+        }
+
     private:
         std::string mMesh;
         Resource::SceneManager* mSceneManager;
+        std::atomic_bool mAborted {false};
     };
 
     void Scene::preload(const std::string &mesh, bool useAnim)
@@ -1055,7 +1097,13 @@ namespace MWWorld
             mesh_ = Misc::ResourceHelpers::correctActorModelPath(mesh_, mRendering.getResourceSystem()->getVFS());
 
         if (!mRendering.getResourceSystem()->getSceneManager()->checkLoaded(mesh_, mRendering.getReferenceTime()))
-            mRendering.getWorkQueue()->addWorkItem(new PreloadMeshItem(mesh_, mRendering.getResourceSystem()->getSceneManager()));
+        {
+            osg::ref_ptr<PreloadMeshItem> item(new PreloadMeshItem(mesh_, mRendering.getResourceSystem()->getSceneManager()));
+            mRendering.getWorkQueue()->addWorkItem(item);
+            const auto isDone = [] (const osg::ref_ptr<SceneUtil::WorkItem>& v) { return v->isDone(); };
+            mWorkItems.erase(std::remove_if(mWorkItems.begin(), mWorkItems.end(), isDone), mWorkItems.end());
+            mWorkItems.emplace_back(std::move(item));
+        }
     }
 
     void Scene::preloadCells(float dt)

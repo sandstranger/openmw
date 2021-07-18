@@ -17,6 +17,7 @@
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/dialoguemanager.hpp"
 #include "../mwbase/soundmanager.hpp"
+#include "../mwbase/luamanager.hpp"
 
 #include "../mwmechanics/creaturestats.hpp"
 #include "../mwmechanics/npcstats.hpp"
@@ -403,7 +404,7 @@ namespace MWClass
     bool Npc::isPersistent(const MWWorld::ConstPtr &actor) const
     {
         const MWWorld::LiveCellRef<ESM::NPC>* ref = actor.get<ESM::NPC>();
-        return ref->mBase->mPersistent;
+        return (ref->mBase->mRecordFlags & ESM::FLAG_Persistent) != 0;
     }
 
     std::string Npc::getModel(const MWWorld::ConstPtr &ptr) const
@@ -1095,6 +1096,7 @@ namespace MWClass
     bool Npc::apply (const MWWorld::Ptr& ptr, const std::string& id,
         const MWWorld::Ptr& actor) const
     {
+        MWBase::Environment::get().getLuaManager()->appliedToObject(ptr, id, actor);
         MWMechanics::CastSpell cast(ptr, ptr);
         return cast.cast(id);
     }
@@ -1382,6 +1384,7 @@ namespace MWClass
                 }
 
                 MWBase::Environment::get().getWorld()->removeContainerScripts(ptr);
+                MWBase::Environment::get().getWindowManager()->onDeleteCustomData(ptr);
                 ptr.getRefData().setCustomData(nullptr);
 
                 // Reset to original position

@@ -15,13 +15,12 @@ namespace
         osg::Vec3f mAgentHalfExtents;
         TilePosition mTilePosition;
         RecastMesh mRecastMesh;
-        std::vector<OffMeshConnection> mOffMeshConnections;
     };
 
     struct Item
     {
         Key mKey;
-        NavMeshData mValue;
+        PreparedNavMeshData mValue;
     };
 
     template <typename Random>
@@ -69,7 +68,7 @@ namespace
     AreaType generateAreaType(Random& random)
     {
         std::uniform_int_distribution<int> distribution(0, 4);
-        return toAreaType(distribution(random));;
+        return toAreaType(distribution(random));
     }
 
     template <typename OutputIterator, typename Random>
@@ -85,17 +84,6 @@ namespace
         std::generate_n(out, count, [&] {
             const btVector3 shift(distribution(random), distribution(random), distribution(random));
             return RecastMesh::Water {1, btTransform(btMatrix3x3::getIdentity(), shift)};
-        });
-    }
-
-    template <typename OutputIterator, typename Random>
-    void generateOffMeshConnection(OutputIterator out, std::size_t count, Random& random)
-    {
-        std::uniform_real_distribution<btScalar> distribution(0.0, 1.0);
-        std::generate_n(out, count, [&] {
-            const osg::Vec3f start(distribution(random), distribution(random), distribution(random));
-            const osg::Vec3f end(distribution(random), distribution(random), distribution(random));
-            return OffMeshConnection {start, end, generateAreaType(random)};
         });
     }
 
@@ -116,9 +104,7 @@ namespace
         generateWater(std::back_inserter(water), 2, random);
         RecastMesh recastMesh(generation, revision, std::move(indices), std::move(vertices),
                               std::move(areaTypes), std::move(water));
-        std::vector<OffMeshConnection> offMeshConnections;
-        generateOffMeshConnection(std::back_inserter(offMeshConnections), 300, random);
-        return Key {agentHalfExtents, tilePosition, std::move(recastMesh), std::move(offMeshConnections)};
+        return Key {agentHalfExtents, tilePosition, std::move(recastMesh)};
     }
 
     constexpr std::size_t trianglesPerTile = 310;
@@ -137,7 +123,8 @@ namespace
         while (true)
         {
             Key key = generateKey(trianglesPerTile, random);
-            cache.set(key.mAgentHalfExtents, key.mTilePosition, key.mRecastMesh, key.mOffMeshConnections, NavMeshData());
+            cache.set(key.mAgentHalfExtents, key.mTilePosition, key.mRecastMesh,
+                      std::make_unique<PreparedNavMeshData>());
             *out++ = std::move(key);
             const std::size_t newSize = cache.getStats().mNavMeshCacheSize;
             if (size >= newSize)
@@ -159,7 +146,7 @@ namespace
         while (state.KeepRunning())
         {
             const auto& key = keys[n++ % keys.size()];
-            const auto result = cache.get(key.mAgentHalfExtents, key.mTilePosition, key.mRecastMesh, key.mOffMeshConnections);
+            const auto result = cache.get(key.mAgentHalfExtents, key.mTilePosition, key.mRecastMesh);
             benchmark::DoNotOptimize(result);
         }
     }
@@ -187,7 +174,8 @@ namespace
         while (state.KeepRunning())
         {
             const auto& key = keys[n++ % keys.size()];
-            const auto result = cache.set(key.mAgentHalfExtents, key.mTilePosition, key.mRecastMesh, key.mOffMeshConnections, NavMeshData());
+            const auto result = cache.set(key.mAgentHalfExtents, key.mTilePosition, key.mRecastMesh,
+                                          std::make_unique<PreparedNavMeshData>());
             benchmark::DoNotOptimize(result);
         }
     }

@@ -28,6 +28,10 @@ endif (GIT_CHECKOUT)
 
 # source files
 
+add_component_dir (lua
+    luastate scriptscontainer utilpackage serialization omwscriptsparser
+    )
+
 add_component_dir (settings
     settings parser
     )
@@ -53,6 +57,7 @@ add_component_dir (sceneutil
     clone attach visitor util statesetupdater controller skeleton riggeometry morphgeometry lightcontroller
     lightmanager lightutil positionattitudetransform workqueue unrefqueue pathgridutil waterutil writescene serialize optimizer
     actorutil detourdebugdraw navmesh agentpath shadow mwshadowtechnique recastmesh shadowsbin osgacontroller
+    screencapture
     )
 
 add_component_dir (nif
@@ -79,7 +84,7 @@ add_component_dir (esm
     loadweap records aipackage effectlist spelllist variant variantimp loadtes3 cellref filter
     savedgame journalentry queststate locals globalscript player objectstate cellid cellstate globalmap inventorystate containerstate npcstate creaturestate dialoguestate statstate
     npcstats creaturestats weatherstate quickkeys fogstate spellstate activespells creaturelevliststate doorstate projectilestate debugprofile
-    aisequence magiceffects util custommarkerstate stolenitems transport animationstate controlsstate mappings
+    aisequence magiceffects util custommarkerstate stolenitems transport animationstate controlsstate mappings luascripts
     )
 
 add_component_dir (esmterrain
@@ -151,6 +156,10 @@ add_component_dir (fallback
     fallback validate
     )
 
+add_component_dir (queries
+    query luabindings
+    )
+
 if(WIN32)
     add_component_dir (crashcatcher
         windows_crashcatcher
@@ -184,6 +193,8 @@ add_component_dir(detournavigator
     navmeshtileview
     oscillatingrecastmeshobject
     offmeshconnectionsmanager
+    preparednavmeshdata
+    navmeshcacheitem
     )
 
 set (ESM_UI ${CMAKE_SOURCE_DIR}/files/ui/contentselector.ui

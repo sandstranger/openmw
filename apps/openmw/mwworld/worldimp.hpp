@@ -156,7 +156,7 @@ namespace MWWorld
 
             void updateNavigator();
 
-            bool updateNavigatorObject(const MWPhysics::Object* object);
+            void updateNavigatorObject(const MWPhysics::Object& object);
 
             void ensureNeededRecords();
 
@@ -215,6 +215,8 @@ namespace MWWorld
             CellStore *getInterior (const std::string& name) override;
 
             CellStore *getCell (const ESM::CellId& id) override;
+
+            bool isCellActive(CellStore* cell) const override;
 
             void testExteriorCells() override;
             void testInteriorCells() override;

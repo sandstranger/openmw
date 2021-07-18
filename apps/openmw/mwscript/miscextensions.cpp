@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iomanip>
 
+#include <components/compiler/extensions.hpp>
 #include <components/compiler/opcodes.hpp>
 #include <components/compiler/locals.hpp>
 
@@ -27,6 +28,7 @@
 #include "../mwbase/scriptmanager.hpp"
 #include "../mwbase/soundmanager.hpp"
 #include "../mwbase/world.hpp"
+#include "../mwbase/luamanager.hpp"
 
 #include "../mwworld/class.hpp"
 #include "../mwworld/player.hpp"
@@ -1580,6 +1582,33 @@ namespace MWScript
                 }
         };
 
+        class OpHelp : public Interpreter::Opcode0
+        {
+            public:
+
+                void execute(Interpreter::Runtime& runtime) override
+                {
+                    std::stringstream message;
+                    message << MWBase::Environment::get().getWindowManager()->getVersionDescription() << "\n\n";
+                    std::vector<std::string> commands;
+                    MWBase::Environment::get().getScriptManager()->getExtensions().listKeywords(commands);
+                    for(const auto& command : commands)
+                        message << command << "\n";
+                    runtime.getContext().report(message.str());
+                }
+        };
+
+        class OpReloadLua : public Interpreter::Opcode0
+        {
+            public:
+
+                void execute (Interpreter::Runtime& runtime) override
+                {
+                    MWBase::Environment::get().getLuaManager()->reloadAllScripts();
+                    runtime.getContext().report("All Lua scripts are reloaded");
+                }
+        };
+
         void installOpcodes (Interpreter::Interpreter& interpreter)
         {
             interpreter.installSegment5 (Compiler::Misc::opcodeMenuMode, new OpMenuMode);
@@ -1699,6 +1728,8 @@ namespace MWScript
             interpreter.installSegment5 (Compiler::Misc::opcodeRepairedOnMe, new OpRepairedOnMe<ImplicitRef>);
             interpreter.installSegment5 (Compiler::Misc::opcodeRepairedOnMeExplicit, new OpRepairedOnMe<ExplicitRef>);
             interpreter.installSegment5 (Compiler::Misc::opcodeToggleRecastMesh, new OpToggleRecastMesh);
+            interpreter.installSegment5 (Compiler::Misc::opcodeHelp, new OpHelp);
+            interpreter.installSegment5 (Compiler::Misc::opcodeReloadLua, new OpReloadLua);
         }
     }
 }
