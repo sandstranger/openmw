@@ -12,6 +12,7 @@ namespace ESM
     class ESMReader;
 
     const int UnbreakableLock = std::numeric_limits<int>::max();
+    extern int GroundcoverIndex;
 
     struct RefNum
     {
