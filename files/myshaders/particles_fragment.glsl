@@ -52,7 +52,5 @@ if(fogValue != 1.0)
 }
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-#if !defined(LINEAR_LIGHTING)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
-#endif
 }

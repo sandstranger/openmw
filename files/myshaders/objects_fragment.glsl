@@ -252,9 +252,7 @@ if(gl_FragData[0].a != 0.0)
 
 #endif
 
-#ifdef LINEAR_LIGHTING
-        gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(2.2));
-#endif
+    gl_FragData[0].xyz = preLight(gl_FragData[0].xyz);
 
     vec3 lighting;
 #if !PER_PIXEL_LIGHTING
@@ -293,9 +291,9 @@ gl_FragData[0].xyz *= lighting;
     #endif
 #endif
 
+   gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz);
+
 #ifdef LINEAR_LIGHTING
-        gl_FragData[0].xyz = Uncharted2ToneMapping(gl_FragData[0].xyz);
-        gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0 / (2.2 + @gamma - 1.0)));
         gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
 #endif
 
@@ -324,7 +322,6 @@ if(simpleWater)
 #endif
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-#if !defined(LINEAR_LIGHTING)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
-#endif  
+
 }
