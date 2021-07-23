@@ -12,6 +12,7 @@
     Bug #5483: AutoCalc flag is not used to calculate spells cost
     Bug #5842: GetDisposition adds temporary disposition change from different actors
     Bug #6037: Morrowind Content Language Cannot be Set to English in OpenMW Launcher
+    Bug #6051: NaN water height in ESM file is not handled gracefully
     Bug #6066: addtopic "return" does not work from within script. No errors thrown
     Bug #6067: esp loader fails in for certain subrecord orders
     Bug #6101: Disarming trapped unlocked owned objects isn't considered a crime
@@ -22,6 +23,7 @@
     Bug #6131: Item selection in the avatar window not working correctly for large window sizes
     Bug #6133: Cannot reliably sneak or steal in the sight of the NPCs siding with player
     Bug #6143: Capturing a screenshot makes engine to be a temporary unresponsive
+    Bug #6165: Paralyzed player character can pickup items when the inventory is open
     Feature #2780: A way to see current OpenMW version in the console
     Feature #5489: MCP: Telekinesis fix for activators
     Feature #5996: Support Lua scripts in OpenMW
