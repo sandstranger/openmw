@@ -18,16 +18,22 @@
     Bug #6101: Disarming trapped unlocked owned objects isn't considered a crime
     Bug #6107: Fatigue is incorrectly recalculated when fortify effect is applied or removed
     Bug #6115: Showmap overzealous matching
+    Bug #6118: Creature landing sound counts as a footstep
     Bug #6123: NPC with broken script freezes the game on hello
     Bug #6129: Player avatar not displayed correctly for large window sizes when GUI scaling active
     Bug #6131: Item selection in the avatar window not working correctly for large window sizes
     Bug #6133: Cannot reliably sneak or steal in the sight of the NPCs siding with player
     Bug #6143: Capturing a screenshot makes engine to be a temporary unresponsive
     Bug #6165: Paralyzed player character can pickup items when the inventory is open
+    Bug #6174: Spellmaking and Enchanting sliders differences from vanilla
+    Bug #6184: Command and Calm and Demoralize and Frenzy and Rally magic effects inconsistencies with vanilla
+    Feature #2554: Modifying an object triggers the instances table to scroll to the corresponding record
     Feature #2780: A way to see current OpenMW version in the console
+    Feature #3616: Allow Zoom levels on the World Map
     Feature #5489: MCP: Telekinesis fix for activators
     Feature #5996: Support Lua scripts in OpenMW
     Feature #6017: Separate persistent and temporary cell references when saving
+    Feature #6162: Refactor GUI to use shaders and to be GLES and GL3+ friendly
 
 0.47.0
 ------

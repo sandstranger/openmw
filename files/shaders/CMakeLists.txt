@@ -38,17 +38,8 @@ set(SHADER_FILES
     ../myshaders/nv_default_fragment.glsl
     ../myshaders/nv_nolighting_vertex.glsl
     ../myshaders/nv_nolighting_fragment.glsl
-
-    ../myshaders/glsl-tone-map-master/aces.glsl
-    ../myshaders/glsl-tone-map-master/filmic.glsl
-    ../myshaders/glsl-tone-map-master/lottes.glsl
-    ../myshaders/glsl-tone-map-master/none.glsl
-    ../myshaders/glsl-tone-map-master/reinhard.glsl
-    ../myshaders/glsl-tone-map-master/reinhard2.glsl
-    ../myshaders/glsl-tone-map-master/uchimura.glsl
-    ../myshaders/glsl-tone-map-master/uncharted2.glsl
-    ../myshaders/glsl-tone-map-master/unreal.glsl
-    ../myshaders/glsl-tone-map-master/vtastek.glsl
+    ../myshaders/gui_vertex.glsl
+    ../myshaders/gui_fragment.glsl
 )
 
 set(TONEMAP_FILES

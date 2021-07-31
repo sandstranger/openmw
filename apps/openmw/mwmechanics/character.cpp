@@ -989,8 +989,7 @@ void CharacterController::handleTextKey(const std::string &groupname, SceneUtil:
         if(!sound.empty())
         {
             MWBase::SoundManager *sndMgr = MWBase::Environment::get().getSoundManager();
-            // NB: landing sound is not played for NPCs here
-            if(soundgen == "left" || soundgen == "right" || soundgen == "land")
+            if (soundgen == "left" || soundgen == "right")
             {
                 sndMgr->playSound3D(mPtr, sound, volume, pitch, MWSound::Type::Foot,
                                     MWSound::PlayMode::NoPlayerLocal);
@@ -1661,7 +1660,8 @@ bool CharacterController::updateWeaponState(CharacterState& idle)
                                  MWRender::Animation::BlendMask_All, false,
                                  weapSpeed, startKey, stopKey,
                                  0.0f, 0);
-                mUpperBodyState = UpperCharState_StartToMinAttack;
+                if(mAnimation->isPlaying(mCurrentWeapon))
+                    mUpperBodyState = UpperCharState_StartToMinAttack;
             }
         }
 
