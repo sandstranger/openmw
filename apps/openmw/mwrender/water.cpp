@@ -609,7 +609,8 @@ public:
         if (mRefraction)
         {
             stateset->addUniform(new osg::Uniform("refractionMap", 2));
-            stateset->addUniform(new osg::Uniform("refractionDepthMap", 3));
+            if (Settings::Manager::getBool("refraction depth map", "Water"))
+                stateset->addUniform(new osg::Uniform("refractionDepthMap", 3));
             stateset->setRenderBinDetails(MWRender::RenderBin_Default, "RenderBin");
         }
         else
