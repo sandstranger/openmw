@@ -1,4 +1,5 @@
 #version 120
+precision highp float;
 
 #define WATER
 
