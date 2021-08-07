@@ -72,6 +72,7 @@ namespace MWRender
 {
     class GroundcoverUpdater;
     class StateUpdater;
+    class SharedUniformStateUpdater;
 
     class EffectManager;
     class ScreenshotManager;
@@ -88,6 +89,7 @@ namespace MWRender
     class ActorsPaths;
     class RecastMesh;
     class ObjectPaging;
+    class PostProcessor;
 
     class RenderingManager : public MWRender::RenderingInterface
     {
@@ -106,9 +108,6 @@ namespace MWRender
         SceneUtil::WorkQueue* getWorkQueue();
         SceneUtil::UnrefQueue* getUnrefQueue();
         Terrain::World* getTerrain();
-
-        osg::Uniform* mUniformNear;
-        osg::Uniform* mUniformFar;
 
         void preloadCommonAssets();
 
@@ -239,8 +238,9 @@ namespace MWRender
         bool pagingUnlockCache();
         void getPagedRefnums(const osg::Vec4i &activeGrid, std::set<ESM::RefNum> &out);
 
-    private:
         void updateProjectionMatrix();
+
+    private:
         void updateTextureFiltering();
         void updateAmbient();
         void setFogColor(const osg::Vec4f& color);
@@ -286,6 +286,7 @@ namespace MWRender
         std::unique_ptr<ScreenshotManager> mScreenshotManager;
         std::unique_ptr<EffectManager> mEffectManager;
         std::unique_ptr<SceneUtil::ShadowManager> mShadowManager;
+        osg::ref_ptr<PostProcessor> mPostProcessor;
         osg::ref_ptr<NpcAnimation> mPlayerAnimation;
         osg::ref_ptr<SceneUtil::PositionAttitudeTransform> mPlayerNode;
         std::unique_ptr<Camera> mCamera;
@@ -293,6 +294,7 @@ namespace MWRender
         osg::Vec3f mCurrentCameraPos;
 
         osg::ref_ptr<StateUpdater> mStateUpdater;
+        osg::ref_ptr<SharedUniformStateUpdater> mSharedUniformStateUpdater;
 
         osg::Vec4f mAmbientColor;
         float mMinimumAmbientLuminance;

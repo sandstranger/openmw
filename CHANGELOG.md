@@ -1,15 +1,19 @@
 0.48.0
 ------
 
+    Bug #3514: Editing a reference's position after loading an esp file makes the reference disappear
     Bug #3737: Scripts from The Underground 2 .esp do not play (all patched versions)
     Bug #3846: Strings starting with "-" fail to compile if not enclosed in quotes
     Bug #3905: Great House Dagoth issues
     Bug #4203: Resurrecting an actor should close the loot GUI
+    Bug #4752: UpdateCellCommand doesn't undo properly
     Bug #5100: Persuasion doesn't always clamp the resulting disposition
     Bug #5120: Scripted object spawning updates physics system
     Bug #5379: Wandering NPCs falling through cantons
     Bug #5453: Magic effect VFX are offset for creatures
     Bug #5483: AutoCalc flag is not used to calculate spells cost
+    Bug #5755: Active grid object paging - disappearing textures
+    Bug #5788: Texture editing parses the selected indexes wrongly
     Bug #5842: GetDisposition adds temporary disposition change from different actors
     Bug #6037: Morrowind Content Language Cannot be Set to English in OpenMW Launcher
     Bug #6051: NaN water height in ESM file is not handled gracefully
@@ -30,10 +34,13 @@
     Feature #2554: Modifying an object triggers the instances table to scroll to the corresponding record
     Feature #2780: A way to see current OpenMW version in the console
     Feature #3616: Allow Zoom levels on the World Map
+    Feature #4737: Handle instance move from one cell to another
     Feature #5489: MCP: Telekinesis fix for activators
     Feature #5996: Support Lua scripts in OpenMW
     Feature #6017: Separate persistent and temporary cell references when saving
+    Feature #6032: Reverse-z depth buffer
     Feature #6162: Refactor GUI to use shaders and to be GLES and GL3+ friendly
+    Feature #6199: Support FBO Rendering
 
 0.47.0
 ------
@@ -1949,6 +1956,7 @@
     Bug #2025: Missing mouse-over text for non affordable items
     Bug #2028: [MOD: Tamriel Rebuilt] Crashing when trying to enter interior cell "Ruinous Keep, Great Hall"
     Bug #2029: Ienith Brothers Thiev's Guild quest journal entry not adding
+    Bug #3066: Editor doesn't check if IDs and other strings are longer than their hardcoded field length
     Feature #471: Editor: Special case implementation for top-level window with single sub-window
     Feature #472: Editor: Sub-Window re-use settings
     Feature #704: Font colors import from fallback settings

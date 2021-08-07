@@ -8,6 +8,7 @@ set(DDIRRELATIVE resources/shaders)
 set(DDIRRELATIVE2 resources/shaders/glsl-tone-map-master)
 
 set(SHADER_FILES
+<<<<<<< HEAD
     ../myshaders/fog.glsl
     ../myshaders/effects.glsl
     ../myshaders/linear_lighting.glsl
@@ -40,6 +41,8 @@ set(SHADER_FILES
     ../myshaders/nv_nolighting_fragment.glsl
     ../myshaders/gui_vertex.glsl
     ../myshaders/gui_fragment.glsl
+    ../myshaders/debug_vertex.glsl
+    ../myshaders/debug_fragment.glsl
 )
 
 set(TONEMAP_FILES
@@ -53,6 +56,7 @@ set(TONEMAP_FILES
     ../myshaders/glsl-tone-map-master/uncharted2.glsl
     ../myshaders/glsl-tone-map-master/unreal.glsl
     ../myshaders/glsl-tone-map-master/vtastek.glsl
+
 )
 
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIRRELATIVE} "${SHADER_FILES}")

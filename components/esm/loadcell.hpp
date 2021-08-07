@@ -94,7 +94,7 @@ struct Cell
            mWater(0),
            mWaterInt(false),
            mMapColor(0),
-           mRefNumCounter(-1)
+           mRefNumCounter(0)
   {}
 
   // Interior cells are indexed by this (it's the 'id'), for exterior
@@ -123,6 +123,11 @@ struct Cell
   //  introduced this ref, and it has been moved here by a plugin)
   CellRefTracker mLeasedRefs;
   MovedCellRefTracker mMovedRefs;
+
+  // References "adopted" from another cell (i.e. a different cell
+  //  introduced this ref, and it has been moved here as it geographically in this cell)
+  CellRefTracker mLeasedRefsByPos;
+  std::list<RefNum> mMovedRefsByPos;
 
   void postLoad(ESMReader &esm);
 
