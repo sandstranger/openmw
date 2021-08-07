@@ -325,7 +325,7 @@ namespace MWRender
                             || Settings::Manager::getBool("force shaders", "Shaders")
                             || Settings::Manager::getBool("enable shadows", "Shadows")
                             || Settings::Manager::getBool("underwater fog", "Water")
-                            || lightingMethod != SceneUtil::LightingMethod::FFP;
+                            || lightingMethod != SceneUtil::LightingMethod::FFP
                             || reverseZ;
 
         resourceSystem->getSceneManager()->setForceShaders(forceShaders);
