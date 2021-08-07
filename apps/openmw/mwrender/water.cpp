@@ -633,7 +633,8 @@ public:
         if (mRefraction)
         {
             stateset->setTextureAttributeAndModes(2, mRefraction->getColorTexture(cv), osg::StateAttribute::ON);
-            stateset->setTextureAttributeAndModes(3, mRefraction->getDepthTexture(cv), osg::StateAttribute::ON);
+            if (Settings::Manager::getBool("refraction depth map", "Water"))
+                stateset->setTextureAttributeAndModes(3, mRefraction->getDepthTexture(cv), osg::StateAttribute::ON);
         }
     }
 

@@ -89,7 +89,7 @@ static const char fragmentShaderSource_withBaseTexture_twoShadowMaps[] =
 
 std::string debugVertexShaderSource = "void main(void){gl_Position = gl_Vertex; gl_TexCoord[0]=gl_MultiTexCoord0;}";
 std::string debugFragmentShaderSource =
-        "uniform sampler2D texture;                                              \n"
+        "uniform highp sampler2D texture;                                              \n"
         "                                                                        \n"
         "void main(void)                                                         \n"
         "{                                                                       \n"
@@ -553,7 +553,7 @@ MWShadowTechnique::ShadowData::ShadowData(MWShadowTechnique::ViewDependentData* 
     else
     {
         _texture->setInternalFormat(GL_DEPTH_COMPONENT);
-        _texture->setShadowComparison(true);
+        _texture->setShadowComparison(false);
         _texture->setShadowTextureMode(osg::Texture2D::LUMINANCE);
     }
 

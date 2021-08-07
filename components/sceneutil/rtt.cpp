@@ -90,7 +90,7 @@ namespace SceneUtil
                 SceneUtil::attachAlphaToCoverageFriendlyFramebufferToCamera(camera, osg::Camera::COLOR_BUFFER, colorBuffer);
             }
 
-            if (camera->getBufferAttachmentMap().count(osg::Camera::DEPTH_BUFFER) == 0)
+            if (camera->getBufferAttachmentMap().count(osg::Camera::DEPTH_BUFFER) == 0 && Settings::Manager::getBool("refraction depth map", "Water"))
             {
                 auto depthBuffer = new osg::Texture2D;
                 depthBuffer->setTextureSize(mTextureWidth, mTextureHeight);
