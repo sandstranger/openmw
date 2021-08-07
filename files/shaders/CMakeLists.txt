@@ -8,7 +8,6 @@ set(DDIRRELATIVE resources/shaders)
 set(DDIRRELATIVE2 resources/shaders/glsl-tone-map-master)
 
 set(SHADER_FILES
-<<<<<<< HEAD
     ../myshaders/fog.glsl
     ../myshaders/effects.glsl
     ../myshaders/linear_lighting.glsl
