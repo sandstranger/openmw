@@ -1678,9 +1678,6 @@ namespace MWRender
         SceneUtil::FindMaxControllerLengthVisitor findMaxLengthVisitor;
         node->accept(findMaxLengthVisitor);
 
-        // FreezeOnCull doesn't work so well with effect particles, that tend to have moving emitters
-        SceneUtil::DisableFreezeOnCullVisitor disableFreezeOnCullVisitor;
-        node->accept(disableFreezeOnCullVisitor);
         node->setNodeMask(Mask_Effect);
 
         params.mMaxControllerLength = findMaxLengthVisitor.getMaxLength();
@@ -1842,7 +1839,7 @@ namespace MWRender
         mRootController = addRotateController("bip01");
     }
 
-    RotateController* Animation::addRotateController(std::string bone)
+    RotateController* Animation::addRotateController(const std::string &bone)
     {
         auto iter = getNodeMap().find(bone);
         if (iter == getNodeMap().end())

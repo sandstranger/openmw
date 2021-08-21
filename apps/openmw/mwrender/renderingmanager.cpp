@@ -487,6 +487,12 @@ namespace MWRender
             mResourceSystem->addResourceManager(mGroundcoverPaging.get());
         }
 
+        mStateUpdater = new StateUpdater;
+        sceneRoot->addUpdateCallback(mStateUpdater);
+
+        mSharedUniformStateUpdater = new SharedUniformStateUpdater;
+        rootNode->addUpdateCallback(mSharedUniformStateUpdater);
+
         mPostProcessor = new PostProcessor(*this, viewer, mRootNode);
         resourceSystem->getSceneManager()->setDepthFormat(mPostProcessor->getDepthFormat());
 
@@ -531,12 +537,6 @@ namespace MWRender
         mSky->setCamera(mViewer->getCamera());
 
         source->setStateSetModes(*mRootNode->getOrCreateStateSet(), osg::StateAttribute::ON);
-
-        mStateUpdater = new StateUpdater;
-        sceneRoot->addUpdateCallback(mStateUpdater);
-
-        mSharedUniformStateUpdater = new SharedUniformStateUpdater;
-        rootNode->addUpdateCallback(mSharedUniformStateUpdater);
 
         osg::Camera::CullingMode cullingMode = osg::Camera::DEFAULT_CULLING|osg::Camera::FAR_PLANE_CULLING;
 

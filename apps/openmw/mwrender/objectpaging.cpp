@@ -485,7 +485,6 @@ namespace MWRender
                                 continue;
 
                             if (std::find(cell->mMovedRefs.begin(), cell->mMovedRefs.end(), ref.mRefNum) != cell->mMovedRefs.end()) continue;
-                            if (std::find(cell->mMovedRefsByPos.begin(), cell->mMovedRefsByPos.end(), ref.mRefNum) != cell->mMovedRefsByPos.end()) continue;
                             Misc::StringUtils::lowerCaseInPlace(ref.mRefID);
                             int type = store.findStatic(ref.mRefID);
                             if (!typeFilter(type,size>=2)) continue;
@@ -513,15 +512,6 @@ namespace MWRender
                     Misc::StringUtils::lowerCaseInPlace(ref.mRefID);
                     int type = store.findStatic(ref.mRefID);
                     if (!typeFilter(type,size>=2)) continue;
-                    refs[ref.mRefNum] = std::move(ref);
-                }
-
-                for (auto [ref, deleted] : cell->mLeasedRefsByPos)
-                {
-                    if (deleted) { refs.erase(ref.mRefNum); continue; }
-                    Misc::StringUtils::lowerCaseInPlace(ref.mRefID);
-                    int type = store.findStatic(ref.mRefID);
-                    if (!typeFilter(type, size >= 2)) continue;
                     refs[ref.mRefNum] = std::move(ref);
                 }
             }
@@ -566,7 +556,7 @@ namespace MWRender
             {
                 osg::Vec3f cellPos = pos / ESM::Land::REAL_SIZE;
                 if ((minBound.x() > std::floor(minBound.x()) && cellPos.x() < minBound.x()) || (minBound.y() > std::floor(minBound.y()) && cellPos.y() < minBound.y())
-                 || (maxBound.x() < std::ceil(maxBound.x()) && cellPos.x() >= maxBound.x()) || (minBound.y() < std::ceil(maxBound.y()) && cellPos.y() >= maxBound.y()))
+                 || (maxBound.x() < std::ceil(maxBound.x()) && cellPos.x() >= maxBound.x()) || (maxBound.y() < std::ceil(maxBound.y()) && cellPos.y() >= maxBound.y()))
                     continue;
             }
 
@@ -579,8 +569,8 @@ namespace MWRender
                     continue;
             }
 
-            if (ref.mRefID == "prisonmarker" || ref.mRefID == "divinemarker" || ref.mRefID == "templemarker" || ref.mRefID == "northmarker")
-                continue; // marker objects that have a hardcoded function in the game logic, should be hidden from the player
+            if (Misc::ResourceHelpers::isHiddenMarker(ref.mRefID))
+                continue;
 
             int type = store.findStatic(ref.mRefID);
             bool isGroundCover = false;

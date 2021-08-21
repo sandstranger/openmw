@@ -89,7 +89,7 @@ static const char fragmentShaderSource_withBaseTexture_twoShadowMaps[] =
 
 std::string debugVertexShaderSource = "void main(void){gl_Position = gl_Vertex; gl_TexCoord[0]=gl_MultiTexCoord0;}";
 std::string debugFragmentShaderSource =
-        "uniform highp sampler2D texture;                                              \n"
+        "uniform sampler2D texture;                                              \n"
         "                                                                        \n"
         "void main(void)                                                         \n"
         "{                                                                       \n"
@@ -553,7 +553,7 @@ MWShadowTechnique::ShadowData::ShadowData(MWShadowTechnique::ViewDependentData* 
     else
     {
         _texture->setInternalFormat(GL_DEPTH_COMPONENT);
-        _texture->setShadowComparison(false);
+        _texture->setShadowComparison(true);
         _texture->setShadowTextureMode(osg::Texture2D::LUMINANCE);
     }
 
@@ -1646,7 +1646,7 @@ void MWShadowTechnique::createShaders()
         _shadowCastingStateSet->setAttribute(clipcontrol, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
     }
     _shadowCastingStateSet->setAttribute(depth, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
-    //_shadowCastingStateSet->setMode(GL_DEPTH_CLAMP, osg::StateAttribute::ON);
+    _shadowCastingStateSet->setMode(GL_DEPTH_CLAMP, osg::StateAttribute::ON);
 
     // TODO: compare performance when alpha testing is handled here versus using a discard in the fragment shader
 }
@@ -2141,7 +2141,7 @@ struct ConvexHull
                 finalEdges.push_back(edge);
         }
 
-        _edges = finalEdges;
+        _edges = std::move(finalEdges);
     }
 
     void transform(const osg::Matrixd& m)

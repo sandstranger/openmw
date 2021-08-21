@@ -1350,11 +1350,9 @@ void SkyManager::setCamera(osg::Camera *camera)
 class WrapAroundOperator : public osgParticle::Operator
 {
 public:
-    WrapAroundOperator(osg::Camera *camera, const osg::Vec3 &wrapRange): osgParticle::Operator()
+    WrapAroundOperator(osg::Camera *camera, const osg::Vec3 &wrapRange): osgParticle::Operator(),
+        mCamera(camera), mWrapRange(wrapRange), mHalfWrapRange(mWrapRange / 2.0)
     {
-        mCamera = camera;
-        mWrapRange = wrapRange;
-        mHalfWrapRange = mWrapRange / 2.0;
         mPreviousCameraPosition = getCameraPosition();
     }
 
@@ -1730,9 +1728,6 @@ void SkyManager::setWeather(const WeatherResult& weather)
             AlphaFader::SetupVisitor alphaFaderSetupVisitor(mPrecipitationAlpha);
 
             mParticleEffect->accept(alphaFaderSetupVisitor);
-
-            SceneUtil::DisableFreezeOnCullVisitor disableFreezeOnCullVisitor;
-            mParticleEffect->accept(disableFreezeOnCullVisitor);
 
             SceneUtil::FindByClassVisitor findPSVisitor(std::string("ParticleSystem"));
             mParticleEffect->accept(findPSVisitor);

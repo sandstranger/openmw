@@ -86,7 +86,7 @@ namespace
         return rot;
     }
 
-    void setNodeRotation(const MWWorld::Ptr& ptr, MWRender::RenderingManager& rendering, osg::Quat rotation)
+    void setNodeRotation(const MWWorld::Ptr& ptr, MWRender::RenderingManager& rendering, const osg::Quat &rotation)
     {
         if (ptr.getRefData().getBaseNode())
             rendering.rotateObject(ptr, rotation);
@@ -94,14 +94,12 @@ namespace
 
     std::string getModel(const MWWorld::Ptr &ptr, const VFS::Manager *vfs)
     {
+        if (Misc::ResourceHelpers::isHiddenMarker(ptr.getCellRef().getRefId()))
+            return {};
         bool useAnim = ptr.getClass().useAnim();
         std::string model = ptr.getClass().getModel(ptr);
         if (useAnim)
             model = Misc::ResourceHelpers::correctActorModelPath(model, vfs);
-
-        const std::string &id = ptr.getCellRef().getRefId();
-        if (id == "prisonmarker" || id == "divinemarker" || id == "templemarker" || id == "northmarker")
-            model = ""; // marker objects that have a hardcoded function in the game logic, should be hidden from the player
         return model;
     }
 
@@ -503,6 +501,12 @@ namespace MWWorld
                 mPhysics->disableWater();
 
             const auto player = MWBase::Environment::get().getWorld()->getPlayerPtr();
+
+            // The player is loaded before the scene and by default it is grounded, with the scene fully loaded, we validate and correct this.
+            if (player.mCell == cell) // Only run once, during initial cell load.
+            {
+                mPhysics->traceDown(player, player.getRefData().getPosition().asVec3(), 10.f);
+            }
 
             mNavigator.update(player.getRefData().getPosition().asVec3());
 
