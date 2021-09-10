@@ -1423,6 +1423,69 @@ void MWShadowTechnique::cull(osgUtil::CullVisitor& cv)
             //
             assignTexGenSettings(&cv, camera.get(), textureUnit, sd->_texgen.get());
 
+//dont forget to remove this
+//===================================================================================================================================
+
+                {
+
+                    osg::Matrix shadowProjectionMatrix = camera->getProjectionMatrix() *
+                                 osg::Matrix::translate(1.0,1.0,1.0) *
+                                 osg::Matrix::scale(0.5,0.5,0.5);
+
+                    shadowProjectionMatrix = osg::Matrix
+                    (shadowProjectionMatrix(0,0),shadowProjectionMatrix(1,0),shadowProjectionMatrix(2,0),shadowProjectionMatrix(3,0), 
+                    shadowProjectionMatrix(0,1),shadowProjectionMatrix(1,1),shadowProjectionMatrix(2,1),shadowProjectionMatrix(3,1),
+                    shadowProjectionMatrix(0,2),shadowProjectionMatrix(1,2),shadowProjectionMatrix(2,2),shadowProjectionMatrix(3,2),
+                    shadowProjectionMatrix(0,3),shadowProjectionMatrix(1,3),shadowProjectionMatrix(2,3),shadowProjectionMatrix(3,3));
+
+
+                    std::string shadowProjectionMatrixUniformName = "shadowProjectionMatrix" + std::to_string(sm_i);
+                    osg::ref_ptr<osg::Uniform> shadowProjectionMatrixUniform;
+
+                    for (auto uniform : _uniforms[cv.getTraversalNumber() % 2])
+                    {
+                        if (uniform->getName() == shadowProjectionMatrixUniformName)
+                            shadowProjectionMatrixUniform = uniform;
+                    }
+
+                    if (!shadowProjectionMatrixUniform)
+                    {
+                        shadowProjectionMatrixUniform = new osg::Uniform(osg::Uniform::FLOAT_MAT4, shadowProjectionMatrixUniformName);
+                        _uniforms[cv.getTraversalNumber() % 2].push_back(shadowProjectionMatrixUniform);
+                    }
+
+                    shadowProjectionMatrixUniform->set(shadowProjectionMatrix);
+                }
+
+
+
+
+                {
+                    osg::Matrix shadowModelViewMatrix = (camera->getInverseViewMatrix() * (*(cv.getModelViewMatrix())));
+
+                    std::string shadowModelViewMatrixUniformName = "shadowModelViewMatrix" + std::to_string(sm_i);
+                    osg::ref_ptr<osg::Uniform> shadowModelViewMatrixUniform;
+
+                    for (auto uniform : _uniforms[cv.getTraversalNumber() % 2])
+                    {
+                        if (uniform->getName() == shadowModelViewMatrixUniformName)
+                            shadowModelViewMatrixUniform = uniform;
+                    }
+
+                    if (!shadowModelViewMatrixUniform)
+                    {
+                        shadowModelViewMatrixUniform = new osg::Uniform(osg::Uniform::FLOAT_MAT4, shadowModelViewMatrixUniformName);
+                        _uniforms[cv.getTraversalNumber() % 2].push_back(shadowModelViewMatrixUniform);
+                    }
+
+                    shadowModelViewMatrixUniform->set(shadowModelViewMatrix);
+                }
+
+
+//=========================================================================================================================================
+
+
+
             // mark the light as one that has active shadows and requires shaders
             pl.textureUnits.push_back(textureUnit);
 
