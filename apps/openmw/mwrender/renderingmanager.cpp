@@ -382,7 +382,7 @@ namespace MWRender
         for (auto itr = lightDefines.begin(); itr != lightDefines.end(); itr++)
             globalDefines[itr->first] = itr->second;
 
-        float groundcoverDistance = (Constants::CellSizeInUnits * Settings::Manager::getInt("distance", "Groundcover") - 1024) * 0.93;
+        float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
         globalDefines["groundcoverFadeStart"] = std::to_string(groundcoverDistance * Settings::Manager::getFloat("fade start", "Groundcover"));
         globalDefines["groundcoverFadeEnd"] = std::to_string(groundcoverDistance);
         globalDefines["groundcoverStompMode"] = std::to_string(std::clamp(Settings::Manager::getInt("stomp mode", "Groundcover"), 0, 2));
@@ -485,6 +485,10 @@ namespace MWRender
             mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
             static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
             mResourceSystem->addResourceManager(mGroundcoverPaging.get());
+
+            // Groundcover it is handled in the same way indifferently from if it is from active grid or from distant cell.
+            // Use a stub grid to avoid splitting between chunks for active grid and chunks for distant cells.
+            mGroundcoverWorld->setActiveGrid(osg::Vec4i(0, 0, 0, 0));
         }
 
         mStateUpdater = new StateUpdater;
@@ -1246,7 +1250,7 @@ namespace MWRender
 
         if (mGroundcoverWorld)
         {
-            int groundcoverDistance = Constants::CellSizeInUnits * Settings::Manager::getInt("distance", "Groundcover");
+            float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
             mGroundcoverWorld->setViewDistance(groundcoverDistance * (distanceMult ? 1.f/distanceMult : 1.f));
         }
     }
@@ -1481,8 +1485,6 @@ namespace MWRender
     void RenderingManager::setActiveGrid(const osg::Vec4i &grid)
     {
         mTerrain->setActiveGrid(grid);
-        if (mGroundcoverWorld)
-            mGroundcoverWorld->setActiveGrid(grid);
     }
 
     bool RenderingManager::pagingEnableObject(int type, const MWWorld::ConstPtr& ptr, bool enabled)
