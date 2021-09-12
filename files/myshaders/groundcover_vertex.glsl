@@ -42,11 +42,11 @@ varying vec3 passNormal;
   #endif
 #endif
 
-uniform mat4 osg_ViewMatrixInverse;
+uniform highp mat4 osg_ViewMatrixInverse;
 uniform float osg_SimulationTime;
 
 uniform vec3 windData;
-uniform vec3 playerPos;
+uniform highp vec3 playerPos;
 attribute float originalCoords;
 
 #if @groundcoverStompMode == 0
