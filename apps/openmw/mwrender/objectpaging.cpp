@@ -782,7 +782,7 @@ namespace MWRender
             stateset->setRenderBinToInherit();
 
             osg::ref_ptr<osg::AlphaFunc> alpha = new osg::AlphaFunc(osg::AlphaFunc::GEQUAL, 128.f / 255.f);
-            stateset->getOrCreateStateSet()->setAttributeAndModes(alpha.get(), osg::StateAttribute::ON);
+            stateset->setAttributeAndModes(alpha.get(), osg::StateAttribute::ON);
             mSceneManager->recreateShaders(group, "groundcover", false, true);
         }
 
