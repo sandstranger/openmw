@@ -771,7 +771,7 @@ namespace MWRender
             mSceneManager->reinstateRemovedState(group);
             osg::ref_ptr<osg::AlphaFunc> alpha = new osg::AlphaFunc(osg::AlphaFunc::GEQUAL, 128.f / 255.f);
 
-            if (resourceSystem->getSceneManager()->getLightingMethod() != SceneUtil::LightingMethod::FFP)
+            if (mSceneManager->getLightingMethod() != SceneUtil::LightingMethod::FFP)
                 group->setCullCallback(new SceneUtil::LightListCallback);
 
             osg::StateSet* stateset = group->getOrCreateStateSet();
