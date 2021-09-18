@@ -21,6 +21,8 @@ set(SHADER_FILES
     objects_fragment.glsl
     terrain_vertex.glsl
     terrain_fragment.glsl
+    particles_vertex.glsl
+    particles_fragment.glsl
     lighting.glsl
     lighting_util.glsl
     parallax.glsl
@@ -42,7 +44,7 @@ set(SHADER_FILES
 )
 
 set(SHADER_FILES_PBR
-    pbr/helper_util.glsl
+    pbr/helperutil.glsl
     pbr/groundcover_vertex.glsl
     pbr/groundcover_fragment.glsl
     pbr/water_vertex.glsl
@@ -54,6 +56,8 @@ set(SHADER_FILES_PBR
     pbr/objects_fragment.glsl
     pbr/terrain_vertex.glsl
     pbr/terrain_fragment.glsl
+    pbr/particles_vertex.glsl
+    pbr/particles_fragment.glsl
     pbr/lighting.glsl
     pbr/lighting_util.glsl
     pbr/parallax.glsl
