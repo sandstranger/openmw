@@ -141,7 +141,7 @@ uniform sampler2D normalMap;
 uniform sampler2D reflectionMap;
 #if REFRACTION
 uniform sampler2D refractionMap;
-uniform sampler2D refractionDepthMap;
+uniform highp sampler2D refractionDepthMap;
 #endif
 
 uniform float osg_SimulationTime;
