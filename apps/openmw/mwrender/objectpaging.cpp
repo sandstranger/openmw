@@ -435,7 +435,6 @@ namespace MWRender
          , mGroundcover(groundcover)
          , mRefTrackerLocked(false)
     {
-
         mActiveGrid = Settings::Manager::getBool("object paging active grid", "Terrain") || groundcover;
         mDebugBatches = Settings::Manager::getBool("debug chunks", "Terrain");
         mMergeFactor = Settings::Manager::getFloat("object paging merge factor", "Terrain");
