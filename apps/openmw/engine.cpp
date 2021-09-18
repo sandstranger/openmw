@@ -754,7 +754,12 @@ void OMW::Engine::prepareEngine (Settings::Manager & settings)
         gameControllerdb = ""; //if it doesn't exist, pass in an empty string
 
     // gui needs our shaders path before everything else
-    mResourceSystem->getSceneManager()->setShaderPath((mResDir / "shaders").string());
+    std::string shadersDir = mResDir.string() + "/shaders";
+    const char *path = getenv("OPENMW_SHADERS");
+    if(path) 
+        shadersDir = shadersDir + "/" + path;
+
+    mResourceSystem->getSceneManager()->setShaderPath(shadersDir);
 
     osg::ref_ptr<osg::GLExtensions> exts = osg::GLExtensions::Get(0, false);
     bool shadersSupported = exts && (exts->glslLanguageVersion >= 1.2f);
