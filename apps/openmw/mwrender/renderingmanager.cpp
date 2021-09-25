@@ -73,51 +73,6 @@
 
 namespace MWRender
 {
-    class GroundcoverUpdater : public SceneUtil::StateSetUpdater
-    {
-    public:
-        GroundcoverUpdater()
-            : mWindData(osg::Vec3f())
-            , mPlayerPos(osg::Vec3f())
-        {
-        }
-
-        void setWindData(osg::Vec3f windData)
-        {
-            mWindData = windData;
-        }
-
-        void setPlayerPos(osg::Vec3f playerPos)
-        {
-            mPlayerPos = playerPos;
-        }
-
-    protected:
-        void setDefaults(osg::StateSet *stateset) override
-        {
-            osg::ref_ptr<osg::Uniform> windUniform = new osg::Uniform("windData", osg::Vec3f(0.f, 0.f, 0.f));
-            stateset->addUniform(windUniform.get());
-
-            osg::ref_ptr<osg::Uniform> playerPosUniform = new osg::Uniform("playerPos", osg::Vec3f(0.f, 0.f, 0.f));
-            stateset->addUniform(playerPosUniform.get());
-        }
-
-        void apply(osg::StateSet *stateset, osg::NodeVisitor *nv) override
-        {
-            osg::ref_ptr<osg::Uniform> windUniform = stateset->getUniform("windData");
-            if (windUniform != nullptr)
-                windUniform->set(mWindData);
-
-            osg::ref_ptr<osg::Uniform> playerPosUniform = stateset->getUniform("playerPos");
-            if (playerPosUniform != nullptr)
-                playerPosUniform->set(mPlayerPos);
-        }
-
-    private:
-        osg::Vec3f mWindData;
-        osg::Vec3f mPlayerPos;
-    };
-
     class SharedUniformStateUpdater : public SceneUtil::StateSetUpdater
     {
     public:
