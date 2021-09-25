@@ -121,10 +121,12 @@ namespace MWRender
     class SharedUniformStateUpdater : public SceneUtil::StateSetUpdater
     {
     public:
-        SharedUniformStateUpdater()
+        SharedUniformStateUpdater(bool usePlayerUniforms)
             : mLinearFac(0.f)
             , mNear(0.f)
             , mFar(0.f)
+            , mUsePlayerUniforms(usePlayerUniforms)
+            , mWindData(osg::Vec3f(0.f, 0.f, 0.f))
         {
         }
 
@@ -134,6 +136,11 @@ namespace MWRender
             stateset->addUniform(new osg::Uniform("linearFac", 0.f));
             stateset->addUniform(new osg::Uniform("near", 0.f));
             stateset->addUniform(new osg::Uniform("far", 0.f));
+            if (mUsePlayerUniforms)
+            {
+                stateset->addUniform(new osg::Uniform("windData", osg::Vec3f(0.f, 0.f, 0.f)));
+                stateset->addUniform(new osg::Uniform("playerPos", osg::Vec3f(0.f, 0.f, 0.f)));
+            }
         }
 
         void apply(osg::StateSet* stateset, osg::NodeVisitor* nv) override
@@ -154,6 +161,16 @@ namespace MWRender
             if (uFar)
                 uFar->set(mFar);
 
+            if (mUsePlayerUniforms)
+            {
+                auto* windData = stateset->getUniform("windData");
+                if (windData)
+                    windData->set(mWindData);
+
+                auto* playerPos = stateset->getUniform("playerPos");
+                if (playerPos)
+                    playerPos->set(mPlayerPos);
+            }
         }
 
         void setProjectionMatrix(const osg::Matrixf& projectionMatrix)
@@ -176,11 +193,25 @@ namespace MWRender
             mFar = far;
         }
 
+        void setWindData(osg::Vec3f windData)
+        {
+            mWindData = windData;
+        }
+
+        void setPlayerPos(osg::Vec3f playerPos)
+        {
+            mPlayerPos = playerPos;
+        }
+
+
     private:
         osg::Matrixf mProjectionMatrix;
         float mLinearFac;
         float mNear;
         float mFar;
+        bool mUsePlayerUniforms;
+        osg::Vec3f mWindData;
+        osg::Vec3f mPlayerPos;
     };
 
     class StateUpdater : public SceneUtil::StateSetUpdater
@@ -451,12 +482,8 @@ namespace MWRender
         mTerrain->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
         mTerrain->setWorkQueue(mWorkQueue.get());
 
-        osg::ref_ptr<SceneUtil::CompositeStateSetUpdater> composite = new SceneUtil::CompositeStateSetUpdater;
-
         if (groundcover)
         {
-            mGroundcoverUpdater = new GroundcoverUpdater;
-            composite->addController(mGroundcoverUpdater);
 /*
             if (resourceSystem->getSceneManager()->getLightingMethod() != SceneUtil::LightingMethod::FFP)
                 groundcoverRoot->setCullCallback(new SceneUtil::LightListCallback);
@@ -478,10 +505,9 @@ namespace MWRender
         }
 
         mStateUpdater = new StateUpdater;
-        composite->addController(mStateUpdater);
-        sceneRoot->addUpdateCallback(composite);
+        sceneRoot->addUpdateCallback(mStateUpdater);
 
-        mSharedUniformStateUpdater = new SharedUniformStateUpdater;
+        mSharedUniformStateUpdater = new SharedUniformStateUpdater(groundcover);
         rootNode->addUpdateCallback(mSharedUniformStateUpdater);
 
         mPostProcessor = new PostProcessor(*this, viewer, mRootNode);
@@ -853,17 +879,14 @@ namespace MWRender
             mSky->update(dt);
             mWater->update(dt);
 
-            if (mGroundcoverUpdater)
-            {
-                const MWWorld::Ptr& player = mPlayerAnimation->getPtr();
-                osg::Vec3f playerPos(player.getRefData().getPosition().asVec3());
+            const MWWorld::Ptr& player = mPlayerAnimation->getPtr();
+            osg::Vec3f playerPos(player.getRefData().getPosition().asVec3());
 
-                float windSpeed = mSky->getBaseWindSpeed();
-		osg::Vec2f stormDir = mSky->getSmoothedStormDir();
+            float windSpeed = mSky->getBaseWindSpeed();
+	    osg::Vec2f stormDir = mSky->getSmoothedStormDir();
 
-                mGroundcoverUpdater->setWindData(osg::Vec3f(windSpeed, stormDir[0], stormDir[1]));
-                mGroundcoverUpdater->setPlayerPos(playerPos);
-            }
+            mSharedUniformStateUpdater->setWindData(osg::Vec3f(windSpeed, stormDir[0], stormDir[1]));
+            mSharedUniformStateUpdater->setPlayerPos(playerPos);
         }
 
         updateNavMesh();
