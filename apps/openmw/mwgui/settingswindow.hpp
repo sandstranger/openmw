@@ -8,7 +8,7 @@ namespace MWGui
     class SettingsWindow : public WindowBase
     {
         public:
-            SettingsWindow();
+            SettingsWindow(std::string layout = "openmw_settings_window.layout");
 
             void onOpen() override;
 

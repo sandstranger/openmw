@@ -54,6 +54,8 @@ varying vec3 passNormal;
 #include "fog.glsl"
 #include "alpha.glsl"
 
+uniform mat3 grassData;
+
 void main()
 {
 
@@ -70,8 +72,8 @@ if(fogValue != 1.0)
 #endif
 {
 
-if(@groundcoverFadeEnd != @groundcoverFadeStart)
-    if (depth > @groundcoverFadeEnd)
+if(grassData[2].y != grassData[2].x)
+    if (depth > grassData[2].y)
         discard;
 
 #if @normalMap
@@ -89,8 +91,8 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
     gl_FragData[0] = vec4(1.0);
 #endif
 
-    if (depth > @groundcoverFadeStart)
-        gl_FragData[0].a *= 1.0-smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, depth);
+    if (depth > grassData[2].x)
+        gl_FragData[0].a *= 1.0-smoothstep(grassData[2].x, grassData[2].y, depth);
 
     alphaTest();
 

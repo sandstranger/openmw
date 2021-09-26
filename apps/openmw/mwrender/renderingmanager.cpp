@@ -81,7 +81,7 @@ namespace MWRender
             , mNear(0.f)
             , mFar(0.f)
             , mUsePlayerUniforms(usePlayerUniforms)
-            , mWindData(osg::Vec3f(0.f, 0.f, 0.f))
+            , mGrassData(osg::Matrix3(0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f))
         {
         }
 
@@ -93,8 +93,7 @@ namespace MWRender
             stateset->addUniform(new osg::Uniform("far", 0.f));
             if (mUsePlayerUniforms)
             {
-                stateset->addUniform(new osg::Uniform("windData", osg::Vec3f(0.f, 0.f, 0.f)));
-                stateset->addUniform(new osg::Uniform("playerPos", osg::Vec3f(0.f, 0.f, 0.f)));
+                stateset->addUniform(new osg::Uniform("grassData", osg::Matrix3(0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f)));
             }
         }
 
@@ -118,13 +117,9 @@ namespace MWRender
 
             if (mUsePlayerUniforms)
             {
-                auto* windData = stateset->getUniform("windData");
-                if (windData)
-                    windData->set(mWindData);
-
-                auto* playerPos = stateset->getUniform("playerPos");
-                if (playerPos)
-                    playerPos->set(mPlayerPos);
+                auto* grassData = stateset->getUniform("grassData");
+                if (grassData)
+                    grassData->set(mGrassData);
             }
         }
 
@@ -148,16 +143,10 @@ namespace MWRender
             mFar = far;
         }
 
-        void setWindData(osg::Vec3f windData)
+        void setGrassData(osg::Matrix3 grassData)
         {
-            mWindData = windData;
+            mGrassData = grassData;
         }
-
-        void setPlayerPos(osg::Vec3f playerPos)
-        {
-            mPlayerPos = playerPos;
-        }
-
 
     private:
         osg::Matrixf mProjectionMatrix;
@@ -165,8 +154,7 @@ namespace MWRender
         float mNear;
         float mFar;
         bool mUsePlayerUniforms;
-        osg::Vec3f mWindData;
-        osg::Vec3f mPlayerPos;
+        osg::Matrix3 mGrassData;
     };
 
     class StateUpdater : public SceneUtil::StateSetUpdater
@@ -833,16 +821,21 @@ namespace MWRender
             mEffectManager->update(dt);
             mSky->update(dt);
             mWater->update(dt);
+        }
 
+        if (mGroundcoverPaging)
+	{
             const MWWorld::Ptr& player = mPlayerAnimation->getPtr();
             osg::Vec3f playerPos(player.getRefData().getPosition().asVec3());
 
             float windSpeed = mSky->getBaseWindSpeed();
 	    osg::Vec2f stormDir = mSky->getSmoothedStormDir();
 
-            mSharedUniformStateUpdater->setWindData(osg::Vec3f(windSpeed, stormDir[0], stormDir[1]));
-            mSharedUniformStateUpdater->setPlayerPos(playerPos);
-        }
+            float fadeEnd = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
+            float fadeStart = fadeEnd * Settings::Manager::getFloat("fade start", "Groundcover");
+
+            mSharedUniformStateUpdater->setGrassData(osg::Matrix3(windSpeed, stormDir[0], stormDir[1], playerPos[0], playerPos[1], playerPos[2], fadeStart, fadeEnd, 0.f));
+	}
 
         updateNavMesh();
         updateRecastMesh();
@@ -1268,6 +1261,11 @@ namespace MWRender
                 if(!Settings::Manager::getBool("use distant fog", "Fog"))
                     mStateUpdater->setFogEnd(mViewDistance);
                 updateProjectionMatrix();
+            }
+            else if (it->first == "Groundcover" && it->second == "rendering distance")
+            {
+            	float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
+            	mGroundcoverPaging->setViewDistance(groundcoverDistance);
             }
             else if (it->first == "General" && (it->second == "texture filter" ||
                                                 it->second == "texture mipmap" ||

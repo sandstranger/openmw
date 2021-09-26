@@ -205,8 +205,8 @@ namespace MWGui
         }
     }
 
-    SettingsWindow::SettingsWindow() :
-        WindowBase("openmw_settings_window.layout"),
+    SettingsWindow::SettingsWindow(std::string layout) :
+        WindowBase(layout),
         mKeyboardMode(true)
     {
         bool terrain = Settings::Manager::getBool("distant terrain", "Terrain");

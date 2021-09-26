@@ -39,8 +39,15 @@ centroid varying vec3 passLighting;
 #include "lighting.glsl"
 #include "alpha.glsl"
 
+uniform mat3 grassData;
+
 void main()
 {
+
+if(grassData[2].y != grassData[2].x)
+    if (depth > grassData[2].y)
+        discard;
+
 #if @normalMap
     vec4 normalTex = texture2D(normalMap, normalMapUV);
 
@@ -59,8 +66,8 @@ void main()
     gl_FragData[0] = vec4(1.0);
 #endif
 
-    if (depth > @groundcoverFadeStart)
-        gl_FragData[0].a *= 1.0-smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, depth);
+    if (depth > grassData[2].x)
+        gl_FragData[0].a *= 1.0-smoothstep(grassData[2].x, grassData[2].y, depth);
 
     alphaTest();
 

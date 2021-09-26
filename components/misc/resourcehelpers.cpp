@@ -44,7 +44,7 @@ bool Misc::ResourceHelpers::changeExtensionToDds(std::string &path)
 
 bool Misc::ResourceHelpers::DensityCalculator::isInstanceEnabled()
 {
-    static const float density = Settings::Manager::getFloat("density", "Groundcover");
+    float density = Settings::Manager::getFloat("density", "Groundcover");
 
     mCurrentGroundcover += density;
     if (mCurrentGroundcover < 1.f) return false;

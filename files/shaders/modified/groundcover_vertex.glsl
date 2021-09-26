@@ -45,8 +45,7 @@ varying vec3 passNormal;
 uniform highp mat4 osg_ViewMatrixInverse;
 uniform float osg_SimulationTime;
 
-uniform vec3 windData;
-uniform highp vec3 playerPos;
+uniform highp mat3 grassData;
 attribute float originalCoords;
 
 #if @groundcoverStompMode == 0
@@ -60,6 +59,9 @@ attribute float originalCoords;
 
 highp vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
 {
+    vec3 windData = grassData[0];
+    vec3 playerPos = grassData[1];
+
     highp float h = originalCoords;
 
     highp vec4 worldPos = osg_ViewMatrixInverse * vec4(viewPos, 1.0);
