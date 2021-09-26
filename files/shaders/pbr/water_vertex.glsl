@@ -1,17 +1,22 @@
 #version 120
-
-uniform mat4 projectionMatrix;
+precision highp float;
 
 varying vec3  screenCoordsPassthrough;
 varying vec4  position;
 varying float linearDepth;
+uniform mat4 osg_ViewMatrixInverse;
 
 #include "shadows_vertex.glsl"
-#include "depth.glsl"
 
 void main(void)
 {
-    gl_Position = projectionMatrix * (gl_ModelViewMatrix * gl_Vertex);
+	vec3 cameraPos = (/*gl_ModelViewMatrixInverse*/ osg_ViewMatrixInverse * vec4(0,0,0,1)).xyz;
+	float zbias = 0.0;
+		
+	if(cameraPos.z > 0.0)
+		zbias = mix(0.0, -35.0, clamp(cameraPos.z, 0.0, 1000.0)/1000.0);
+	
+    gl_Position = gl_ModelViewProjectionMatrix * (gl_Vertex + vec4(0.0, 0.0, zbias,0.0));
 
     mat4 scalemat = mat4(0.5, 0.0, 0.0, 0.0,
                          0.0, -0.5, 0.0, 0.0,
@@ -21,10 +26,9 @@ void main(void)
     vec4 texcoordProj = ((scalemat) * ( gl_Position));
     screenCoordsPassthrough = texcoordProj.xyw;
 
-    position = gl_Vertex;
+    position = gl_Vertex + vec4(0.0, 0.0, zbias, 0.0);
 
-    vec4 viewPos = gl_ModelViewMatrix * gl_Vertex;
-    linearDepth = getLinearDepth(gl_Position.z, viewPos.z);
+    linearDepth = gl_Position.z;
 
-    setupShadowCoords(viewPos, normalize((gl_NormalMatrix * gl_Normal).xyz));
+    setupShadowCoords(gl_ModelViewMatrix * gl_Vertex, normalize((gl_NormalMatrix * gl_Normal).xyz));
 }
