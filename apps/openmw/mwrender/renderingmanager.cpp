@@ -82,6 +82,7 @@ namespace MWRender
             , mFar(0.f)
             , mUsePlayerUniforms(usePlayerUniforms)
             , mGrassData(osg::Matrix3(0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f))
+            , mShaderSettings(osg::Vec4f(0.f, 0.f, 0.f, 0.f))
         {
         }
 
@@ -95,6 +96,12 @@ namespace MWRender
             {
                 stateset->addUniform(new osg::Uniform("grassData", osg::Matrix3(0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f)));
             }
+            stateset->addUniform(new osg::Uniform("shaderSettings", osg::Vec4f(
+		Settings::Manager::getFloat("tonemaper", "Shaders")
+		, 0.f
+		, 0.f
+		, 0.f
+		)));
         }
 
         void apply(osg::StateSet* stateset, osg::NodeVisitor* nv) override
@@ -121,6 +128,10 @@ namespace MWRender
                 if (grassData)
                     grassData->set(mGrassData);
             }
+
+            auto* uShaderSettings = stateset->getUniform("shaderSettings");
+            if (uShaderSettings)
+                uShaderSettings->set(mShaderSettings);
         }
 
         void setProjectionMatrix(const osg::Matrixf& projectionMatrix)
@@ -148,6 +159,11 @@ namespace MWRender
             mGrassData = grassData;
         }
 
+        void setShaderSettings(int setting, float value)
+        {
+	    mShaderSettings[setting] = value;
+        }
+
     private:
         osg::Matrixf mProjectionMatrix;
         float mLinearFac;
@@ -155,6 +171,7 @@ namespace MWRender
         float mFar;
         bool mUsePlayerUniforms;
         osg::Matrix3 mGrassData;
+        osg::Vec4f mShaderSettings;
     };
 
     class StateUpdater : public SceneUtil::StateSetUpdater
@@ -1266,6 +1283,11 @@ namespace MWRender
             {
             	float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
             	mGroundcoverPaging->setViewDistance(groundcoverDistance);
+            }
+            else if (it->first == "Shaders" && it->second == "tonemaper")
+            {
+            	float tonemaper = std::max(0.f, Settings::Manager::getFloat("tonemaper", "Shaders"));
+            	mSharedUniformStateUpdater->setShaderSettings(0, tonemaper);
             }
             else if (it->first == "General" && (it->second == "texture filter" ||
                                                 it->second == "texture mipmap" ||
