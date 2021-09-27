@@ -98,7 +98,7 @@ namespace MWRender
             }
             stateset->addUniform(new osg::Uniform("shaderSettings", osg::Vec4f(
 		Settings::Manager::getFloat("tonemaper", "Shaders")
-		, 0.f
+		, Settings::Manager::getBool("underwater fog", "Water") ? 1.f : 0.f
 		, 0.f
 		, 0.f
 		)));
@@ -469,6 +469,14 @@ namespace MWRender
 
         mSharedUniformStateUpdater = new SharedUniformStateUpdater(groundcover);
         rootNode->addUpdateCallback(mSharedUniformStateUpdater);
+
+        osg::Vec4f shaderSettings = osg::Vec4f(
+		Settings::Manager::getFloat("tonemaper", "Shaders")
+		, Settings::Manager::getBool("underwater fog", "Water") ? 1.f : 0.f
+		, 0.f
+		, 0.f);
+
+        mSharedUniformStateUpdater->setShaderSettings(shaderSettings);
 
         mPostProcessor = new PostProcessor(*this, viewer, mRootNode);
         resourceSystem->getSceneManager()->setDepthFormat(mPostProcessor->getDepthFormat());
@@ -1288,6 +1296,11 @@ namespace MWRender
             {
             	float tonemaper = std::max(0.f, Settings::Manager::getFloat("tonemaper", "Shaders"));
             	mSharedUniformStateUpdater->setShaderSettings(0, tonemaper);
+            }
+            else if (it->first == "Water" && it->second == "underwater fog")
+            {
+            	bool enabled = Settings::Manager::getBool("underwater fog", "Water");
+            	mSharedUniformStateUpdater->setShaderSettings(1, enabled);
             }
             else if (it->first == "General" && (it->second == "texture filter" ||
                                                 it->second == "texture mipmap" ||

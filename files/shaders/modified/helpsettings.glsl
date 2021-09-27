@@ -1,6 +1,7 @@
 //#define LINEAR_LIGHTING
 //#define ATTEN_FIX
 
+/*
 #ifdef LINEAR_LIGHTING
     //dont change this vtastek lighting is made with specific tonemaper in mind!
     #include "glsl-tone-map-master/vtastek.glsl"
@@ -8,6 +9,10 @@
     //custom tonemaper can be changed here.
     #include "glsl-tone-map-master/none.glsl"
 #endif
+*/
+
+uniform vec4 shaderSettings;
+#include "tonemap.glsl"
 
 // contrast for day and night
 // night setting also affects interiors
@@ -22,7 +27,7 @@ const float foghdistance = 1.0;
 const float maxfheight = 1.0;
 
 // underwater fog setting, need to find better config vec3(start, end, contrib)
-const vec3 uwdeepfog = vec3(-2000.0, 1000.0, 1.0); //deeper terrain/objects become more fogged
+const vec3 uwdeepfog = vec3(-1000.0, 1500.0, 1.0); //deeper terrain/objects become more fogged
 const vec3 uwdistfog = vec3(-3333.0, 6666.0, 0.15); //distant underwater terrain/objects become more fogged
 const vec3 uwfogcolor = vec3(12.0/255.0, 30.0/255.0, 37.0/255.0);
 //#define UNDERWATER_DISTORTION

@@ -655,8 +655,6 @@ private:
 
 void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, Refraction* refraction)
 {
-    bool depth_enabled = Settings::Manager::getBool("refraction depth map", "Water");
-
     std::string shaderPrefix = "";
     if(Settings::Manager::getBool("vtastek shader", "Water"))
         shaderPrefix = "vtastek_";
@@ -664,7 +662,6 @@ void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, R
     // use a define map to conditionally compile the shader
     std::map<std::string, std::string> defineMap;
     defineMap.insert(std::make_pair(std::string("refraction_enabled"), std::string(mRefraction ? "1" : "0")));
-    defineMap.insert(std::make_pair(std::string("refraction_depth_enabled"), std::string(depth_enabled ? "1" : "0")));
 
     Shader::ShaderManager& shaderMgr = mResourceSystem->getSceneManager()->getShaderManager();
     osg::ref_ptr<osg::Shader> vertexShader(shaderMgr.getShader(shaderPrefix + "water_vertex.glsl", defineMap, osg::Shader::VERTEX));

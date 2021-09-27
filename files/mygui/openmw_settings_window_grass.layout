@@ -305,6 +305,24 @@
                             <Property key="Caption" value="Hint: press F3 to show \nthe current frame rate."/>
                         </Widget>
 
+                        <Widget type="TextBox" skin="SandText" position="182 130 300 32" align="Left Top">
+                            <Property key="Caption" value="Tonemaper \nmodified shader only"/>
+                        </Widget>
+                        <Widget type="HBox" skin="" position="182 166 350 24">
+                            <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 115 24" align="Left Top" name="TonemaperSwitch">
+                                <Property key="AddItem" value="None"/>
+                                <Property key="AddItem" value="Aces"/>
+                                <Property key="AddItem" value="Filmic"/>
+                                <Property key="AddItem" value="Lottes"/>
+                                <Property key="AddItem" value="Reinhard"/>
+                                <Property key="AddItem" value="Reinhard 2"/>
+                                <Property key="AddItem" value="Uchimura"/>
+                                <Property key="AddItem" value="Uncharted2"/>
+                                <Property key="AddItem" value="Unreal"/>
+                                <Property key="AddItem" value="Vtastek"/>
+                            </Widget>
+                        </Widget>
+
                         <Widget type="TextBox" skin="NormalText" position="0 198 352 18" align="Left Top" name="FovText">
                         </Widget>
                         <Widget type="ScrollBar" skin="MW_HScroll" position="0 222 352 18" align="HStretch Top">
@@ -438,6 +456,12 @@
                             <Property key="TextAlign" value="Right"/>
                         </Widget>
                     </Widget>
+
+
+
+
+
+
                     <Widget type="TabItem" skin="" position="0 28 352 268">
                         <Property key="Caption" value="  Water  "/>
                         <Widget type="HBox" skin="" position="4 4 350 24">
@@ -450,7 +474,30 @@
                                 <Property key="Caption" value="Water shader"/>
                             </Widget>
                         </Widget>
-                        <Widget type="Widget" skin="" position="24 32 300 230">
+
+                        <Widget type="HBox" skin="" position="4 32 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                                <UserString key="SettingCategory" value="Water"/>
+                                <UserString key="SettingName" value="vtastek shader"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                                <Property key="Caption" value="Vtastek shader"/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="HBox" skin="" position="4 60 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                                <UserString key="SettingCategory" value="Water"/>
+                                <UserString key="SettingName" value="underwater fog"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                                <Property key="Caption" value="Underwater fog (modified shaders only)"/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="Widget" skin="" position="24 88 300 230">
                             <Widget type="HBox" skin="" position="4 0 350 24">
                                 <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
                                     <UserString key="SettingCategory" value="Water"/>
@@ -487,6 +534,10 @@
                         </Widget>
 
                     </Widget>
+
+
+
+
 
                     <Widget type="TabItem" skin="" position="4 32 360 308">
                         <Property key="Caption" value="  Lights  "/>

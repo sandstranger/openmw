@@ -37,9 +37,7 @@ varying float depth;
 varying vec3 passNormal;
 #endif
 
-#if PER_PIXEL_LIGHTING || @specularMap || @radialFog ||defined(SIMPLE_WATER_TWEAK) || @underwaterFog
 varying vec3 passViewPos;
-#endif
 
 #ifdef HEIGHT_FOG
 varying vec3 fogH;
@@ -117,9 +115,7 @@ void main(void)
     passNormal = gl_Normal.xyz;
 #endif
 
-#if PER_PIXEL_LIGHTING || @specularMap || @radialFog || defined(SIMPLE_WATER_TWEAK) || @underwaterFog
     passViewPos = viewPos.xyz;
-#endif
 
 #ifdef HEIGHT_FOG
     fogH = (osg_ViewMatrixInverse * viewPos).xyz;

@@ -51,25 +51,17 @@ uniform mat2 bumpMapMatrix;
 
 #include "helpsettings.glsl"
 
-#if defined(LINEAR_LIGHTING) || @underwaterFog
 uniform bool isInterior;
-#endif
 
 #include "vertexcolors.glsl"
 #include "lighting_util.glsl"
 
-#if @radialFog || @underwaterFog || defined(SIMPLE_WATER_TWEAK)
 uniform bool simpleWater;
-#endif
 
-#if @underwaterFog || defined(NORMAL_MAP_FADING)
 uniform bool skip;
-#endif
 
-#if @underwaterFog
 uniform mat4 osg_ViewMatrixInverse;
 uniform bool isPlayer;
-#endif
 
 #ifdef ANIMATED_HEIGHT_FOG
 uniform float osg_SimulationTime;
@@ -83,9 +75,7 @@ centroid varying vec3 passLighting;
 varying vec3 passNormal;
 #endif
 
-#if PER_PIXEL_LIGHTING || @specularMap || @radialFog || defined(SIMPLE_WATER_TWEAK) || @underwaterFog
 varying vec3 passViewPos;
-#endif
 
 #if @translucentFramebuffer
 uniform bool noAlpha;
@@ -107,23 +97,16 @@ varying float depth;
 
 void main()
 {
-#if @underwaterFog
+bool underwaterFog = (shaderSettings.y != 0.0) ? true : false;
+
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 && !simpleWater && !skip && !isInterior && !isPlayer;
     float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
-#endif
 
 #if @radialFog
     float fogValue = getFogValue((simpleWater) ? length(passViewPos) : depth);
 #else
     float fogValue = getFogValue(depth);
 #endif
-
-#if @underwaterFog
-if(underwaterFogValue != 1.0 && fogValue != 1.0)
-#else
-if(fogValue != 1.0)
-#endif
-{
 
 float shadowpara = 1.0;
 
@@ -317,12 +300,11 @@ if(simpleWater)
     if (noAlpha)
          gl_FragData[0].a = 1.0;
 #endif
- }
-//else gl_FragData[0].x = 1.0;
+ 
 
-#if @underwaterFog
+if(underwaterFog)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
-#endif
+
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));

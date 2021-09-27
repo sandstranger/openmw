@@ -20,9 +20,7 @@ uniform mat4 osg_ViewMatrixInverse;
 uniform float osg_SimulationTime;
 #endif
 
-#if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG) || @underwaterFog)
 varying vec3 passViewPos;
-#endif
 
 #if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG))
 varying vec3 passNormal;
@@ -51,11 +49,8 @@ void main(void)
     depth = gl_Position.z;
 #endif
 
-passColor = gl_Color;
-
-#if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG) || @underwaterFog)
+    passColor = gl_Color;
     passViewPos = viewPos.xyz;
-#endif
 
 #if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG))
     passNormal = gl_Normal.xyz;
