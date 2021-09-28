@@ -96,12 +96,7 @@ namespace MWRender
             {
                 stateset->addUniform(new osg::Uniform("grassData", osg::Matrix3(0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f)));
             }
-            stateset->addUniform(new osg::Uniform("shaderSettings", osg::Vec4f(
-		Settings::Manager::getFloat("tonemaper", "Shaders")
-		, Settings::Manager::getBool("underwater fog", "Water") ? 1.f : 0.f
-		, 0.f
-		, 0.f
-		)));
+            stateset->addUniform(new osg::Uniform("shaderSettings", osg::Vec4f(0.f, 0.f, 0.f, 0.f)));
         }
 
         void apply(osg::StateSet* stateset, osg::NodeVisitor* nv) override
@@ -373,17 +368,10 @@ namespace MWRender
         for (auto itr = lightDefines.begin(); itr != lightDefines.end(); itr++)
             globalDefines[itr->first] = itr->second;
 
-        float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
-        globalDefines["groundcoverFadeStart"] = std::to_string(groundcoverDistance * Settings::Manager::getFloat("fade start", "Groundcover"));
-        globalDefines["groundcoverFadeEnd"] = std::to_string(groundcoverDistance);
         globalDefines["groundcoverStompMode"] = std::to_string(std::clamp(Settings::Manager::getInt("stomp mode", "Groundcover"), 0, 2));
         globalDefines["groundcoverStompIntensity"] = std::to_string(std::clamp(Settings::Manager::getInt("stomp intensity", "Groundcover"), 0, 2));
 
-	globalDefines["underwaterFog"] = Settings::Manager::getBool("underwater fog", "Water") ? "1" : "0";
-	globalDefines["objectsParallaxShadows"] = Settings::Manager::getBool("objects parallax soft shadows", "Shaders") ? "1" : "0";
-	globalDefines["terrainParallaxShadows"] = Settings::Manager::getBool("terrain parallax soft shadows", "Shaders") ? "1" : "0";
         globalDefines["reverseZ"] = reverseZ ? "1" : "0";
-
 
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
@@ -470,13 +458,10 @@ namespace MWRender
         mSharedUniformStateUpdater = new SharedUniformStateUpdater(groundcover);
         rootNode->addUpdateCallback(mSharedUniformStateUpdater);
 
-        osg::Vec4f shaderSettings = osg::Vec4f(
-		Settings::Manager::getFloat("tonemaper", "Shaders")
-		, Settings::Manager::getBool("underwater fog", "Water") ? 1.f : 0.f
-		, 0.f
-		, 0.f);
-
-        mSharedUniformStateUpdater->setShaderSettings(shaderSettings);
+        mSharedUniformStateUpdater->setShaderSettings(0, Settings::Manager::getFloat("tonemaper", "Shaders"));
+        mSharedUniformStateUpdater->setShaderSettings(1, Settings::Manager::getBool("underwater fog", "Water") ? 1.f : 0.f);
+        mSharedUniformStateUpdater->setShaderSettings(2, Settings::Manager::getBool("parallax soft shadows", "Shaders") ? 1.f : 0.f);
+        mSharedUniformStateUpdater->setShaderSettings(3, Settings::Manager::getFloat("gamma", "Video"));
 
         mPostProcessor = new PostProcessor(*this, viewer, mRootNode);
         resourceSystem->getSceneManager()->setDepthFormat(mPostProcessor->getDepthFormat());
@@ -1301,6 +1286,16 @@ namespace MWRender
             {
             	bool enabled = Settings::Manager::getBool("underwater fog", "Water");
             	mSharedUniformStateUpdater->setShaderSettings(1, enabled);
+            }
+            else if (it->first == "Shaders" && it->second == "parallax soft shadows")
+            {
+            	bool enabled = Settings::Manager::getBool("parallax soft shadows", "Shaders");
+            	mSharedUniformStateUpdater->setShaderSettings(2, enabled);
+            }
+            else if (it->first == "Video" && it->second == "gamma")
+            {
+            	float gamma = Settings::Manager::getFloat("gamma", "Video");
+            	mSharedUniformStateUpdater->setShaderSettings(3, gamma);
             }
             else if (it->first == "General" && (it->second == "texture filter" ||
                                                 it->second == "texture mipmap" ||

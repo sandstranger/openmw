@@ -2,6 +2,7 @@
 precision highp float;
 
 #define REFRACTION @refraction_enabled
+#define WATER
 
 // Inspired by Blender GLSL Water by martinsh ( https://devlog-martinsh.blogspot.de/2012/07/waterundewater-shader-wip.html )
 
@@ -371,4 +372,7 @@ void main(void)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz,  gl_Fog.color.xyz, fogValue);
 
     applyShadowDebugOverlay();
+
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/shaderSettings.w));
+
 }

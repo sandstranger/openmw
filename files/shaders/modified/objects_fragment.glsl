@@ -49,6 +49,9 @@ uniform mat2 bumpMapMatrix;
 
 #define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL))
 
+uniform vec4 shaderSettings;
+#include "tonemap.glsl"
+
 #include "helpsettings.glsl"
 
 uniform bool isInterior;
@@ -108,6 +111,9 @@ bool underwaterFog = (shaderSettings.y != 0.0) ? true : false;
     float fogValue = getFogValue(depth);
 #endif
 
+if(fogValue < 1.0 && underwaterFogValue < 1.0)
+{
+
 float shadowpara = 1.0;
 
 #if @diffuseMap
@@ -151,12 +157,12 @@ float shadowpara = 1.0;
     vec3 eyeDir = normalize(cameraPos - objectPos);
     adjustedDiffuseUV += getParallaxOffset(eyeDir, tbnTranspose, normalTex.a, (passTangent.w > 0.0) ? -1.f : 1.f);
 
-    #if @objectsParallaxShadows
+    if(shaderSettings.z != 0.0){
         shadowpara = getParallaxShadow(normalTex.a, adjustedDiffuseUV);
         #ifdef NORMAL_MAP_FADING
             if(nmFade != 0.0) shadowpara = mix(shadowpara, 1.0, nmFade);
         #endif
-    #endif
+    }
 
     //normalTex = texture2D(normalMap, adjustedDiffuseUV);
     viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
@@ -301,12 +307,13 @@ if(simpleWater)
          gl_FragData[0].a = 1.0;
 #endif
  
+}
 
 if(underwaterFog)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
 
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/shaderSettings.w));
 
 }

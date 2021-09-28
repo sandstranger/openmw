@@ -382,10 +382,7 @@ namespace MWGui
         mCountDialog = new CountDialog();
         mWindows.push_back(mCountDialog);
 
-	if (Settings::Manager::getBool("enabled", "Groundcover"))
-            mSettingsWindow = new SettingsWindow("openmw_settings_window_grass.layout");
-	else
-            mSettingsWindow = new SettingsWindow();
+        mSettingsWindow = new SettingsWindow();
         mWindows.push_back(mSettingsWindow);
         mGuiModeStates[GM_Settings] = GuiModeState(mSettingsWindow);
 

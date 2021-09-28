@@ -14,6 +14,9 @@ uniform sampler2D normalMap;
 varying vec4 passTangent;
 #endif
 
+uniform vec4 shaderSettings;
+#include "tonemap.glsl"
+
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
 #include "lighting_util.glsl"
@@ -24,17 +27,13 @@ varying float depth;
 varying float linearDepth;
 #endif
 
-#if @underwaterFog
-uniform mat4 osg_ViewMatrixInverse;
-#endif
+uniform highp mat4 osg_ViewMatrixInverse;
 
 #ifdef ANIMATED_HEIGHT_FOG
 uniform float osg_SimulationTime;
 #endif
 
-#if PER_PIXEL_LIGHTING || @underwaterFog
 varying vec3 passViewPos;
-#endif
 
 #if PER_PIXEL_LIGHTING
 varying vec3 passNormal;
@@ -54,23 +53,18 @@ varying vec3 passNormal;
 #include "fog.glsl"
 #include "alpha.glsl"
 
-uniform mat3 grassData;
+uniform highp mat3 grassData;
 
 void main()
 {
 
-#if @underwaterFog
+bool underwaterFog = (shaderSettings.y != 0.0) ? true : false;
+
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0;
     float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
-#endif
+
     float fogValue = getFogValue(depth);
 
-#if @underwaterFog
-if(underwaterFogValue != 1.0 && fogValue != 1.0)
-#else
-if(fogValue != 1.0)
-#endif
-{
 
 if(grassData[2].y != grassData[2].x)
     if (depth > grassData[2].y)
@@ -96,8 +90,6 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
 
     alphaTest();
 
-//gl_FragData[0].xyz *= vec3(1.0+smoothstep(0.0, @groundcoverFadeEnd, depth));
-
     gl_FragData[0].xyz = preLight(gl_FragData[0].xyz);
 
     vec3 lighting;
@@ -122,13 +114,11 @@ gl_FragData[0].xyz *= lighting;
         gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
 #endif
 
-}
 
-#if @underwaterFog
+if(underwaterFog)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
-#endif
+
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
-
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/shaderSettings.w));
 }

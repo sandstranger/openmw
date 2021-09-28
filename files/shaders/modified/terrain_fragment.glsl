@@ -18,6 +18,8 @@ varying float depth;
 
 #define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
 
+uniform vec4 shaderSettings;
+#include "tonemap.glsl"
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
 #include "lighting_util.glsl"
@@ -52,15 +54,14 @@ centroid varying vec3 passLighting;
 
 void main()
 {
-bool underwaterFog = (shaderSettings.y != 0.0) ? true : false;
-
-//if(underwaterFog) {
+    bool underwaterFog = (shaderSettings.y != 0.0) ? true : false;
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z >= -1.0 && !skip;
-    float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
-//}
 
+    float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
     float fogValue = getFogValue(depth);
 
+if(fogValue < 1.0 && underwaterFogValue < 1.0)
+{
     float shadowpara = 1.0;
 
     vec2 adjustedUV = (gl_TextureMatrix[0] * vec4(uv, 0.0, 1.0)).xy;
@@ -88,9 +89,8 @@ bool underwaterFog = (shaderSettings.y != 0.0) ? true : false;
     vec3 objectPos = (gl_ModelViewMatrixInverse * vec4(passViewPos, 1)).xyz;
     vec3 eyeDir = normalize(cameraPos - objectPos);
 
-    #if @terrainParallaxShadows
+    if(shaderSettings.z != 0.0)
         shadowpara = getParallaxShadow(normalTex.a, adjustedUV);
-    #endif
 
     adjustedUV += getParallaxOffset(eyeDir, tbnTranspose, normalTex.a, 1.f);
 
@@ -145,12 +145,12 @@ bool underwaterFog = (shaderSettings.y != 0.0) ? true : false;
         gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
 #endif
 
+}
 
 if(underwaterFog)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
 
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
-
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/shaderSettings.w));
 }

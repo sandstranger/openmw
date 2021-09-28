@@ -25,9 +25,7 @@ varying float linearDepth;
 varying vec3 fogH;
 #endif
 
-#if PER_PIXEL_LIGHTING || @underwaterFog
 varying vec3 passViewPos;
-#endif
 
 #if PER_PIXEL_LIGHTING
 varying vec3 passNormal;
@@ -154,9 +152,7 @@ vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
     passLighting += shadowDiffuseLighting;
 #endif
 
-#if PER_PIXEL_LIGHTING || @underwaterFog
     passViewPos = viewPos.xyz;
-#endif
 
 #if PER_PIXEL_LIGHTING
     passNormal = gl_Normal.xyz;

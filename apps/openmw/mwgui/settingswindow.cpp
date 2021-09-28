@@ -205,8 +205,8 @@ namespace MWGui
         }
     }
 
-    SettingsWindow::SettingsWindow(std::string layout) :
-        WindowBase(layout),
+    SettingsWindow::SettingsWindow() :
+        WindowBase("openmw_settings_window.layout"),
         mKeyboardMode(true)
     {
         bool terrain = Settings::Manager::getBool("distant terrain", "Terrain");
@@ -250,6 +250,23 @@ namespace MWGui
         getWidget(textBox, "GammaTextLight");
         textBox->setVisible(false);
 #endif
+
+        if (!Settings::Manager::getBool("enabled", "Groundcover"))
+        {
+            MyGUI::TextBox *grassDistanceLabel;
+            getWidget(grassDistanceLabel, "GrassDistanceLabel");
+            grassDistanceLabel->setVisible(false);
+            MyGUI::TextBox *grassDensityLabel;
+            getWidget(grassDensityLabel, "GrassDensityLabel");
+            grassDensityLabel->setVisible(false);
+
+            MyGUI::ScrollBar *grassDistanceSlider;
+            getWidget(grassDistanceSlider, "GrassDistanceSlider");
+            grassDistanceSlider->setVisible(false);
+            MyGUI::ScrollBar *grassDensitySlider;
+            getWidget(grassDensitySlider, "GrassDensitySlider");
+            grassDensitySlider->setVisible(false);
+        }
 
         mMainWidget->castType<MyGUI::Window>()->eventWindowChangeCoord += MyGUI::newDelegate(this, &SettingsWindow::onWindowResize);
 

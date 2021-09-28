@@ -7,7 +7,6 @@ set(SDIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(DDIR resources/shaders)
 set(DDIRPBR resources/shaders/pbr)
 set(DDIRMODIFIED resources/shaders/modified)
-set(DDIRMODIFIEDTONEMAP resources/shaders/modified/glsl-tone-map-master)
 
 set(SHADER_FILES
     groundcover_vertex.glsl
@@ -88,8 +87,12 @@ set(MODIFIED_SHADER_FILES
     modified/groundcover_fragment.glsl
     modified/water_vertex.glsl
     modified/water_fragment.glsl
+    modified/vtastek_water_vertex.glsl
+    modified/vtastek_water_fragment.glsl
     modified/water_nm.png
     modified/alpha.glsl
+    modified/depth.glsl
+    modified/tonemap.glsl
     modified/objects_vertex.glsl
     modified/objects_fragment.glsl
     modified/terrain_vertex.glsl
@@ -115,21 +118,6 @@ set(MODIFIED_SHADER_FILES
     modified/debug_fragment.glsl
 )
 
-set(MODIFIED_SHADER_TONEMAP_FILES
-    modified/glsl-tone-map-master/aces.glsl
-    modified/glsl-tone-map-master/filmic.glsl
-    modified/glsl-tone-map-master/lottes.glsl
-    modified/glsl-tone-map-master/none.glsl
-    modified/glsl-tone-map-master/reinhard.glsl
-    modified/glsl-tone-map-master/reinhard2.glsl
-    modified/glsl-tone-map-master/uchimura.glsl
-    modified/glsl-tone-map-master/uncharted2.glsl
-    modified/glsl-tone-map-master/unreal.glsl
-    modified/glsl-tone-map-master/vtastek.glsl
-
-)
-
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIR} "${SHADER_FILES}")
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIRPBR} "${SHADER_FILES_PBR}")
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIRMODIFIED} "${MODIFIED_SHADER_FILES}")
-copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIRMODIFIEDTONEMAP} "${MODIFIED_SHADER_TONEMAP_FILES}")
