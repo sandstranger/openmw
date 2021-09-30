@@ -159,6 +159,11 @@ namespace MWRender
 	    mShaderSettings[setting] = value;
         }
 
+        float getShaderSettings(int setting)
+        {
+	    return mShaderSettings[setting];
+        }
+
     private:
         osg::Matrixf mProjectionMatrix;
         float mLinearFac;
@@ -432,18 +437,6 @@ namespace MWRender
 
         if (groundcover)
         {
-/*
-            if (resourceSystem->getSceneManager()->getLightingMethod() != SceneUtil::LightingMethod::FFP)
-                groundcoverRoot->setCullCallback(new SceneUtil::LightListCallback);
-
-            osg::StateSet* stateset = groundcoverRoot->getOrCreateStateSet();
-            stateset->removeAttribute(osg::StateAttribute::MATERIAL);
-            stateset->removeAttribute(osg::StateAttribute::ALPHAFUNC);
-            stateset->removeMode(GL_ALPHA_TEST);
-            stateset->removeAttribute(osg::StateAttribute::BLENDFUNC);
-            stateset->removeMode(GL_BLEND);
-            stateset->setRenderBinToInherit();
-*/
             mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
             static_cast<Terrain::QuadTreeWorld*>(mTerrain.get())->addChunkManager(mGroundcoverPaging.get());
             mResourceSystem->addResourceManager(mGroundcoverPaging.get());
@@ -458,8 +451,13 @@ namespace MWRender
         mSharedUniformStateUpdater = new SharedUniformStateUpdater(groundcover);
         rootNode->addUpdateCallback(mSharedUniformStateUpdater);
 
+        float mixedShadersSettings = 0.f;
+        if(Settings::Manager::getBool("underwater fog", "Water")) mixedShadersSettings += 1.0;
+        if(Settings::Manager::getBool("radial fog", "Shaders")) mixedShadersSettings += 2.0;
+        if(Settings::Manager::getBool("clamp lighting", "Shaders")) mixedShadersSettings += 4.0;
+
         mSharedUniformStateUpdater->setShaderSettings(0, Settings::Manager::getFloat("tonemaper", "Shaders"));
-        mSharedUniformStateUpdater->setShaderSettings(1, Settings::Manager::getBool("underwater fog", "Water") ? 1.f : 0.f);
+        mSharedUniformStateUpdater->setShaderSettings(1, mixedShadersSettings);
         mSharedUniformStateUpdater->setShaderSettings(2, Settings::Manager::getBool("parallax soft shadows", "Shaders") ? 1.f : 0.f);
         mSharedUniformStateUpdater->setShaderSettings(3, Settings::Manager::getFloat("gamma", "Video"));
 
@@ -1285,7 +1283,29 @@ namespace MWRender
             else if (it->first == "Water" && it->second == "underwater fog")
             {
             	bool enabled = Settings::Manager::getBool("underwater fog", "Water");
-            	mSharedUniformStateUpdater->setShaderSettings(1, enabled);
+		float currentSetting = mSharedUniformStateUpdater->getShaderSettings(1);
+		if (enabled)
+            	    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting + 1);
+		else
+		    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting - 1);
+            }
+            else if (it->first == "Shaders" && it->second == "radial fog")
+            {
+            	bool enabled = Settings::Manager::getBool("radial fog", "Shaders");
+		float currentSetting = mSharedUniformStateUpdater->getShaderSettings(1);
+		if (enabled)
+            	    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting + 2);
+		else
+		    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting - 2);
+            }
+            else if (it->first == "Shaders" && it->second == "clamp lighting")
+            {
+            	bool enabled = Settings::Manager::getBool("clamp lighting", "Shaders");
+		float currentSetting = mSharedUniformStateUpdater->getShaderSettings(1);
+		if (enabled)
+            	    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting + 4);
+		else
+		    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting - 4);
             }
             else if (it->first == "Shaders" && it->second == "parallax soft shadows")
             {

@@ -100,16 +100,14 @@ varying float depth;
 
 void main()
 {
-bool underwaterFog = (shaderSettings.y != 0.0) ? true : false;
+    bool underwaterFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
+    bool radialFog = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool clampLighting = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
 
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 && !simpleWater && !skip && !isInterior && !isPlayer;
     float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
 
-#if @radialFog
-    float fogValue = getFogValue((simpleWater) ? length(passViewPos) : depth);
-#else
-    float fogValue = getFogValue(depth);
-#endif
+    float fogValue = radialFog ? getFogValue((simpleWater) ? length(passViewPos) : depth) : getFogValue(depth);
 
 if(fogValue < 1.0 && underwaterFogValue < 1.0)
 {
@@ -257,7 +255,7 @@ if(gl_FragData[0].a != 0.0)
     doLighting(passViewPos, normalize(viewNormal), shadowpara, diffuseLight, ambientLight);
     lighting = diffuseColor.xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
 #endif
-    clampLightingResult(lighting);
+    clampLightingResult(lighting, clampLighting);
 #endif
 
 gl_FragData[0].xyz *= lighting;
@@ -289,16 +287,6 @@ gl_FragData[0].xyz *= lighting;
         gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
 #endif
 
-#ifdef SIMPLE_WATER_TWEAK
-if(simpleWater)
-{
-    gl_FragData[0].a = smoothstep(swafader.x, swafader.y, length(passViewPos));
-#ifdef LINEAR_LIGHTING
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(2.2));
-#endif
-}
-#endif
-
 }
 
 #if @translucentFramebuffer
@@ -312,8 +300,8 @@ if(simpleWater)
 if(underwaterFog)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
 
+if(!isUnderwater)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/shaderSettings.w));
-
 }

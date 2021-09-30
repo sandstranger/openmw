@@ -305,7 +305,7 @@
                             <Property key="Caption" value="Hint: press F3 to show \nthe current frame rate."/>
                         </Widget>
 
-                        <Widget type="TextBox" skin="SandText" position="182 130 300 32" align="Left Top">
+                        <Widget type="TextBox" skin="SandText" position="182 130 300 32" align="Left Top" name="TonemaperLabel">
                             <Property key="Caption" value="Tonemaper \nmodified shader only"/>
                         </Widget>
                         <Widget type="HBox" skin="" position="182 166 350 24">
@@ -412,14 +412,25 @@
                             </Widget>
                         </Widget>
 
-                        <Widget type="HBox" skin="" position="4 68 350 24">
-                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                        <Widget type="HBox" skin="" position="0 68 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="ParallaxShadowsButton">
                                 <UserString key="SettingCategory" value="Shaders"/>
                                 <UserString key="SettingName" value="parallax soft shadows"/>
                                 <UserString key="SettingType" value="CheckButton"/>
                             </Widget>
-                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
-                                <Property key="Caption" value="Parallax soft shadows"/>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ParallaxShadowsLabel">
+                                <Property key="Caption" value="Parallax Shadows"/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="HBox" skin="" position="185 68 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="RadialFogButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="radial fog"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="RadialFogLabel">
+                                <Property key="Caption" value="Radial Fog"/>
                             </Widget>
                         </Widget>
 
@@ -507,13 +518,13 @@
                         </Widget>
 
                         <Widget type="HBox" skin="" position="4 60 350 24">
-                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="UnderwaterFogButton">
                                 <UserString key="SettingCategory" value="Water"/>
                                 <UserString key="SettingName" value="underwater fog"/>
                                 <UserString key="SettingType" value="CheckButton"/>
                             </Widget>
-                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
-                                <Property key="Caption" value="Underwater fog (modified shaders only)"/>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="UnderwaterFogLabel">
+                                <Property key="Caption" value="Underwater fog"/>
                             </Widget>
                         </Widget>
 
@@ -659,6 +670,33 @@
                         <Widget type="AutoSizedButton" skin="MW_Button" position="0 290 0 0" align="Top Left" name="LightsResetButton">
                             <Property key="Caption" value="Reset To Defaults"/>
                         </Widget>
+
+                        <Widget type="HBox" skin="" position="185 275 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="PPLLightingButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="force per pixel lighting"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="PPLLightingLabel">
+                                <Property key="Caption" value="Per Pixel Lighting"/>
+                            </Widget>
+                        </Widget>
+
+
+                        <Widget type="HBox" skin="" position="185 305 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="ClampLightingButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="clamp lighting"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ClampLightingLabel">
+                                <Property key="Caption" value="Clamp Lighting"/>
+                            </Widget>
+                        </Widget>
+
+
+
+
                     </Widget>
                     <!--
                     <Widget type="TabItem" skin="" position="0 28 352 268">
@@ -742,6 +780,42 @@
                     -->
                 </Widget>
             </Widget>
+
+
+
+            <Widget type="TabItem" skin="" position="4 32 360 358">
+                <Property key="Caption" value=" Game "/>
+
+                    <Widget type="AutoSizedTextBox" skin="SandText" position="70 8 75 16" align="Left Top">
+                        <Property key="Caption" value="Those settings require restart!"/>
+                    </Widget>
+
+                    <Widget type="HBox" skin="" position="4 30 350 24">
+                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                            <UserString key="SettingCategory" value="Camera"/>
+                            <UserString key="SettingName" value="head bobbing"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                            <Property key="Caption" value="Head Bobbing"/>
+                        </Widget>
+                    </Widget>
+
+                    <Widget type="HBox" skin="" position="170 30 350 24">
+                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                            <UserString key="SettingCategory" value="Camera"/>
+                            <UserString key="SettingName" value="view over shoulder"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                            <Property key="Caption" value="View Over Shoulder"/>
+                        </Widget>
+                    </Widget>
+
+             </Widget>
+
+
+
         </Widget>
         <Widget type="AutoSizedButton" skin="MW_Button" position="320 420 56 24" align="Right Bottom" name="OkButton">
             <Property key="ExpandDirection" value="Left"/>

@@ -28,7 +28,7 @@ namespace Misc
         class DensityCalculator
         {
         public:
-            bool isInstanceEnabled();
+            bool isInstanceEnabled(float density);
             void reset() { mCurrentGroundcover = 0.f; }
 
         private:

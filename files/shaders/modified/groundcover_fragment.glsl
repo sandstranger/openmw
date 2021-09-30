@@ -23,10 +23,6 @@ uniform vec4 shaderSettings;
 
 varying float depth;
 
-#if !@radialFog
-varying float linearDepth;
-#endif
-
 uniform highp mat4 osg_ViewMatrixInverse;
 
 #ifdef ANIMATED_HEIGHT_FOG
@@ -57,8 +53,8 @@ uniform highp mat3 grassData;
 
 void main()
 {
-
-bool underwaterFog = (shaderSettings.y != 0.0) ? true : false;
+    bool underwaterFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
+    bool clampLighting = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
 
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0;
     float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
@@ -103,7 +99,7 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
     doLighting(passViewPos, normalize(viewNormal), 1.0, diffuseLight, ambientLight);
     lighting = diffuseLight + ambientLight;
 #endif
-    clampLightingResult(lighting);
+    clampLightingResult(lighting, clampLighting);
 #endif
 
 gl_FragData[0].xyz *= lighting;

@@ -268,6 +268,52 @@ namespace MWGui
             grassDensitySlider->setVisible(false);
         }
 
+	const char *shaderPreset = getenv("OPENMW_SHADERS");
+        if(strcmp(shaderPreset, "modified") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
+	{
+            MyGUI::ScrollBar *gammaSlider;
+            MyGUI::TextBox *textBox;
+            MyGUI::Button *button;
+
+            getWidget(gammaSlider, "ShaderGammaSlider");
+            gammaSlider->setVisible(false);
+            getWidget(textBox, "ShaderGammaText");
+            textBox->setVisible(false);
+            getWidget(textBox, "ShaderGammaTextDark");
+            textBox->setVisible(false);
+            getWidget(textBox, "ShaderGammaTextLight");
+            textBox->setVisible(false);
+
+            getWidget(textBox, "RadialFogLabel");
+            textBox->setVisible(false);
+            getWidget(button, "RadialFogButton");
+            button->setVisible(false);
+
+            getWidget(textBox, "ParallaxShadowsLabel");
+            textBox->setVisible(false);
+            getWidget(button, "ParallaxShadowsButton");
+            button->setVisible(false);
+
+            getWidget(textBox, "ClampLightingLabel");
+            textBox->setVisible(false);
+            getWidget(button, "ClampLightingButton");
+            button->setVisible(false);
+
+            getWidget(textBox, "PPLLightingLabel");
+            textBox->setVisible(false);
+            getWidget(button, "PPLLightingButton");
+            button->setVisible(false);
+
+            getWidget(textBox, "UnderwaterFogLabel");
+            textBox->setVisible(false);
+            getWidget(button, "UnderwaterFogButton");
+            button->setVisible(false);
+
+            getWidget(textBox, "TonemaperLabel");
+            textBox->setVisible(false);
+            mTonemaperSwitch->setVisible(false);
+	}
+
         mMainWidget->castType<MyGUI::Window>()->eventWindowChangeCoord += MyGUI::newDelegate(this, &SettingsWindow::onWindowResize);
 
         mSettingsTab->eventTabChangeSelect += MyGUI::newDelegate(this, &SettingsWindow::onTabChanged);

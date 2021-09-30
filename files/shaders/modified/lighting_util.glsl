@@ -124,11 +124,10 @@ vec4 lcalcSpecular(int lightIndex)
 #endif
 }
 
-void clampLightingResult(inout vec3 lighting) 
+void clampLightingResult(inout vec3 lighting, bool clampLight) 
 { 
-#if @clamp 
+if(clampLight)
     lighting = clamp(lighting, vec3(0.0), vec3(1.0)); 
-#else 
+else 
     lighting = max(lighting, 0.0); 
-#endif 
 }

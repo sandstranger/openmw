@@ -56,6 +56,8 @@ uniform float osg_SimulationTime;
 uniform bool isPlayer;
 #endif
 
+uniform vec4 shaderSettings;
+
 #if !PER_PIXEL_LIGHTING
   #include "lighting_util.glsl"
   centroid varying vec3 passLighting;
@@ -68,15 +70,17 @@ uniform bool isPlayer;
 
 void main(void)
 {
+    bool radialFog = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool clampLighting = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+
     vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
     gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
     gl_ClipVertex = viewPos;
 
-#if @radialFog
+if(radialFog)
     depth = length(viewPos.xyz);
-#else
+else
     depth = gl_Position.z;
-#endif
 
 #if (@envMap || !PER_PIXEL_LIGHTING)
     vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
@@ -144,7 +148,7 @@ vec3 shadowDiffuseLighting;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
     passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
 #endif
-    clampLightingResult(passLighting);
+    clampLightingResult(passLighting, clampLighting);
     shadowDiffuseLighting *= getDiffuseColor().xyz;
     passLighting += shadowDiffuseLighting;
 #endif

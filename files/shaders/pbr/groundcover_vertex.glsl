@@ -15,9 +15,6 @@ varying vec4 passTangent;
 #endif
 
 varying float depth;
-#if !@radialFog
-varying float linearDepth;
-#endif
 
 #if PER_PIXEL_LIGHTING
 varying vec3 passNormal;
@@ -114,10 +111,6 @@ void main(void)
 
     gl_ClipVertex = viewPos;
     depth = length(viewPos.xyz);
-
-#if !@radialFog
-    linearDepth = gl_Position.z;
-#endif
 
 #if @diffuseMap
     diffuseMapUV = (gl_TextureMatrix[@diffuseMapUV] * gl_MultiTexCoord@diffuseMapUV).xy;

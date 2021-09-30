@@ -18,10 +18,6 @@ varying vec4 passTangent;
 
 varying float depth;
 
-#if !@radialFog
-varying float linearDepth;
-#endif
-
 #if PER_PIXEL_LIGHTING
 varying vec3 passNormal;
 varying vec3 passViewPos;

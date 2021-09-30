@@ -440,6 +440,10 @@ namespace MWRender
     {
         static const bool groundcoverEnabled = Settings::Manager::getBool("enabled", "Groundcover");
 
+	float groundcoverDensity = 0.f;
+        if (groundcoverEnabled)
+            float groundcoverDensity = Settings::Manager::getFloat("density", "Groundcover")/100.f;
+
         osg::Vec2i startCell = osg::Vec2i(std::floor(center.x() - size/2.f), std::floor(center.y() - size/2.f));
 
         osg::Vec3f worldCenter = osg::Vec3f(center.x(), center.y(), 0)*ESM::Land::REAL_SIZE;
@@ -488,7 +492,7 @@ namespace MWRender
                                 // FIXME: per-instance check requires search
                                 if (isGroundcover(type, ref.mRefID, store))
                                 {
-                                    if (!calculator.isInstanceEnabled()) continue;
+                                    if (!calculator.isInstanceEnabled(groundcoverDensity)) continue;
                                 }
                             }
                             refs[ref.mRefNum] = std::move(ref);

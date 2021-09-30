@@ -63,7 +63,7 @@ namespace MWWorld
                 const MWWorld::LiveCellRef<ESM::Static> *ref = ptr.get<ESM::Static>();
                 if (ref->mBase->mIsGroundcover)
                 {
-                    if (!mDensityCalculator.isInstanceEnabled())
+                    if (!mDensityCalculator.isInstanceEnabled(Settings::Manager::getFloat("density", "Groundcover")/100.f))
                         return true;
                 }
             }

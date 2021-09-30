@@ -32,7 +32,6 @@ uniform float osg_SimulationTime;
 
 uniform bool skip;
 varying vec3 passViewPos;
-//uniform vec4 shaderSettings;
 
 #if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG))
 varying vec3 passNormal;
@@ -54,13 +53,15 @@ centroid varying vec3 passLighting;
 
 void main()
 {
-    bool underwaterFog = (shaderSettings.y != 0.0) ? true : false;
+    bool underwaterFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
+    bool clampLighting = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z >= -1.0 && !skip;
 
     float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
     float fogValue = getFogValue(depth);
 
-if(fogValue < 1.0 && underwaterFogValue < 1.0)
+//if((underwaterFog && fogValue < 1.0 && underwaterFogValue < 1.0) || (!underwaterFog && fogValue < 1.0))
 {
     float shadowpara = 1.0;
 
@@ -128,7 +129,7 @@ if(fogValue < 1.0 && underwaterFogValue < 1.0)
     doLighting(passViewPos, normalize(viewNormal), shadowpara, diffuseLight, ambientLight);
     lighting = diffuseColor.xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
 #endif
-    clampLightingResult(lighting);
+    clampLightingResult(lighting, clampLighting);
 #endif
 
     gl_FragData[0].xyz *= lighting;
@@ -150,6 +151,7 @@ if(fogValue < 1.0 && underwaterFogValue < 1.0)
 if(underwaterFog)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
 
+if(!isUnderwater)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/shaderSettings.w));

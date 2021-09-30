@@ -19,14 +19,7 @@ const vec3 uwdistfog = vec3(-3333.0, 6666.0, 0.15); //distant underwater terrain
 const vec3 uwfogcolor = vec3(12.0/255.0, 30.0/255.0, 37.0/255.0);
 //#define UNDERWATER_DISTORTION
 
-// just fade alpha to make it non-transparent at some distance, allow to hide world edge sometimes
-// also darken it a little if using linear lighting; vec2(start, end)
-//#define SIMPLE_WATER_TWEAK
-vec2 swafader = vec2(-3000.0, 3000.0);
-
 // fade objects normal, specular and env maps at start distance, skip them at end distance
-//#define NORMAL_MAP_FADING
+#define NORMAL_MAP_FADING
 const vec2 nmfader = vec2(7455.0, 8196.0);
 
-// some extra grass displacement during storms
-#define STORM_MODE
