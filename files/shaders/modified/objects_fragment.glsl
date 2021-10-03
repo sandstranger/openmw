@@ -70,13 +70,9 @@ uniform bool isPlayer;
 uniform float osg_SimulationTime;
 #endif
 
-#if !PER_PIXEL_LIGHTING
 centroid varying vec3 passLighting;
-#endif
 
-#if PER_PIXEL_LIGHTING || @specularMap
 varying vec3 passNormal;
-#endif
 
 varying vec3 passViewPos;
 
@@ -86,13 +82,11 @@ uniform bool noAlpha;
 
 varying float depth;
 
-#if PER_PIXEL_LIGHTING
   #ifdef LINEAR_LIGHTING
     #include "linear_lighting.glsl"
   #else
     #include "lighting.glsl"
   #endif
-#endif
 
 #include "effects.glsl"
 #include "fog.glsl"
@@ -100,9 +94,13 @@ varying float depth;
 
 void main()
 {
-    bool underwaterFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
-    bool radialFog = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
-    bool clampLighting = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool radialFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
+    bool clampLighting = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool PPL = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+
+    bool parallaxShadows = (shaderSettings.z == 1.0 || shaderSettings.z == 3.0 || shaderSettings.z == 5.0 || shaderSettings.z == 7.0) ? true : false;
+    bool underwaterFog = (shaderSettings.z == 2.0 || shaderSettings.z == 3.0 || shaderSettings.z == 6.0 || shaderSettings.z == 7.0) ? true : false;
+
 
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 && !simpleWater && !skip && !isInterior && !isPlayer;
     float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
@@ -118,16 +116,14 @@ float shadowpara = 1.0;
     vec2 adjustedDiffuseUV = diffuseMapUV;
 #endif
 
-#if (!@normalMap && (@specularMap || @forcePPL))
-    vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
-#endif
+
+   vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
 
 #ifdef NORMAL_MAP_FADING
     float nmFade = smoothstep(nmfader.x, nmfader.y, depth);
 #endif
 
 #if @normalMap
-    vec3 viewNormal;
 
     #ifdef NORMAL_MAP_FADING
         if(nmFade < 1.0 && !skip){
@@ -143,9 +139,9 @@ float shadowpara = 1.0;
     vec3 normalizedTangent = normalize(passTangent.xyz);
     vec3 binormal = cross(normalizedTangent, normalizedNormal) * passTangent.w;
     mat3 tbnTranspose = mat3(normalizedTangent, binormal, normalizedNormal);
+    viewNormal = normalize(gl_NormalMatrix * (tbnTranspose * (normalTex.xyz * 2.0 - 1.0)));
 
 #if !@parallax
-    viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
     #ifdef NORMAL_MAP_FADING
         if(nmFade != 0.0) viewNormal = mix(viewNormal, gl_NormalMatrix * normalize(passNormal), nmFade);
     #endif
@@ -155,7 +151,7 @@ float shadowpara = 1.0;
     vec3 eyeDir = normalize(cameraPos - objectPos);
     adjustedDiffuseUV += getParallaxOffset(eyeDir, tbnTranspose, normalTex.a, (passTangent.w > 0.0) ? -1.f : 1.f);
 
-    if(shaderSettings.z != 0.0){
+    if(parallaxShadows){
         shadowpara = getParallaxShadow(normalTex.a, adjustedDiffuseUV);
         #ifdef NORMAL_MAP_FADING
             if(nmFade != 0.0) shadowpara = mix(shadowpara, 1.0, nmFade);
@@ -163,15 +159,12 @@ float shadowpara = 1.0;
     }
 
     //normalTex = texture2D(normalMap, adjustedDiffuseUV);
-    viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
     #ifdef NORMAL_MAP_FADING
         if(nmFade != 0.0) viewNormal = mix(viewNormal, gl_NormalMatrix * normalize(passNormal), nmFade);
     #endif
 #endif
     #ifdef NORMAL_MAP_FADING
         }
-        else
-        viewNormal = gl_NormalMatrix * normalize(passNormal);
     #endif
 #endif
 
@@ -245,18 +238,18 @@ if(gl_FragData[0].a != 0.0)
     gl_FragData[0].xyz = preLight(gl_FragData[0].xyz);
 
     vec3 lighting;
-#if !PER_PIXEL_LIGHTING
+if(!PPL) 
     lighting = passLighting;
-#else
+else {
 #ifdef LINEAR_LIGHTING
-    lighting = doLighting(passViewPos, normalize(viewNormal), passColor, shadowpara);
+    lighting.xyz = doLighting(passViewPos, normalize(viewNormal), passColor, shadowpara).xyz;
 #else
-    vec3 diffuseLight, ambientLight;
-    doLighting(passViewPos, normalize(viewNormal), shadowpara, diffuseLight, ambientLight);
+    vec3 diffuseLight, ambientLight, shadowDiffuseLight;
+    doLighting(passViewPos, normalize(viewNormal), diffuseLight, ambientLight, shadowDiffuseLight, shadowpara, true);
     lighting = diffuseColor.xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
 #endif
     clampLightingResult(lighting, clampLighting);
-#endif
+}
 
 gl_FragData[0].xyz *= lighting;
 

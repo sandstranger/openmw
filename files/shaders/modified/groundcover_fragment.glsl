@@ -1,5 +1,4 @@
 #version 120
-
 #define GRASS
 
 #define PER_PIXEL_LIGHTING @normalMap
@@ -53,14 +52,15 @@ uniform highp mat3 grassData;
 
 void main()
 {
-    bool underwaterFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
-    bool clampLighting = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool clampLighting = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool PPL = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+
+    bool underwaterFog = (shaderSettings.z == 2.0 || shaderSettings.z == 3.0 || shaderSettings.z == 6.0 || shaderSettings.z == 7.0) ? true : false;
 
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0;
     float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
 
     float fogValue = getFogValue(depth);
-
 
 if(grassData[2].y != grassData[2].x)
     if (depth > grassData[2].y)

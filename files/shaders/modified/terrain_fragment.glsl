@@ -33,19 +33,15 @@ uniform float osg_SimulationTime;
 uniform bool skip;
 varying vec3 passViewPos;
 
-#if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG))
 varying vec3 passNormal;
-#endif
 
-#if !PER_PIXEL_LIGHTING
 centroid varying vec3 passLighting;
-#else
+
   #ifdef LINEAR_LIGHTING
     #include "linear_lighting.glsl"
   #else
     #include "lighting.glsl"
   #endif
-#endif
 
 #include "effects.glsl"
 #include "fog.glsl"
@@ -53,8 +49,11 @@ centroid varying vec3 passLighting;
 
 void main()
 {
-    bool underwaterFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
-    bool clampLighting = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool clampLighting = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool PPL = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+
+    bool parallaxShadows = (shaderSettings.z == 1.0 || shaderSettings.z == 3.0 || shaderSettings.z == 5.0 || shaderSettings.z == 7.0) ? true : false;
+    bool underwaterFog = (shaderSettings.z == 2.0 || shaderSettings.z == 3.0 || shaderSettings.z == 6.0 || shaderSettings.z == 7.0) ? true : false;
 
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z >= -1.0 && !skip;
 
@@ -67,9 +66,7 @@ void main()
 
     vec2 adjustedUV = (gl_TextureMatrix[0] * vec4(uv, 0.0, 1.0)).xy;
 
-#if ((!@normalMap && @forcePPL) || (@normalMap && defined(NORMAL_MAP_FADING)) || @specularMap)
    vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
-#endif
 
 #if @normalMap
     #ifdef NORMAL_MAP_FADING
@@ -82,22 +79,20 @@ void main()
     vec3 binormal = normalize(cross(tangent, normalizedNormal));
     tangent = normalize(cross(normalizedNormal, binormal)); // note, now we need to re-cross to derive tangent again because it wasn't orthonormal
     mat3 tbnTranspose = mat3(tangent, binormal, normalizedNormal);
+    viewNormal = normalize(gl_NormalMatrix * (tbnTranspose * (normalTex.xyz * 2.0 - 1.0)));
 
-#if !@parallax
-    vec3 viewNormal = normalize(gl_NormalMatrix * (tbnTranspose * (normalTex.xyz * 2.0 - 1.0)));
-#else
+#if @parallax
     vec3 cameraPos = (gl_ModelViewMatrixInverse * vec4(0,0,0,1)).xyz;
     vec3 objectPos = (gl_ModelViewMatrixInverse * vec4(passViewPos, 1)).xyz;
     vec3 eyeDir = normalize(cameraPos - objectPos);
 
-    if(shaderSettings.z != 0.0)
+    if(parallaxShadows)
         shadowpara = getParallaxShadow(normalTex.a, adjustedUV);
 
     adjustedUV += getParallaxOffset(eyeDir, tbnTranspose, normalTex.a, 1.f);
 
     // update normal using new coordinates
     normalTex = texture2D(normalMap, adjustedUV);
-    vec3 viewNormal = normalize(gl_NormalMatrix * (tbnTranspose * (normalTex.xyz * 2.0 - 1.0)));
 #endif
     #ifdef NORMAL_MAP_FADING
         }
@@ -119,18 +114,18 @@ void main()
 
     vec3 lighting;
 
-#if !PER_PIXEL_LIGHTING
+if(!PPL)
     lighting = passLighting;
-#else
+else {
 #ifdef LINEAR_LIGHTING
     lighting.xyz = doLighting(passViewPos, normalize(viewNormal), passColor, shadowpara).xyz;
 #else
-    vec3 diffuseLight, ambientLight;
-    doLighting(passViewPos, normalize(viewNormal), shadowpara, diffuseLight, ambientLight);
+    vec3 diffuseLight, ambientLight, shadowDiffuseLight;
+    doLighting(passViewPos, normalize(viewNormal), diffuseLight, ambientLight, shadowDiffuseLight, shadowpara, true);
     lighting = diffuseColor.xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
 #endif
     clampLightingResult(lighting, clampLighting);
-#endif
+}
 
     gl_FragData[0].xyz *= lighting;
 

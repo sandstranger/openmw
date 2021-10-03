@@ -452,13 +452,17 @@ namespace MWRender
         rootNode->addUpdateCallback(mSharedUniformStateUpdater);
 
         float mixedShadersSettings = 0.f;
-        if(Settings::Manager::getBool("underwater fog", "Water")) mixedShadersSettings += 1.0;
-        if(Settings::Manager::getBool("radial fog", "Shaders")) mixedShadersSettings += 2.0;
-        if(Settings::Manager::getBool("clamp lighting", "Shaders")) mixedShadersSettings += 4.0;
+        if(Settings::Manager::getBool("radial fog", "Shaders")) mixedShadersSettings += 1.0;
+        if(Settings::Manager::getBool("clamp lighting", "Shaders")) mixedShadersSettings += 2.0;
+        if(Settings::Manager::getBool("force per pixel lighting", "Shaders")) mixedShadersSettings += 4.0;
+
+        float mixedShadersSettings2 = 0.f;
+        if(Settings::Manager::getBool("parallax soft shadows", "Shaders")) mixedShadersSettings2 += 1.0;
+        if(Settings::Manager::getBool("underwater fog", "Water")) mixedShadersSettings2 += 2.0;
 
         mSharedUniformStateUpdater->setShaderSettings(0, Settings::Manager::getFloat("tonemaper", "Shaders"));
         mSharedUniformStateUpdater->setShaderSettings(1, mixedShadersSettings);
-        mSharedUniformStateUpdater->setShaderSettings(2, Settings::Manager::getBool("parallax soft shadows", "Shaders") ? 1.f : 0.f);
+        mSharedUniformStateUpdater->setShaderSettings(2, mixedShadersSettings2);
         mSharedUniformStateUpdater->setShaderSettings(3, Settings::Manager::getFloat("gamma", "Video"));
 
         mPostProcessor = new PostProcessor(*this, viewer, mRootNode);
@@ -1280,27 +1284,28 @@ namespace MWRender
             	float tonemaper = std::max(0.f, Settings::Manager::getFloat("tonemaper", "Shaders"));
             	mSharedUniformStateUpdater->setShaderSettings(0, tonemaper);
             }
-            else if (it->first == "Water" && it->second == "underwater fog")
+            else if (it->first == "Shaders" && it->second == "radial fog")
             {
-            	bool enabled = Settings::Manager::getBool("underwater fog", "Water");
+            	bool enabled = Settings::Manager::getBool("radial fog", "Shaders");
 		float currentSetting = mSharedUniformStateUpdater->getShaderSettings(1);
 		if (enabled)
             	    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting + 1);
 		else
 		    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting - 1);
+
             }
-            else if (it->first == "Shaders" && it->second == "radial fog")
+            else if (it->first == "Shaders" && it->second == "clamp lighting")
             {
-            	bool enabled = Settings::Manager::getBool("radial fog", "Shaders");
+            	bool enabled = Settings::Manager::getBool("clamp lighting", "Shaders");
 		float currentSetting = mSharedUniformStateUpdater->getShaderSettings(1);
 		if (enabled)
             	    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting + 2);
 		else
 		    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting - 2);
             }
-            else if (it->first == "Shaders" && it->second == "clamp lighting")
+            else if (it->first == "Shaders" && it->second == "force per pixel lighting")
             {
-            	bool enabled = Settings::Manager::getBool("clamp lighting", "Shaders");
+            	bool enabled = Settings::Manager::getBool("force per pixel lighting", "Shaders");
 		float currentSetting = mSharedUniformStateUpdater->getShaderSettings(1);
 		if (enabled)
             	    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting + 4);
@@ -1310,7 +1315,20 @@ namespace MWRender
             else if (it->first == "Shaders" && it->second == "parallax soft shadows")
             {
             	bool enabled = Settings::Manager::getBool("parallax soft shadows", "Shaders");
-            	mSharedUniformStateUpdater->setShaderSettings(2, enabled);
+		float currentSetting = mSharedUniformStateUpdater->getShaderSettings(2);
+		if (enabled)
+            	    mSharedUniformStateUpdater->setShaderSettings(2, currentSetting + 1);
+		else
+		    mSharedUniformStateUpdater->setShaderSettings(2, currentSetting - 1);
+            }
+            else if (it->first == "Water" && it->second == "underwater fog")
+            {
+            	bool enabled = Settings::Manager::getBool("underwater fog", "Water");
+		float currentSetting = mSharedUniformStateUpdater->getShaderSettings(2);
+		if (enabled)
+            	    mSharedUniformStateUpdater->setShaderSettings(2, currentSetting + 2);
+		else
+		    mSharedUniformStateUpdater->setShaderSettings(2, currentSetting - 2);
             }
             else if (it->first == "Video" && it->second == "gamma")
             {

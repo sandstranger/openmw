@@ -115,8 +115,9 @@ highp vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
 
 void main(void)
 {
-    bool radialFog = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
-    bool clampLighting = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool radialFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
+    bool clampLighting = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool PPL = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
 
     highp vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
     gl_Position = gl_ModelViewProjectionMatrix * grassDisplacement(viewPos.xyz, gl_Vertex);
@@ -145,7 +146,7 @@ vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
     passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
 #else
     vec3 diffuseLight, ambientLight;
-    doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
+    doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting, 1.0, false);
     passLighting = diffuseLight + ambientLight;
 #endif
     clampLightingResult(passLighting, clampLighting);

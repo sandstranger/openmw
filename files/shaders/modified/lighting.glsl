@@ -57,22 +57,19 @@ void perLightPoint(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec
     diffuseOut =  lcalcDiffuse(lightIndex) * lambert;
 }
 
-#if PER_PIXEL_LIGHTING
-void doLighting(vec3 viewPos, vec3 viewNormal, float shadowing, out vec3 diffuseLight, out vec3 ambientLight)
-#else
-void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 ambientLight, out vec3 shadowDiffuse)
-#endif
+void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 ambientLight, out vec3 shadowDiffuse, float shadowing, bool isPPL)
 {
     vec3 ambientOut, diffuseOut;
     ambientLight = gl_LightModel.ambient.xyz;
     perLightSun(diffuseOut, viewPos, viewNormal);
 
-#if PER_PIXEL_LIGHTING
-    diffuseLight = diffuseOut * shadowing;
-#else
-    shadowDiffuse = diffuseOut;
-    diffuseLight = vec3(0.0);
-#endif
+    if(isPPL)
+        diffuseLight = diffuseOut * shadowing;
+    else
+    {
+        shadowDiffuse = diffuseOut;
+        diffuseLight = vec3(0.0);
+    }
 
     for (int i = @startLight; i < @endLight; ++i)
     {
@@ -80,5 +77,4 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
         ambientLight += ambientOut;
         diffuseLight += diffuseOut;
     }
-
 }

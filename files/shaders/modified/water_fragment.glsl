@@ -172,7 +172,7 @@ float linearizeDepth(float depth)
 
 void main(void)
 {
-    bool radialFog = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool radialFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
 
     frustumDepth = abs(far - near);
     vec3 worldPos = position.xyz + nodePosition.xyz;

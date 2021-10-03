@@ -269,7 +269,7 @@ namespace MWGui
         }
 
 	const char *shaderPreset = getenv("OPENMW_SHADERS");
-        if(strcmp(shaderPreset, "modified") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
+        if(!shaderPreset || strcmp(shaderPreset, "modified") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
 	{
             MyGUI::ScrollBar *gammaSlider;
             MyGUI::TextBox *textBox;

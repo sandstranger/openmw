@@ -33,9 +33,7 @@ varying float depth;
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
 
-#if PER_PIXEL_LIGHTING || @specularMap
 varying vec3 passNormal;
-#endif
 
 varying vec3 passViewPos;
 
@@ -47,7 +45,7 @@ varying vec3 fogH;
 uniform mat4 osg_ViewMatrixInverse;
 #endif
 
-#if (!PER_PIXEL_LIGHTING && defined(LINEAR_LIGHTING)) || defined(UNDERWATER_DISTORTION)
+#if (defined(LINEAR_LIGHTING)) || defined(UNDERWATER_DISTORTION)
 uniform bool isInterior;
 #endif
 
@@ -58,7 +56,6 @@ uniform bool isPlayer;
 
 uniform vec4 shaderSettings;
 
-#if !PER_PIXEL_LIGHTING
   #include "lighting_util.glsl"
   centroid varying vec3 passLighting;
   #ifdef LINEAR_LIGHTING
@@ -66,12 +63,12 @@ uniform vec4 shaderSettings;
   #else
     #include "lighting.glsl"
   #endif
-#endif
 
 void main(void)
 {
-    bool radialFog = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
-    bool clampLighting = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool radialFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
+    bool clampLighting = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool PPL = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
 
     vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
     gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
@@ -82,9 +79,7 @@ if(radialFog)
 else
     depth = gl_Position.z;
 
-#if (@envMap || !PER_PIXEL_LIGHTING)
     vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
-#endif
 
 #if @envMap
     vec3 viewVec = normalize(viewPos.xyz);
@@ -115,9 +110,7 @@ else
 
     passColor = gl_Color;
 
-#if PER_PIXEL_LIGHTING || @specularMap
     passNormal = gl_Normal.xyz;
-#endif
 
     passViewPos = viewPos.xyz;
 
@@ -139,17 +132,17 @@ if(osg_ViewMatrixInverse[3].z < -1.0 && !isInterior && !isPlayer)
 #endif
 
 
-#if !PER_PIXEL_LIGHTING
-vec3 shadowDiffuseLighting;
+if (!PPL) {
+    vec3 shadowDiffuseLighting;
 #ifdef LINEAR_LIGHTING
     passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
 #else
     vec3 diffuseLight, ambientLight;
-    doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
+    doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting, 1.0, false);
     passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
 #endif
     clampLightingResult(passLighting, clampLighting);
     shadowDiffuseLighting *= getDiffuseColor().xyz;
     passLighting += shadowDiffuseLighting;
-#endif
+}
 }

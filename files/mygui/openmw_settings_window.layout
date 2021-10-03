@@ -812,6 +812,52 @@
                         </Widget>
                     </Widget>
 
+                    <Widget type="HBox" skin="" position="4 90 350 24">
+                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                            <UserString key="SettingCategory" value="Game"/>
+                            <UserString key="SettingName" value="show owned"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                            <Property key="Caption" value="Show Owned"/>
+                        </Widget>
+                    </Widget>
+
+                    <Widget type="HBox" skin="" position="170 90 350 24">
+                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                            <UserString key="SettingCategory" value="Game"/>
+                            <UserString key="SettingName" value="show projectile damage"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                            <Property key="Caption" value="Show Projectile Damage"/>
+                        </Widget>
+                    </Widget>
+
+                    <Widget type="HBox" skin="" position="4 120 350 24">
+                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                            <UserString key="SettingCategory" value="Game"/>
+                            <UserString key="SettingName" value="show melee info"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                            <Property key="Caption" value="Show Melee Info"/>
+                        </Widget>
+                    </Widget>
+
+                    <Widget type="HBox" skin="" position="170 120 350 24">
+                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                            <UserString key="SettingCategory" value="Game"/>
+                            <UserString key="SettingName" value="show enchant chance"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                            <Property key="Caption" value="Show Enchant Chance"/>
+                        </Widget>
+                    </Widget>
+
+
+
              </Widget>
 
 

@@ -6,13 +6,19 @@ varying vec4  position;
 varying float linearDepth;
 uniform float osg_SimulationTime;
 uniform mat4 osg_ViewMatrixInverse;
+uniform vec4 shaderSettings;
 
 void main(void)
 {
+  bool underwaterFog = (shaderSettings.z == 2.0 || shaderSettings.z == 3.0 || shaderSettings.z == 6.0 || shaderSettings.z == 7.0) ? true : false;
+
 	vec4 glvertice = gl_Vertex;
 	
+if(!underwaterFog) {
 	vec4 campos = osg_ViewMatrixInverse * vec4(0.0, 0.0, 0.0, 1.0);
 	vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
+
+
 	float euclideanDepth = length(viewPos.xyz);
 	vec2 dir = normalize(viewPos.xy - glvertice.xy);
 	
@@ -36,7 +42,7 @@ void main(void)
 	
 	if(campos.z < -1.0)
 	glvertice.z += 25.0; 
-	
+}
 	
     gl_Position = gl_ModelViewProjectionMatrix * glvertice;
 

@@ -442,7 +442,7 @@ namespace MWRender
 
 	float groundcoverDensity = 0.f;
         if (groundcoverEnabled)
-            float groundcoverDensity = Settings::Manager::getFloat("density", "Groundcover")/100.f;
+            groundcoverDensity = Settings::Manager::getFloat("density", "Groundcover")/100.f;
 
         osg::Vec2i startCell = osg::Vec2i(std::floor(center.x() - size/2.f), std::floor(center.y() - size/2.f));
 
