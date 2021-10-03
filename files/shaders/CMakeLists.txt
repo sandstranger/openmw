@@ -7,6 +7,8 @@ set(SDIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(DDIR resources/shaders)
 set(DDIRPBR resources/shaders/pbr)
 set(DDIRMODIFIED resources/shaders/modified)
+set(DDIRMODIFIEDTONEMAP resources/shaders/modified/glsl-tone-map-master)
+set(DDIREXPERIMENTAL resources/shaders/experimental)
 
 set(SHADER_FILES
     groundcover_vertex.glsl
@@ -87,12 +89,8 @@ set(MODIFIED_SHADER_FILES
     modified/groundcover_fragment.glsl
     modified/water_vertex.glsl
     modified/water_fragment.glsl
-    modified/vtastek_water_vertex.glsl
-    modified/vtastek_water_fragment.glsl
     modified/water_nm.png
     modified/alpha.glsl
-    modified/depth.glsl
-    modified/tonemap.glsl
     modified/objects_vertex.glsl
     modified/objects_fragment.glsl
     modified/terrain_vertex.glsl
@@ -118,6 +116,63 @@ set(MODIFIED_SHADER_FILES
     modified/debug_fragment.glsl
 )
 
+set(MODIFIED_SHADER_TONEMAP_FILES
+    modified/glsl-tone-map-master/aces.glsl
+    modified/glsl-tone-map-master/filmic.glsl
+    modified/glsl-tone-map-master/lottes.glsl
+    modified/glsl-tone-map-master/none.glsl
+    modified/glsl-tone-map-master/reinhard.glsl
+    modified/glsl-tone-map-master/reinhard2.glsl
+    modified/glsl-tone-map-master/uchimura.glsl
+    modified/glsl-tone-map-master/uncharted2.glsl
+    modified/glsl-tone-map-master/unreal.glsl
+    modified/glsl-tone-map-master/vtastek.glsl
+
+)
+
+set(EXPERIMENTAL_SHADER_FILES
+    experimental/fog.glsl
+    experimental/effects.glsl
+    experimental/linear_lighting.glsl
+    experimental/lightsettings.glsl
+    experimental/helpsettings.glsl
+    experimental/groundcover_vertex.glsl
+    experimental/groundcover_fragment.glsl
+    experimental/water_vertex.glsl
+    experimental/water_fragment.glsl
+    experimental/vtastek_water_vertex.glsl
+    experimental/vtastek_water_fragment.glsl
+    experimental/water_nm.png
+    experimental/alpha.glsl
+    experimental/depth.glsl
+    experimental/tonemap.glsl
+    experimental/objects_vertex.glsl
+    experimental/objects_fragment.glsl
+    experimental/terrain_vertex.glsl
+    experimental/terrain_fragment.glsl
+    experimental/particles_vertex.glsl
+    experimental/particles_fragment.glsl
+    experimental/lighting.glsl
+    experimental/lighting_util.glsl
+    experimental/s360_fragment.glsl
+    experimental/s360_vertex.glsl
+    experimental/shadows_vertex.glsl
+    experimental/shadows_fragment.glsl
+    experimental/shadowcasting_vertex.glsl
+    experimental/shadowcasting_fragment.glsl
+    experimental/vertexcolors.glsl
+    experimental/nv_default_vertex.glsl
+    experimental/nv_default_fragment.glsl
+    experimental/nv_nolighting_vertex.glsl
+    experimental/nv_nolighting_fragment.glsl
+    experimental/gui_vertex.glsl
+    experimental/gui_fragment.glsl
+    experimental/debug_vertex.glsl
+    experimental/debug_fragment.glsl
+)
+
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIR} "${SHADER_FILES}")
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIRPBR} "${SHADER_FILES_PBR}")
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIRMODIFIED} "${MODIFIED_SHADER_FILES}")
+copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIRMODIFIEDTONEMAP} "${MODIFIED_SHADER_TONEMAP_FILES}")
+copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIREXPERIMENTAL} "${EXPERIMENTAL_SHADER_FILES}")

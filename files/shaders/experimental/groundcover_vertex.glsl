@@ -17,17 +17,12 @@ varying vec4 passTangent;
 #endif
 
 varying float depth;
-#if !@radialFog
-varying float linearDepth;
-#endif
 
 #ifdef HEIGHT_FOG
 varying vec3 fogH;
 #endif
 
-#if PER_PIXEL_LIGHTING || @underwaterFog
 varying vec3 passViewPos;
-#endif
 
 #if PER_PIXEL_LIGHTING
 varying vec3 passNormal;
@@ -44,6 +39,8 @@ varying vec3 passNormal;
 
 uniform highp mat4 osg_ViewMatrixInverse;
 uniform float osg_SimulationTime;
+
+uniform vec4 shaderSettings;
 
 uniform highp mat3 grassData;
 attribute float originalCoords;
@@ -105,30 +102,32 @@ highp vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
     highp vec4 ret = vec4(0.0);
     ret.xy += clamp(0.02 * h, 0.0, 1.0) * (harmonics * displace + stomp);
 
-#ifdef STORM_MODE
+// improve me please :)
     highp vec2 stormDir = vec2(windData.y, windData.z);
-
     if(stormDir != vec2(0.0) && h > 0.0) {
         ret.xy += h*stormDir;
         ret.z -= length(ret.xy)/3.14;
         ret.z -= sin(osg_SimulationTime * min(h, 150.0) / 10.0) * length(stormDir);
      }
-#endif
 
     return vertex + ret;
 }
 
 void main(void)
 {
+    bool radialFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
+    bool clampLighting = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool PPL = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+
     highp vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
     gl_Position = gl_ModelViewProjectionMatrix * grassDisplacement(viewPos.xyz, gl_Vertex);
 
     gl_ClipVertex = viewPos;
-    depth = length(viewPos.xyz);
 
-#if !@radialFog
-    linearDepth = gl_Position.z;
-#endif
+if(radialFog)
+    depth = length(viewPos.xyz);
+else
+    depth = gl_Position.z;
 
 #if @diffuseMap
     diffuseMapUV = (gl_TextureMatrix[@diffuseMapUV] * gl_MultiTexCoord@diffuseMapUV).xy;
@@ -147,16 +146,14 @@ vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
     passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
 #else
     vec3 diffuseLight, ambientLight;
-    doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
+    doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting, 1.0, false);
     passLighting = diffuseLight + ambientLight;
 #endif
-    clampLightingResult(passLighting);
+    clampLightingResult(passLighting, clampLighting);
     passLighting += shadowDiffuseLighting;
 #endif
 
-#if PER_PIXEL_LIGHTING || @underwaterFog
     passViewPos = viewPos.xyz;
-#endif
 
 #if PER_PIXEL_LIGHTING
     passNormal = gl_Normal.xyz;
