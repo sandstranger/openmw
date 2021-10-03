@@ -50,7 +50,7 @@ centroid varying vec3 passLighting;
 void main()
 {
     bool clampLighting = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
-    bool PPL = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
+    bool PPL = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0 || @normalMap == 1) ? true : false;
 
     bool parallaxShadows = (shaderSettings.z == 1.0 || shaderSettings.z == 3.0 || shaderSettings.z == 5.0 || shaderSettings.z == 7.0) ? true : false;
     bool underwaterFog = (shaderSettings.z == 2.0 || shaderSettings.z == 3.0 || shaderSettings.z == 6.0 || shaderSettings.z == 7.0) ? true : false;
