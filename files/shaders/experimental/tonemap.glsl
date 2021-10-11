@@ -1,13 +1,15 @@
-#define NONE 0.0
-#define ACES 1.0
-#define FILMIC 2.0
-#define LOTTES 3.0
-#define REINHARD 4.0
-#define REINHARD2 5.0
-#define UCHIMURA 6.0
-#define UNCHARTED2 7.0
-#define UNREAL 8.0
-#define VTASTEK 9.0
+uniform int tonemaper;
+
+#define NONE 0
+#define ACES 1
+#define FILMIC 2
+#define LOTTES 3
+#define REINHARD 4
+#define REINHARD2 5
+#define UCHIMURA 6
+#define UNCHARTED2 7
+#define UNREAL 8
+#define VTASTEK 9
 
 vec3 aces(vec3 x) {
   const float a = 2.51;
@@ -124,18 +126,14 @@ vec3 vtastek(vec3 color)
 
 vec3 preLight(vec3 x)
 {
-float tonemaper = shaderSettings.x;
-
-if(tonemaper == ACES || tonemaper == FILMIC || tonemaper == LOTTES || tonemaper == REINHARD || tonemaper == REINHARD2 || tonemaper == UCHIMURA || tonemaper == UNCHARTED2 || tonemaper == UNREAL || tonemaper == VTASTEK)
-    return pow(x, vec3(2.2));
-else
-    return x;
+    if(tonemaper == ACES || tonemaper == FILMIC || tonemaper == LOTTES || tonemaper == REINHARD || tonemaper == REINHARD2 || tonemaper == UCHIMURA || tonemaper == UNCHARTED2 || tonemaper == UNREAL || tonemaper == VTASTEK)
+        return pow(x, vec3(2.2));
+    else
+        return x;
 }
 
 vec3 toneMap(vec3 x)
 {
-float tonemaper = shaderSettings.x;
-
     if(tonemaper == NONE) return x;
 
     else if(tonemaper == ACES) x = aces(x);

@@ -61,14 +61,6 @@ float getParallaxShadow(float height, vec2 UV)
 
 #endif
 
-vec3 SpecialContrast(vec3 x, float suncon) 
-{
-	//x = pow(x, vec3(0.5 * 2.2));
-	vec3 contrasted = x*x*x*(x*(x*6.0 - 15.0) + 10.0);
-	x.rgb = mix(x.rgb, contrasted, suncon);
-	return x;
-}
-
 vec3 getSpecular(vec3 viewNormal, vec3 viewDirection, float shininess, vec3 matSpec)
 {
     vec3 sunDir = lcalcPosition(0);

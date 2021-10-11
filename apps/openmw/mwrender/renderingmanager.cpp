@@ -82,7 +82,6 @@ namespace MWRender
             , mFar(0.f)
             , mUsePlayerUniforms(usePlayerUniforms)
             , mGrassData(osg::Matrix3(0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f))
-            , mShaderSettings(osg::Vec4f(0.f, 0.f, 0.f, 0.f))
         {
         }
 
@@ -96,7 +95,6 @@ namespace MWRender
             {
                 stateset->addUniform(new osg::Uniform("grassData", osg::Matrix3(0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f)));
             }
-            stateset->addUniform(new osg::Uniform("shaderSettings", osg::Vec4f(0.f, 0.f, 0.f, 0.f)));
         }
 
         void apply(osg::StateSet* stateset, osg::NodeVisitor* nv) override
@@ -124,9 +122,6 @@ namespace MWRender
                     grassData->set(mGrassData);
             }
 
-            auto* uShaderSettings = stateset->getUniform("shaderSettings");
-            if (uShaderSettings)
-                uShaderSettings->set(mShaderSettings);
         }
 
         void setProjectionMatrix(const osg::Matrixf& projectionMatrix)
@@ -152,16 +147,6 @@ namespace MWRender
         void setGrassData(osg::Matrix3 grassData)
         {
             mGrassData = grassData;
-        }
-
-        void setShaderSettings(int setting, float value)
-        {
-	    mShaderSettings[setting] = value;
-        }
-
-        float getShaderSettings(int setting)
-        {
-	    return mShaderSettings[setting];
         }
 
     private:
@@ -330,6 +315,14 @@ namespace MWRender
         resourceSystem->getSceneManager()->setApplyLightingToEnvMaps(Settings::Manager::getBool("apply lighting to environment maps", "Shaders"));
         resourceSystem->getSceneManager()->setConvertAlphaTestToAlphaToCoverage(Settings::Manager::getBool("antialias alpha test", "Shaders") && Settings::Manager::getInt("antialiasing", "Video") > 1);
 
+        const char *glesmode = getenv("OPENMW_GLES_VERSION");
+	if (strcmp(glesmode, "1") == 0)
+	{
+	    resourceSystem->getSceneManager()->setForceShaders(false);
+	    resourceSystem->getSceneManager()->setClampLighting(false);
+	    resourceSystem->getSceneManager()->setAutoUseNormalMaps(false); //do it for terrain too later
+	}
+
         // Let LightManager choose which backend to use based on our hint. For methods besides legacy lighting, this depends on support for various OpenGL extensions.
         osg::ref_ptr<SceneUtil::LightManager> sceneRoot = new SceneUtil::LightManager(lightingMethod == SceneUtil::LightingMethod::FFP);
         resourceSystem->getSceneManager()->getShaderManager().setLightingMethod(sceneRoot->getLightingMethod());
@@ -453,20 +446,6 @@ namespace MWRender
         mSharedUniformStateUpdater = new SharedUniformStateUpdater(groundcover);
         rootNode->addUpdateCallback(mSharedUniformStateUpdater);
 
-        float mixedShadersSettings = 0.f;
-        if(Settings::Manager::getBool("radial fog", "Shaders")) mixedShadersSettings += 1.0;
-        if(Settings::Manager::getBool("clamp lighting", "Shaders")) mixedShadersSettings += 2.0;
-        if(Settings::Manager::getBool("force per pixel lighting", "Shaders")) mixedShadersSettings += 4.0;
-
-        float mixedShadersSettings2 = 0.f;
-        if(Settings::Manager::getBool("parallax soft shadows", "Shaders")) mixedShadersSettings2 += 1.0;
-        if(Settings::Manager::getBool("underwater fog", "Water")) mixedShadersSettings2 += 2.0;
-
-        mSharedUniformStateUpdater->setShaderSettings(0, Settings::Manager::getFloat("tonemaper", "Shaders"));
-        mSharedUniformStateUpdater->setShaderSettings(1, mixedShadersSettings);
-        mSharedUniformStateUpdater->setShaderSettings(2, mixedShadersSettings2);
-        mSharedUniformStateUpdater->setShaderSettings(3, Settings::Manager::getFloat("gamma", "Video"));
-
         mPostProcessor = new PostProcessor(*this, viewer, mRootNode);
         resourceSystem->getSceneManager()->setDepthFormat(mPostProcessor->getDepthFormat());
 
@@ -546,6 +525,22 @@ namespace MWRender
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isInterior", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isPlayer", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("skip", false));
+
+	mRadialFogUniform = new osg::Uniform("radialFog", Settings::Manager::getBool("radial fog", "Shaders"));
+	mClampLightingUniform = new osg::Uniform("clampLighting", Settings::Manager::getBool("clamp lighting", "Shaders"));
+	mForcePerPixelLightignUniform = new osg::Uniform("PPL", Settings::Manager::getBool("force per pixel lighting", "Shaders"));
+	mParallaxShadowsUniform = new osg::Uniform("parallaxShadows", Settings::Manager::getBool("parallax soft shadows", "Shaders"));
+	mUnderwaterFogUniform = new osg::Uniform("underwaterFog", Settings::Manager::getBool("underwater fog", "Water"));
+	mTonemaperUniform = new osg::Uniform("tonemaper", Settings::Manager::getInt("tonemaper", "Shaders"));
+	mGammaUniform = new osg::Uniform("gamma", Settings::Manager::getFloat("gamma", "Video"));
+
+	mRootNode->getOrCreateStateSet()->addUniform(mRadialFogUniform);
+	mRootNode->getOrCreateStateSet()->addUniform(mClampLightingUniform);
+	mRootNode->getOrCreateStateSet()->addUniform(mForcePerPixelLightingUniform);
+	mRootNode->getOrCreateStateSet()->addUniform(mParallaxShadowsUniform);
+	mRootNode->getOrCreateStateSet()->addUniform(mUnderwaterFogUniform);
+	mRootNode->getOrCreateStateSet()->addUniform(mTonemaperUniform);
+	mRootNode->getOrCreateStateSet()->addUniform(mGammaUniform);
 
         // Hopefully, anything genuinely requiring the default alpha func of GL_ALWAYS explicitly sets it
         mRootNode->getOrCreateStateSet()->setAttribute(Shader::RemovedAlphaFunc::getInstance(GL_ALWAYS));
@@ -1281,61 +1276,33 @@ namespace MWRender
             	float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
             	mGroundcoverPaging->setViewDistance(groundcoverDistance);
             }
-            else if (it->first == "Shaders" && it->second == "tonemaper")
-            {
-            	float tonemaper = std::max(0.f, Settings::Manager::getFloat("tonemaper", "Shaders"));
-            	mSharedUniformStateUpdater->setShaderSettings(0, tonemaper);
-            }
             else if (it->first == "Shaders" && it->second == "radial fog")
             {
-            	bool enabled = Settings::Manager::getBool("radial fog", "Shaders");
-		float currentSetting = mSharedUniformStateUpdater->getShaderSettings(1);
-		if (enabled)
-            	    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting + 1);
-		else
-		    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting - 1);
-
+		mRadialFogUniform->set(Settings::Manager::getBool("radial fog", "Shaders"));
             }
             else if (it->first == "Shaders" && it->second == "clamp lighting")
             {
-            	bool enabled = Settings::Manager::getBool("clamp lighting", "Shaders");
-		float currentSetting = mSharedUniformStateUpdater->getShaderSettings(1);
-		if (enabled)
-            	    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting + 2);
-		else
-		    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting - 2);
+		mClampLightingUniform->set(Settings::Manager::getBool("clamp lighting", "Shaders"));
             }
             else if (it->first == "Shaders" && it->second == "force per pixel lighting")
             {
-            	bool enabled = Settings::Manager::getBool("force per pixel lighting", "Shaders");
-		float currentSetting = mSharedUniformStateUpdater->getShaderSettings(1);
-		if (enabled)
-            	    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting + 4);
-		else
-		    mSharedUniformStateUpdater->setShaderSettings(1, currentSetting - 4);
+		mForcePerPixelLightingUniform->set(Settings::Manager::getBool("force per pixel lighting", "Shaders"));
             }
             else if (it->first == "Shaders" && it->second == "parallax soft shadows")
             {
-            	bool enabled = Settings::Manager::getBool("parallax soft shadows", "Shaders");
-		float currentSetting = mSharedUniformStateUpdater->getShaderSettings(2);
-		if (enabled)
-            	    mSharedUniformStateUpdater->setShaderSettings(2, currentSetting + 1);
-		else
-		    mSharedUniformStateUpdater->setShaderSettings(2, currentSetting - 1);
+		mParallaxShadowsUniform->set(Settings::Manager::getBool("parallax soft shadows", "Shaders"));
             }
             else if (it->first == "Water" && it->second == "underwater fog")
             {
-            	bool enabled = Settings::Manager::getBool("underwater fog", "Water");
-		float currentSetting = mSharedUniformStateUpdater->getShaderSettings(2);
-		if (enabled)
-            	    mSharedUniformStateUpdater->setShaderSettings(2, currentSetting + 2);
-		else
-		    mSharedUniformStateUpdater->setShaderSettings(2, currentSetting - 2);
+		mUnderwaterFogUniform->set(Settings::Manager::getBool("underwater fog", "Water"));
+            }
+            else if (it->first == "Shaders" && it->second == "tonemaper")
+            {
+		mTonemaperUniform->set(Settings::Manager::getInt("tonemaper", "Shaders"));
             }
             else if (it->first == "Video" && it->second == "gamma")
             {
-            	float gamma = Settings::Manager::getFloat("gamma", "Video");
-            	mSharedUniformStateUpdater->setShaderSettings(3, gamma);
+		mGammaUniform->set(Settings::Manager::getFloat("gamma", "Video"));
             }
             else if (it->first == "General" && (it->second == "texture filter" ||
                                                 it->second == "texture mipmap" ||

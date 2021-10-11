@@ -162,8 +162,8 @@ varying vec3 screenCoordsPassthrough;
 varying vec4 position;
 varying float linearDepth;
 
-uniform vec4 shaderSettings;
 uniform sampler2D normalMap;
+
 uniform sampler2D reflectionMap;
 #if REFRACTION
 uniform sampler2D refractionMap;
@@ -178,6 +178,8 @@ uniform vec3 nodePosition;
 
 uniform float rainIntensity;
 
+#include "shadows_fragment.glsl"
+
 float frustumDepth;
 
 float linearizeDepth(float depth)
@@ -187,10 +189,14 @@ float linearizeDepth(float depth)
     return depth;
   }
 
+							  
+ 
+												 
+ uniform bool radialFog;
+ uniform float gamma;
+
 void main(void)
 {
-    bool radialFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
-
     frustumDepth = abs(far - near);
     vec3 worldPos = position.xyz + nodePosition.xyz;
     vec2 UV = worldPos.xy / (8192.0 * 5.0) * 3.0;
@@ -200,7 +206,7 @@ void main(void)
 
 	vec3 cameraPos = (gl_ModelViewMatrixInverse * vec4(0.0,0.0,0.0,1.0)).xyz;
     
-	float shadow = 1.0;
+	float shadow = unshadowedLightRatio(linearDepth);
 
     vec2 screenCoords = screenCoordsPassthrough.xy / screenCoordsPassthrough.z;
 	
@@ -276,9 +282,9 @@ void main(void)
 
     float radialise = 1.0;
 
-    float radialDepth;
-    if(radialFog)
-        radialDepth = distance(position.xyz, cameraPos);
+float radialDepth;
+if(radialFog)
+    radialDepth = distance(position.xyz, cameraPos);
 
     vec2 screenCoordsOffset = normal.xy * REFL_BUMP;
 	
@@ -456,6 +462,22 @@ else
 	
 	gl_FragData[0].xyz = mix(gl_FragData[0].xyz,  gl_Fog.color.xyz, fogValue);
    
-  gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/shaderSettings.w));
+	//debugs
+	#if REFRACTION
+	//gl_FragData[0].xyz = vec3(max(pow(clamp(dist/3000.0, 0.0, 1.0), 2.0), smoothshores));
+	//"gl_FragData[0].xyz = vec3(a);
+	//gl_FragData[0].xyz = vec3(realreflection);
+	//gl_FragData[0].xyz = vec3(waterColor);
+	//gl_FragData[0].xyz = vec3(lightScatter);
+	//gl_FragData[0].xyz = vec3(smoothshores);
+	//gl_FragData[0].xyz = vec3(fresnel);
+	//gl_FragData[0].xyz = vec3(realWaterDepth/5000.0);
+	//gl_FragData[0].xyz = vec3(ndepth);
+	//gl_FragData[0].xyz = vec3(rippleAdd.xyz);
+	#endif
+
+    applyShadowDebugOverlay();
+
+gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/gamma));
 
 }

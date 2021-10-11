@@ -133,8 +133,6 @@ set(MODIFIED_SHADER_TONEMAP_FILES
 set(EXPERIMENTAL_SHADER_FILES
     experimental/fog.glsl
     experimental/effects.glsl
-    experimental/linear_lighting.glsl
-    experimental/lightsettings.glsl
     experimental/helpsettings.glsl
     experimental/groundcover_vertex.glsl
     experimental/groundcover_fragment.glsl
@@ -144,7 +142,6 @@ set(EXPERIMENTAL_SHADER_FILES
     experimental/vtastek_water_fragment.glsl
     experimental/water_nm.png
     experimental/alpha.glsl
-    experimental/depth.glsl
     experimental/tonemap.glsl
     experimental/objects_vertex.glsl
     experimental/objects_fragment.glsl

@@ -1,10 +1,11 @@
 #version 120
 
 varying vec2 uv;
-varying float depth;
+varying highp float depth;
 
 #define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
 
+uniform mat3 shaderSettings;
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
 
@@ -20,34 +21,29 @@ uniform mat4 osg_ViewMatrixInverse;
 uniform float osg_SimulationTime;
 #endif
 
-uniform vec4 shaderSettings;
-
 varying vec3 passViewPos;
 
+#if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG))
 varying vec3 passNormal;
+#endif
 
-
-#include "lighting_util.glsl"
-centroid varying vec3 passLighting;
-
-  #ifdef LINEAR_LIGHTING
-    #include "linear_lighting.glsl"
-  #else
+#if !PER_PIXEL_LIGHTING
+    #include "lighting_util.glsl"
+    centroid varying vec3 passLighting;
     #include "lighting.glsl"
-  #endif
+#endif
+
+uniform bool radialFog;
+uniform bool PPL;
 
 void main(void)
 {
-    bool radialFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
-    bool clampLighting = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
-    bool PPL = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0 || @normalMap == 1) ? true : false;
-
     gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
 
-    vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
+    highp vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
     gl_ClipVertex = viewPos;
 
-if(radialFog)
+if (radialFog)
     depth = length(viewPos.xyz);
 else
     depth = gl_Position.z;
@@ -55,7 +51,9 @@ else
     passColor = gl_Color;
     passViewPos = viewPos.xyz;
 
+#if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG))
     passNormal = gl_Normal.xyz;
+#endif
 
 #ifdef HEIGHT_FOG
     fogH = (osg_ViewMatrixInverse * viewPos).xyz;
@@ -75,19 +73,13 @@ if(osg_ViewMatrixInverse[3].z < -1.0)
 }
 #endif
 
-
-if (!PPL) {
-    vec3 shadowDiffuseLighting;
+#if !PER_PIXEL_LIGHTING
+    vec3 shadowDiffuseLighting, diffuseLight, ambientLight;
     vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
-#ifdef LINEAR_LIGHTING
-    passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
-#else
-    vec3 diffuseLight, ambientLight;
-    doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting, 1.0, false);
+    doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
     passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
-#endif
-    clampLightingResult(passLighting, clampLighting);
+    clampLightingResult(passLighting);
     shadowDiffuseLighting *= getDiffuseColor().xyz;
     passLighting += shadowDiffuseLighting;
-}
+#endif
 }

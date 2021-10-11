@@ -1,11 +1,3 @@
-//#define LINEAR_LIGHTING
-//#define ATTEN_FIX
-
-// contrast for day and night
-// night setting also affects interiors
-const float conday = 1.0;
-const float connight = 0.75;
-
 //#define HEIGHT_FOG
 //#define DYNAMICHFOG
 //#define ANIMATED_HEIGHT_FOG
@@ -23,3 +15,5 @@ const vec3 uwfogcolor = vec3(12.0/255.0, 30.0/255.0, 37.0/255.0);
 #define NORMAL_MAP_FADING
 const vec2 nmfader = vec2(7455.0, 8196.0);
 
+// some extra grass displacement during storms
+#define STORM_MODE

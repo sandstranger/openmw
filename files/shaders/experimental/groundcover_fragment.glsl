@@ -1,4 +1,5 @@
 #version 120
+
 #define GRASS
 
 #define PER_PIXEL_LIGHTING @normalMap
@@ -13,14 +14,13 @@ uniform sampler2D normalMap;
 varying vec4 passTangent;
 #endif
 
-uniform vec4 shaderSettings;
-#include "tonemap.glsl"
-
 #include "helpsettings.glsl"
+#include "tonemap.glsl"
 #include "vertexcolors.glsl"
 #include "lighting_util.glsl"
 
 varying float depth;
+varying float linearDepth;
 
 uniform highp mat4 osg_ViewMatrixInverse;
 
@@ -35,13 +35,9 @@ varying vec3 passNormal;
 #endif
 
 #if PER_PIXEL_LIGHTING
-  #ifdef LINEAR_LIGHTING
-    #include "linear_lighting.glsl"
-  #else
     #include "lighting.glsl"
-  #endif
 #else
-  centroid varying vec3 passLighting;
+    centroid varying vec3 passLighting;
 #endif
 
 #include "effects.glsl"
@@ -50,21 +46,32 @@ varying vec3 passNormal;
 
 uniform highp mat3 grassData;
 
+uniform bool radialFog;
+uniform bool underwaterFog;
+uniform float gamma;
+
 void main()
 {
-    bool clampLighting = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
-    bool PPL = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
 
-    bool underwaterFog = (shaderSettings.z == 2.0 || shaderSettings.z == 3.0 || shaderSettings.z == 6.0 || shaderSettings.z == 7.0) ? true : false;
-
+float fogValue, underwaterFogValue;
+if(underwaterFog) {
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0;
-    float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
+    underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
+}
 
-    float fogValue = getFogValue(depth);
+    fogValue = getFogValue((radialFog) ? depth : linearDepth);
+
+if(underwaterFogValue != 1.0 && fogValue != 1.0)
+{
 
 if(grassData[2].y != grassData[2].x)
     if (depth > grassData[2].y)
         discard;
+/*
+#if !@normalMap && PER_PIXEL_LIGHTING
+    vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
+#endif
+*/
 
 #if @normalMap
 vec4 normalTex = texture2D(normalMap, diffuseMapUV);
@@ -92,29 +99,22 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
 #if !PER_PIXEL_LIGHTING
     lighting = passLighting;
 #else
-#ifdef LINEAR_LIGHTING
-    lighting = doLighting(passViewPos, normalize(viewNormal), passColor, 1.0);
-#else
     vec3 diffuseLight, ambientLight;
     doLighting(passViewPos, normalize(viewNormal), 1.0, diffuseLight, ambientLight);
     lighting = diffuseLight + ambientLight;
-#endif
-    clampLightingResult(lighting, clampLighting);
-#endif
-
-gl_FragData[0].xyz *= lighting;
-
-   gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz);
-
-#ifdef LINEAR_LIGHTING
-        gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
+    clampLightingResult(lighting);
 #endif
 
+    gl_FragData[0].xyz *= lighting;
+
+    gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz);
+
+}
 
 if(underwaterFog)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
-
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/shaderSettings.w));
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/gamma));
+
 }

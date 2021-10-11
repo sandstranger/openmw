@@ -1,17 +1,19 @@
 #version 120
 precision highp float;
 
-uniform mat4 projectionMatrix;
-
+#include "helpsettings.glsl"
 varying vec3  screenCoordsPassthrough;
 varying vec4  position;
 varying float linearDepth;
 
-#include "depth.glsl"
+#ifdef HEIGHT_FOG
+varying vec3 fogH;
+uniform mat4 osg_ViewMatrixInverse;
+#endif
 
 void main(void)
 {
-    gl_Position = projectionMatrix * (gl_ModelViewMatrix * gl_Vertex);
+    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
 
     mat4 scalemat = mat4(0.5, 0.0, 0.0, 0.0,
                          0.0, -0.5, 0.0, 0.0,
@@ -23,7 +25,9 @@ void main(void)
 
     position = gl_Vertex;
 
-    vec4 viewPos = gl_ModelViewMatrix * gl_Vertex;
-    linearDepth = getLinearDepth(gl_Position.z, viewPos.z);
+    linearDepth = gl_Position.z;
 
+#ifdef HEIGHT_FOG
+    fogH = (osg_ViewMatrixInverse * (gl_ModelViewMatrix * gl_Vertex)).xyz;
+#endif
 }

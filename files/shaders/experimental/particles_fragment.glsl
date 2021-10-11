@@ -9,18 +9,11 @@ varying vec2 diffuseMapUV;
 
 centroid varying vec3 passLighting;
 varying float depth;
+uniform float gamma;
 
-uniform vec4 shaderSettings;
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
 #include "lighting_util.glsl"
-
-vec3 SpecialContrast(vec3 x, float suncon) 
-{
-	vec3 contrasted = x*x*x*(x*(x*6.0 - 15.0) + 10.0);
-	x.rgb = mix(x.rgb, contrasted, suncon);
-	return x;
-}
 
 void main()
 {
@@ -44,14 +37,9 @@ if(fogValue != 1.0)
 
     gl_FragData[0].xyz *= passLighting;
 
-
-#ifdef LINEAR_LIGHTING
-        gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0 / (2.2 + @gamma - 1.0)));
-        gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
-#endif
-
 }
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/shaderSettings.w));
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/gamma));
+
 }

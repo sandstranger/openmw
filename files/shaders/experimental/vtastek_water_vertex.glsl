@@ -1,24 +1,22 @@
 #version 120
 precision highp float;
-
+    
 varying vec3  screenCoordsPassthrough;
 varying vec4  position;
 varying float linearDepth;
 uniform float osg_SimulationTime;
 uniform mat4 osg_ViewMatrixInverse;
-uniform vec4 shaderSettings;
+
+#include "helpsettings.glsl"
 
 void main(void)
 {
-  bool underwaterFog = (shaderSettings.z == 2.0 || shaderSettings.z == 3.0 || shaderSettings.z == 6.0 || shaderSettings.z == 7.0) ? true : false;
-
 	vec4 glvertice = gl_Vertex;
 	
-if(!underwaterFog) {
+#ifndef underwaterFog
+
 	vec4 campos = osg_ViewMatrixInverse * vec4(0.0, 0.0, 0.0, 1.0);
 	vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
-
-
 	float euclideanDepth = length(viewPos.xyz);
 	vec2 dir = normalize(viewPos.xy - glvertice.xy);
 	
@@ -37,12 +35,12 @@ if(!underwaterFog) {
 	float h = pow((sinres + 1.0) * 0.5, 2.5);
 	
 	float g = 70.0 * 9.8;
-	glvertice.z -= 25.0/sqrt(g) * sqrt(h * g);
+	glvertice.z -= 10.0/sqrt(g) * sqrt(h * g);
 	}
 	
 	if(campos.z < -1.0)
 	glvertice.z += 25.0; 
-}
+#endif
 	
     gl_Position = gl_ModelViewProjectionMatrix * glvertice;
 

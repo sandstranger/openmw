@@ -292,6 +292,14 @@ namespace MWRender
         osg::ref_ptr<StateUpdater> mStateUpdater;
         osg::ref_ptr<SharedUniformStateUpdater> mSharedUniformStateUpdater;
 
+	osg::ref_ptr<osg::Uniform> mRadialFogUniform;
+	osg::ref_ptr<osg::Uniform> mClampLightingUniform;
+	osg::ref_ptr<osg::Uniform> mForcePerPixelLightingUniform;
+	osg::ref_ptr<osg::Uniform> mParallaxShadowsUniform;
+	osg::ref_ptr<osg::Uniform> mUnderwaterFogUniform;
+	osg::ref_ptr<osg::Uniform> mTonemaperUniform;
+	osg::ref_ptr<osg::Uniform> mGammaUniform;
+
         osg::Vec4f mAmbientColor;
         float mMinimumAmbientLuminance;
         float mNightEyeFactor;

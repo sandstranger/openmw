@@ -49,10 +49,8 @@ uniform mat2 bumpMapMatrix;
 
 #define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL))
 
-uniform vec4 shaderSettings;
-#include "tonemap.glsl"
-
 #include "helpsettings.glsl"
+#include "tonemap.glsl"
 
 uniform bool isInterior;
 
@@ -60,9 +58,7 @@ uniform bool isInterior;
 #include "lighting_util.glsl"
 
 uniform bool simpleWater;
-
 uniform bool skip;
-
 uniform mat4 osg_ViewMatrixInverse;
 uniform bool isPlayer;
 
@@ -70,44 +66,49 @@ uniform bool isPlayer;
 uniform float osg_SimulationTime;
 #endif
 
-centroid varying vec3 passLighting;
-
-varying vec3 passNormal;
-
 varying vec3 passViewPos;
+
+#if PER_PIXEL_LIGHTING || @specularMap
+    varying vec3 passNormal;
+#endif
 
 #if @translucentFramebuffer
 uniform bool noAlpha;
 #endif
 
-varying float depth;
+varying highp float depth;
 
-  #ifdef LINEAR_LIGHTING
-    #include "linear_lighting.glsl"
-  #else
+#if !PER_PIXEL_LIGHTING
+    centroid varying vec3 passLighting;
+#else
     #include "lighting.glsl"
-  #endif
+#endif
 
 #include "effects.glsl"
 #include "fog.glsl"
 #include "alpha.glsl"
 
+uniform bool radialFog;
+uniform bool PPL;
+uniform bool parallaxShadows;
+uniform bool underwaterFog;
+uniform float gamma;
+
 void main()
 {
-    bool radialFog = (shaderSettings.y == 1.0 || shaderSettings.y == 3.0 || shaderSettings.y == 5.0 || shaderSettings.y == 7.0) ? true : false;
-    bool clampLighting = (shaderSettings.y == 2.0 || shaderSettings.y == 3.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0) ? true : false;
-    bool PPL = (shaderSettings.y == 4.0 || shaderSettings.y == 5.0 || shaderSettings.y == 6.0 || shaderSettings.y == 7.0 || @normalMap == 1) ? true : false;
-
-    bool parallaxShadows = (shaderSettings.z == 1.0 || shaderSettings.z == 3.0 || shaderSettings.z == 5.0 || shaderSettings.z == 7.0) ? true : false;
-    bool underwaterFog = (shaderSettings.z == 2.0 || shaderSettings.z == 3.0 || shaderSettings.z == 6.0 || shaderSettings.z == 7.0) ? true : false;
-
-
+float fogValue, underwaterFogValue;
+if(underwaterFog) {
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 && !simpleWater && !skip && !isInterior && !isPlayer;
-    float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
+    underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
+}
 
-    float fogValue = radialFog ? getFogValue((simpleWater) ? length(passViewPos) : depth) : getFogValue(depth);
+if(radialFog)
+    fogValue = getFogValue((simpleWater) ? length(passViewPos) : depth);
+else
+    fogValue = getFogValue(depth);
 
-if(fogValue < 1.0 && underwaterFogValue < 1.0)
+
+if(fogValue != 1.0 && underwaterFogValue != 1.0)
 {
 
 float shadowpara = 1.0;
@@ -116,14 +117,16 @@ float shadowpara = 1.0;
     vec2 adjustedDiffuseUV = diffuseMapUV;
 #endif
 
-
-   vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
+#if (!@normalMap && (@specularMap || @forcePPL))
+    vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
+#endif
 
 #ifdef NORMAL_MAP_FADING
     float nmFade = smoothstep(nmfader.x, nmfader.y, depth);
 #endif
 
 #if @normalMap
+    vec3 viewNormal;
 
     #ifdef NORMAL_MAP_FADING
         if(nmFade < 1.0 && !skip){
@@ -139,9 +142,9 @@ float shadowpara = 1.0;
     vec3 normalizedTangent = normalize(passTangent.xyz);
     vec3 binormal = cross(normalizedTangent, normalizedNormal) * passTangent.w;
     mat3 tbnTranspose = mat3(normalizedTangent, binormal, normalizedNormal);
-    viewNormal = normalize(gl_NormalMatrix * (tbnTranspose * (normalTex.xyz * 2.0 - 1.0)));
 
 #if !@parallax
+    viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
     #ifdef NORMAL_MAP_FADING
         if(nmFade != 0.0) viewNormal = mix(viewNormal, gl_NormalMatrix * normalize(passNormal), nmFade);
     #endif
@@ -159,12 +162,15 @@ float shadowpara = 1.0;
     }
 
     //normalTex = texture2D(normalMap, adjustedDiffuseUV);
+    viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
     #ifdef NORMAL_MAP_FADING
         if(nmFade != 0.0) viewNormal = mix(viewNormal, gl_NormalMatrix * normalize(passNormal), nmFade);
     #endif
 #endif
     #ifdef NORMAL_MAP_FADING
         }
+        else
+        viewNormal = gl_NormalMatrix * normalize(passNormal);
     #endif
 #endif
 
@@ -238,20 +244,17 @@ if(gl_FragData[0].a != 0.0)
     gl_FragData[0].xyz = preLight(gl_FragData[0].xyz);
 
     vec3 lighting;
-if(!PPL) 
-    lighting = passLighting;
-else {
-#ifdef LINEAR_LIGHTING
-    lighting.xyz = doLighting(passViewPos, normalize(viewNormal), passColor, shadowpara).xyz;
-#else
-    vec3 diffuseLight, ambientLight, shadowDiffuseLight;
-    doLighting(passViewPos, normalize(viewNormal), diffuseLight, ambientLight, shadowDiffuseLight, shadowpara, true);
-    lighting = diffuseColor.xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
-#endif
-    clampLightingResult(lighting, clampLighting);
-}
 
-gl_FragData[0].xyz *= lighting;
+#if !PER_PIXEL_LIGHTING
+    lighting = passLighting;
+#else
+    vec3 diffuseLight, ambientLight;
+    doLighting(passViewPos, normalize(viewNormal), shadowpara, diffuseLight, ambientLight);
+    lighting = diffuseColor.xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
+    clampLightingResult(lighting);
+#endif
+
+    gl_FragData[0].xyz *= lighting;
 
 
 #if @emissiveMap
@@ -276,10 +279,6 @@ gl_FragData[0].xyz *= lighting;
 
    gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz);
 
-#ifdef LINEAR_LIGHTING
-        gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
-#endif
-
 }
 
 #if @translucentFramebuffer
@@ -287,14 +286,14 @@ gl_FragData[0].xyz *= lighting;
     if (noAlpha)
          gl_FragData[0].a = 1.0;
 #endif
- 
-}
+ }
+//else gl_FragData[0].x = 1.0;
 
 if(underwaterFog)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
 
-if(!isUnderwater)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/shaderSettings.w));
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/gamma));
+
 }
