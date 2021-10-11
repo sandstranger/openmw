@@ -1,5 +1,8 @@
 #include "shadervisitor.hpp"
 
+#include <unordered_set>
+#include <set>
+
 #include <osg/AlphaFunc>
 #include <osg/Geometry>
 #include <osg/GLExtensions>
@@ -111,12 +114,10 @@ namespace Shader
         , mAutoUseSpecularMaps(false)
         , mApplyLightingToEnvMaps(false)
         , mConvertAlphaTestToAlphaToCoverage(false)
-        , mTranslucentFramebuffer(false)
         , mShaderManager(shaderManager)
         , mImageManager(imageManager)
         , mDefaultShaderPrefix(defaultShaderPrefix)
     {
-        mRequirements.emplace_back();
     }
 
     void ShaderVisitor::setForceShaders(bool force)
@@ -267,7 +268,7 @@ namespace Shader
                                 mRequirements.back().mShaderRequired = true;
                             }
                         }
-                        else if (!mTranslucentFramebuffer)
+                        else
                             Log(Debug::Error) << "ShaderVisitor encountered unknown texture " << texture;
                     }
                 }
@@ -421,7 +422,10 @@ namespace Shader
 
     void ShaderVisitor::pushRequirements(osg::Node& node)
     {
-        mRequirements.push_back(mRequirements.back());
+        if (mRequirements.empty())
+            mRequirements.emplace_back();
+        else
+            mRequirements.push_back(mRequirements.back());
         mRequirements.back().mNode = &node;
     }
 
@@ -552,8 +556,6 @@ namespace Shader
             updateAddedState(*writableUserData, addedState);
         }
 
-        defineMap["translucentFramebuffer"] = mTranslucentFramebuffer ? "1" : "0";
-
         std::string shaderPrefix;
         if (!node.getUserValue("shaderPrefix", shaderPrefix))
             shaderPrefix = mDefaultShaderPrefix;
@@ -566,7 +568,7 @@ namespace Shader
 
         if (vertexShader && fragmentShader)
         {
-            auto program = mShaderManager.getProgram(vertexShader, fragmentShader);
+            auto program = mShaderManager.getProgram(vertexShader, fragmentShader, mProgramTemplate);
             writableStateSet->setAttributeAndModes(program, osg::StateAttribute::ON);
             addedState->setAttributeAndModes(program);
 
@@ -770,11 +772,6 @@ namespace Shader
     void ShaderVisitor::setConvertAlphaTestToAlphaToCoverage(bool convert)
     {
         mConvertAlphaTestToAlphaToCoverage = convert;
-    }
-
-    void ShaderVisitor::setTranslucentFramebuffer(bool translucent)
-    {
-        mTranslucentFramebuffer = translucent;
     }
 
     ReinstateRemovedStateVisitor::ReinstateRemovedStateVisitor(bool allowedToModifyStateSets)

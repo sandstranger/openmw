@@ -251,7 +251,7 @@ namespace MWRender
             try
             {
                 for (std::vector<std::string>::const_iterator it = mModels.begin(); it != mModels.end(); ++it)
-                    mResourceSystem->getSceneManager()->cacheInstance(*it);
+                    mResourceSystem->getSceneManager()->getTemplate(*it);
                 for (std::vector<std::string>::const_iterator it = mTextures.begin(); it != mTextures.end(); ++it)
                     mResourceSystem->getImageManager()->getImage(*it);
                 for (std::vector<std::string>::const_iterator it = mKeyframes.begin(); it != mKeyframes.end(); ++it)
@@ -325,7 +325,6 @@ namespace MWRender
 
         // Let LightManager choose which backend to use based on our hint. For methods besides legacy lighting, this depends on support for various OpenGL extensions.
         osg::ref_ptr<SceneUtil::LightManager> sceneRoot = new SceneUtil::LightManager(lightingMethod == SceneUtil::LightingMethod::FFP);
-        resourceSystem->getSceneManager()->getShaderManager().setLightingMethod(sceneRoot->getLightingMethod());
         resourceSystem->getSceneManager()->setLightingMethod(sceneRoot->getLightingMethod());
         resourceSystem->getSceneManager()->setSupportedLightingMethods(sceneRoot->getSupportedLightingMethods());
         mMinimumAmbientLuminance = std::clamp(Settings::Manager::getFloat("minimum interior brightness", "Shaders"), 0.f, 1.f);
@@ -414,9 +413,10 @@ namespace MWRender
             float maxCompGeometrySize = Settings::Manager::getFloat("max composite geometry size", "Terrain");
             maxCompGeometrySize = std::max(maxCompGeometrySize, 1.f);
 
+            bool debugChunks = Settings::Manager::getBool("debug chunks", "Terrain");
             mTerrain.reset(new Terrain::QuadTreeWorld(
                 sceneRoot, mRootNode, mResourceSystem, mTerrainStorage.get(), Mask_Terrain, Mask_PreCompile, Mask_Debug,
-                compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize));
+                compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, debugChunks));
             if (Settings::Manager::getBool("object paging", "Terrain"))
             {
                 mObjectPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager()));
@@ -483,6 +483,7 @@ namespace MWRender
         defaultMat->setDiffuse(osg::Material::FRONT_AND_BACK, osg::Vec4f(1,1,1,1));
         defaultMat->setSpecular(osg::Material::FRONT_AND_BACK, osg::Vec4f(0.f, 0.f, 0.f, 0.f));
         sceneRoot->getOrCreateStateSet()->setAttribute(defaultMat);
+        sceneRoot->getOrCreateStateSet()->addUniform(new osg::Uniform("emissiveMult", 1.f));
 
         mFog.reset(new FogManager());
 
@@ -1331,19 +1332,15 @@ namespace MWRender
                 if (it->second == "max lights" && !lightManager->usingFFP())
                 {
                     mViewer->stopThreading();
-/*
-                        lightManager->updateMaxLights();
 
-                        auto defines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
-                        for (const auto& [name, key] : lightManager->getLightDefines())
-                            defines[name] = key;
-                        mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(defines);
+                    lightManager->updateMaxLights();
+
+/*                    auto defines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
+                    for (const auto& [name, key] : lightManager->getLightDefines())
+                        defines[name] = key;
+                    mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(defines);
 */
-                    mSceneRoot->removeUpdateCallback(mStateUpdater);
-                    mStateUpdater = new StateUpdater;
-                    mSceneRoot->addUpdateCallback(mStateUpdater);
-                    mStateUpdater->setFogEnd(mViewDistance);
-                    updateAmbient();
+                    mStateUpdater->reset();
 
                     mViewer->startThreading();
                 }
