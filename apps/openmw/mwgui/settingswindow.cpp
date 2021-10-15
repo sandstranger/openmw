@@ -268,6 +268,10 @@ namespace MWGui
             grassDensitySlider->setVisible(false);
         }
 
+            MyGUI::Button *PPLButton;
+            getWidget(PPLButton, "PPLLightingButton");
+            mLightingMethodButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
+
 	const char *shaderPreset = getenv("OPENMW_SHADERS");
         if(!shaderPreset || strcmp(shaderPreset, "experimental") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
 	{
@@ -301,8 +305,7 @@ namespace MWGui
 
             getWidget(textBox, "PPLLightingLabel");
             textBox->setVisible(false);
-            getWidget(button, "PPLLightingButton");
-            button->setVisible(false);
+            PPLButton->setVisible(false);
 
             getWidget(textBox, "UnderwaterFogLabel");
             textBox->setVisible(false);
@@ -395,6 +398,12 @@ namespace MWGui
     void SettingsWindow::onOkButtonClicked(MyGUI::Widget* _sender)
     {
         MWBase::Environment::get().getWindowManager()->removeGuiMode(GM_Settings);
+    }
+
+    void SettingsWindow::onPPLButtonClicked(MyGUI::Widget* _sender)
+    {
+        std::string message = "This change requires a restart to take effect.";
+        MWBase::Environment::get().getWindowManager()->interactiveMessageBox(message, {"#{sOK}"}, true);
     }
 
     void SettingsWindow::onResolutionSelected(MyGUI::ListBox* _sender, size_t index)

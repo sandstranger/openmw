@@ -320,7 +320,8 @@ namespace MWRender
 	{
 	    resourceSystem->getSceneManager()->setForceShaders(false);
 	    resourceSystem->getSceneManager()->setClampLighting(false);
-	    resourceSystem->getSceneManager()->setAutoUseNormalMaps(false); //do it for terrain too later
+	    resourceSystem->getSceneManager()->setAutoUseNormalMaps(false);
+	    lightingMethod = SceneUtil::LightingMethod::FFP;
 	}
 
         // Let LightManager choose which backend to use based on our hint. For methods besides legacy lighting, this depends on support for various OpenGL extensions.
@@ -398,7 +399,11 @@ namespace MWRender
         const bool useTerrainNormalMaps = Settings::Manager::getBool("auto use terrain normal maps", "Shaders");
         const bool useTerrainSpecularMaps = Settings::Manager::getBool("auto use terrain specular maps", "Shaders");
 
-        mTerrainStorage.reset(new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps));
+	if (strcmp(glesmode, "1") == 0)
+            mTerrainStorage.reset(new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, false, specularMapPattern, false));
+	else
+            mTerrainStorage.reset(new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps));
+
         const float lodFactor = Settings::Manager::getFloat("lod factor", "Terrain");
 
         bool groundcover = Settings::Manager::getBool("enabled", "Groundcover");
@@ -529,7 +534,7 @@ namespace MWRender
 
 	mRadialFogUniform = new osg::Uniform("radialFog", Settings::Manager::getBool("radial fog", "Shaders"));
 	mClampLightingUniform = new osg::Uniform("clampLighting", Settings::Manager::getBool("clamp lighting", "Shaders"));
-	mForcePerPixelLightignUniform = new osg::Uniform("PPL", Settings::Manager::getBool("force per pixel lighting", "Shaders"));
+	mForcePerPixelLightingUniform = new osg::Uniform("PPL", Settings::Manager::getBool("force per pixel lighting", "Shaders"));
 	mParallaxShadowsUniform = new osg::Uniform("parallaxShadows", Settings::Manager::getBool("parallax soft shadows", "Shaders"));
 	mUnderwaterFogUniform = new osg::Uniform("underwaterFog", Settings::Manager::getBool("underwater fog", "Water"));
 	mTonemaperUniform = new osg::Uniform("tonemaper", Settings::Manager::getInt("tonemaper", "Shaders"));
@@ -1331,18 +1336,20 @@ namespace MWRender
 
                 if (it->second == "max lights" && !lightManager->usingFFP())
                 {
+/*
                     mViewer->stopThreading();
 
                     lightManager->updateMaxLights();
 
-/*                    auto defines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
+                    auto defines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
                     for (const auto& [name, key] : lightManager->getLightDefines())
                         defines[name] = key;
                     mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(defines);
-*/
+
                     mStateUpdater->reset();
 
                     mViewer->startThreading();
+*/
                 }
             }
         }

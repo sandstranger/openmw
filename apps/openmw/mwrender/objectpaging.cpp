@@ -780,7 +780,12 @@ namespace MWRender
 
             osg::ref_ptr<osg::AlphaFunc> alpha = new osg::AlphaFunc(osg::AlphaFunc::GEQUAL, 128.f / 255.f);
             stateset->setAttributeAndModes(alpha.get(), osg::StateAttribute::ON);
-            mSceneManager->recreateShaders(group, "groundcover", false, true);
+
+            static const osg::ref_ptr<osg::Program> programTemplate = mSceneManager->getShaderManager().getProgramTemplate() ? static_cast<osg::Program*>(mSceneManager->getShaderManager().getProgramTemplate()->clone(osg::CopyOp::SHALLOW_COPY)) : new osg::Program;
+            //programTemplate->addBindAttribLocation("aOffset", 6);
+            //programTemplate->addBindAttribLocation("aRotation", 7);
+
+            mSceneManager->recreateShaders(group, "groundcover", false, programTemplate);
         }
 
         return group;
