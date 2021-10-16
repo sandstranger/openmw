@@ -60,7 +60,7 @@ namespace MWGui
             void onWaterTextureSizeChanged(MyGUI::ComboBox* _sender, size_t pos);
             void onWaterReflectionDetailChanged(MyGUI::ComboBox* _sender, size_t pos);
             void onTonemaperSwitchChanged(MyGUI::ComboBox* _sender, size_t pos);
-            void onShowOwnedrSwitchChanged(MyGUI::ComboBox* _sender, size_t pos);
+            void onShowOwnedSwitchChanged(MyGUI::ComboBox* _sender, size_t pos);
 
             void onLightingMethodButtonChanged(MyGUI::ComboBox* _sender, size_t pos);
             void onLightsResetButtonClicked(MyGUI::Widget* _sender);
