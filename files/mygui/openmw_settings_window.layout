@@ -783,7 +783,7 @@
             </Widget>
 
 
-
+<!--
             <Widget type="TabItem" skin="" position="4 32 360 358">
                 <Property key="Caption" value=" Game "/>
 
@@ -863,7 +863,7 @@
 
 
              </Widget>
-
+-->
 
 
         </Widget>

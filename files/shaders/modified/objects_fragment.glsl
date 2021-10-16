@@ -1,4 +1,5 @@
 #version 120
+#pragma import_defines(FORCE_OPAQUE)
 
 #define OBJECT
 
@@ -84,10 +85,6 @@ varying vec3 passNormal;
 
 #if PER_PIXEL_LIGHTING || @specularMap || @radialFog || defined(SIMPLE_WATER_TWEAK) || @underwaterFog
 varying vec3 passViewPos;
-#endif
-
-#if @translucentFramebuffer
-uniform bool noAlpha;
 #endif
 
 varying float depth;
@@ -311,12 +308,11 @@ if(simpleWater)
 
 }
 
-#if @translucentFramebuffer
-// having testing & blending isn't enough - we need to write an opaque pixel to be opaque
-    if (noAlpha)
-         gl_FragData[0].a = 1.0;
+#if defined(FORCE_OPAQUE) && FORCE_OPAQUE
+    // having testing & blending isn't enough - we need to write an opaque pixel to be opaque
+    gl_FragData[0].a = 1.0;
 #endif
- }
+
 //else gl_FragData[0].x = 1.0;
 
 #if @underwaterFog

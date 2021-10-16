@@ -13,6 +13,8 @@ set(DDIREXPERIMENTAL resources/shaders/experimental)
 set(SHADER_FILES
     groundcover_vertex.glsl
     groundcover_fragment.glsl
+    vtastek_water_vertex.glsl
+    vtastek_water_fragment.glsl
     water_vertex.glsl
     water_fragment.glsl
     water_nm.png
