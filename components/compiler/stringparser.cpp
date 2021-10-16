@@ -63,9 +63,13 @@ namespace Compiler
             keyword==Scanner::K_elseif || keyword==Scanner::K_while ||
             keyword==Scanner::K_endwhile || keyword==Scanner::K_return ||
             keyword==Scanner::K_messagebox || keyword==Scanner::K_set ||
-            keyword==Scanner::K_to || keyword==Scanner::K_getsquareroot)
+            keyword==Scanner::K_to)
         {
-            return parseName (loc.mLiteral, loc, scanner);
+            // pretend this is not a keyword
+            std::string name = loc.mLiteral;
+            if (name.size()>=2 && name[0]=='"' && name[name.size()-1]=='"')
+                name = name.substr (1, name.size()-2);
+            return parseName (name, loc, scanner);
         }
 
         return Parser::parseKeyword (keyword, loc, scanner);

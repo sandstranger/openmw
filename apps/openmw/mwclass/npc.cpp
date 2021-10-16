@@ -1,6 +1,7 @@
 ﻿#include "npc.hpp"
 
 #include <memory>
+#include <climits> // INT_MIN
 
 #include <components/misc/constants.hpp>
 #include <components/misc/rng.hpp>
@@ -17,6 +18,7 @@
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/dialoguemanager.hpp"
 #include "../mwbase/soundmanager.hpp"
+#include "../mwbase/luamanager.hpp"
 
 #include "../mwmechanics/creaturestats.hpp"
 #include "../mwmechanics/npcstats.hpp"
@@ -382,14 +384,14 @@ namespace MWClass
             if (!spellsInitialised)
                 data->mNpcStats.getSpells().addAllToInstance(ref->mBase->mSpells.mList);
 
-            // inventory
-            // setting ownership is used to make the NPC auto-equip his initial equipment only, and not bartered items
-            data->mInventoryStore.fill(ref->mBase->mInventory, ptr.getCellRef().getRefId());
-
             data->mNpcStats.setGoldPool(gold);
 
             // store
             ptr.getRefData().setCustomData(std::move(data));
+
+            // inventory
+            // setting ownership is used to make the NPC auto-equip his initial equipment only, and not bartered items
+            getInventoryStore(ptr).fill(ref->mBase->mInventory, ptr.getCellRef().getRefId());
 
             getInventoryStore(ptr).autoEquip(ptr);
         }
@@ -403,7 +405,7 @@ namespace MWClass
     bool Npc::isPersistent(const MWWorld::ConstPtr &actor) const
     {
         const MWWorld::LiveCellRef<ESM::NPC>* ref = actor.get<ESM::NPC>();
-        return ref->mBase->mPersistent;
+        return (ref->mBase->mRecordFlags & ESM::FLAG_Persistent) != 0;
     }
 
     std::string Npc::getModel(const MWWorld::ConstPtr &ptr) const
@@ -457,12 +459,12 @@ namespace MWClass
             if (equipped != invStore.end())
             {
                 std::vector<ESM::PartReference> parts;
-                if(equipped->getTypeName() == typeid(ESM::Clothing).name())
+                if(equipped->getType() == ESM::Clothing::sRecordId)
                 {
                     const ESM::Clothing *clothes = equipped->get<ESM::Clothing>()->mBase;
                     parts = clothes->mParts.mParts;
                 }
-                else if(equipped->getTypeName() == typeid(ESM::Armor).name())
+                else if(equipped->getType() == ESM::Armor::sRecordId)
                 {
                     const ESM::Armor *armor = equipped->get<ESM::Armor>()->mBase;
                     parts = armor->mParts.mParts;
@@ -541,7 +543,7 @@ namespace MWClass
         MWWorld::InventoryStore &inv = getInventoryStore(ptr);
         MWWorld::ContainerStoreIterator weaponslot = inv.getSlot(MWWorld::InventoryStore::Slot_CarriedRight);
         MWWorld::Ptr weapon = ((weaponslot != inv.end()) ? *weaponslot : MWWorld::Ptr());
-        if(!weapon.isEmpty() && weapon.getTypeName() != typeid(ESM::Weapon).name())
+        if(!weapon.isEmpty() && weapon.getType() != ESM::Weapon::sRecordId)
             weapon = MWWorld::Ptr();
 
         MWMechanics::applyFatigueLoss(ptr, weapon, attackStrength);
@@ -764,7 +766,7 @@ namespace MWClass
                 MWWorld::InventoryStore &inv = getInventoryStore(ptr);
                 MWWorld::ContainerStoreIterator armorslot = inv.getSlot(hitslot);
                 MWWorld::Ptr armor = ((armorslot != inv.end()) ? *armorslot : MWWorld::Ptr());
-                bool hasArmor = !armor.isEmpty() && armor.getTypeName() == typeid(ESM::Armor).name();
+                bool hasArmor = !armor.isEmpty() && armor.getType() == ESM::Armor::sRecordId;
                 // If there's no item in the carried left slot or if it is not a shield redistribute the hit.
                 if (!hasArmor && hitslot == MWWorld::InventoryStore::Slot_CarriedLeft)
                 {
@@ -776,7 +778,7 @@ namespace MWClass
                     if (armorslot != inv.end())
                     {
                         armor = *armorslot;
-                        hasArmor = !armor.isEmpty() && armor.getTypeName() == typeid(ESM::Armor).name();
+                        hasArmor = !armor.isEmpty() && armor.getType() == ESM::Armor::sRecordId;
                     }
                 }
                 if (hasArmor)
@@ -1034,7 +1036,7 @@ namespace MWClass
     void Npc::registerSelf()
     {
         std::shared_ptr<Class> instance (new Npc);
-        registerClass (typeid (ESM::NPC).name(), instance);
+        registerClass (ESM::NPC::sRecordId, instance);
     }
 
     bool Npc::hasToolTip(const MWWorld::ConstPtr& ptr) const
@@ -1095,6 +1097,7 @@ namespace MWClass
     bool Npc::apply (const MWWorld::Ptr& ptr, const std::string& id,
         const MWWorld::Ptr& actor) const
     {
+        MWBase::Environment::get().getLuaManager()->appliedToObject(ptr, id, actor);
         MWMechanics::CastSpell cast(ptr, ptr);
         return cast.cast(id);
     }
@@ -1132,7 +1135,7 @@ namespace MWClass
         for(int i = 0;i < MWWorld::InventoryStore::Slots;i++)
         {
             MWWorld::ConstContainerStoreIterator it = invStore.getSlot(i);
-            if (it == invStore.end() || it->getTypeName() != typeid(ESM::Armor).name())
+            if (it == invStore.end() || it->getType() != ESM::Armor::sRecordId)
             {
                 // unarmored
                 ratings[i] = (fUnarmoredBase1 * unarmoredSkill) * (fUnarmoredBase2 * unarmoredSkill);
@@ -1229,7 +1232,7 @@ namespace MWClass
 
                 const MWWorld::InventoryStore &inv = Npc::getInventoryStore(ptr);
                 MWWorld::ConstContainerStoreIterator boots = inv.getSlot(MWWorld::InventoryStore::Slot_Boots);
-                if(boots == inv.end() || boots->getTypeName() != typeid(ESM::Armor).name())
+                if(boots == inv.end() || boots->getType() != ESM::Armor::sRecordId)
                     return (name == "left") ? "FootBareLeft" : "FootBareRight";
 
                 switch(boots->getClass().getEquipmentSkill(*boots))
@@ -1289,19 +1292,26 @@ namespace MWClass
         if (!state.mHasCustomState)
             return;
 
+        const ESM::NpcState& npcState = state.asNpcState();
+
         if (state.mVersion > 0)
         {
             if (!ptr.getRefData().getCustomData())
             {
-                // Create a CustomData, but don't fill it from ESM records (not needed)
-                ptr.getRefData().setCustomData(std::make_unique<NpcCustomData>());
+                // FIXME: the use of mGoldPool can be replaced with another flag the next time
+                // the save file format is changed
+                if (npcState.mCreatureStats.mGoldPool == INT_MIN)
+                    ensureCustomData(ptr);
+                else
+                    // Create a CustomData, but don't fill it from ESM records (not needed)
+                    ptr.getRefData().setCustomData(std::make_unique<NpcCustomData>());
             }
         }
         else
             ensureCustomData(ptr); // in openmw 0.30 savegames not all state was saved yet, so need to load it regardless.
 
         NpcCustomData& customData = ptr.getRefData().getCustomData()->asNpcCustomData();
-        const ESM::NpcState& npcState = state.asNpcState();
+
         customData.mInventoryStore.readState (npcState.mInventory);
         customData.mNpcStats.readState (npcState.mNpcStats);
         bool spellsInitialised = customData.mNpcStats.getSpells().setSpells(ptr.get<ESM::NPC>()->mBase->mId);
@@ -1382,12 +1392,12 @@ namespace MWClass
                 }
 
                 MWBase::Environment::get().getWorld()->removeContainerScripts(ptr);
+                MWBase::Environment::get().getWindowManager()->onDeleteCustomData(ptr);
                 ptr.getRefData().setCustomData(nullptr);
 
                 // Reset to original position
-                MWBase::Environment::get().getWorld()->moveObject(ptr, ptr.getCellRef().getPosition().pos[0],
-                        ptr.getCellRef().getPosition().pos[1],
-                        ptr.getCellRef().getPosition().pos[2]);
+                MWBase::Environment::get().getWorld()->moveObject(ptr, ptr.getCellRef().getPosition().asVec3());
+                MWBase::Environment::get().getWorld()->rotateObject(ptr, ptr.getCellRef().getPosition().asRotationVec3(), MWBase::RotationFlag_none);
             }
         }
     }

@@ -11,6 +11,7 @@ namespace ESM
     void StartScript::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
+        mRecordFlags = esm.getRecordFlags();
 
         bool hasData = false;
         bool hasName = false;
@@ -47,7 +48,7 @@ namespace ESM
         esm.writeHNCString("NAME", mId);
         if (isDeleted)
         {
-            esm.writeHNCString("DELE", "");
+            esm.writeHNString("DELE", "", 3);
         }
         else
         {

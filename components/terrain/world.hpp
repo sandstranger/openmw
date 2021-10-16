@@ -4,12 +4,13 @@
 #include <osg/ref_ptr>
 #include <osg/Referenced>
 #include <osg/Vec3f>
-#include <osg/NodeCallback>
 
 #include <atomic>
 #include <limits>
 #include <memory>
 #include <set>
+
+#include <components/sceneutil/nodecallback.hpp>
 
 #include "defs.hpp"
 #include "cellborder.hpp"
@@ -32,6 +33,11 @@ namespace SceneUtil
     class WorkQueue;
 }
 
+namespace Loading
+{
+    class Reporter;
+}
+
 namespace Terrain
 {
     class Storage;
@@ -40,7 +46,7 @@ namespace Terrain
     class ChunkManager;
     class CompositeMapRenderer;
 
-    class HeightCullCallback : public osg::NodeCallback
+    class HeightCullCallback : public SceneUtil::NodeCallback<HeightCullCallback>
     {
     public:
         void setLowZ(float z)
@@ -70,7 +76,7 @@ namespace Terrain
             return mMask;
         }
 
-        void operator()(osg::Node* node, osg::NodeVisitor* nv) override
+        void operator()(osg::Node* node, osg::NodeVisitor* nv)
         {
             if (mLowZ <= mHighZ)
                 traverse(node, nv);
@@ -148,11 +154,7 @@ namespace Terrain
 
         /// @note Thread safe, as long as you do not attempt to load into the same view from multiple threads.
 
-        virtual void preload(View* view, const osg::Vec3f& viewPoint, const osg::Vec4i &cellgrid, std::atomic<bool>& abort, std::atomic<int>& progress, int& progressRange) {}
-
-        /// Store a preloaded view into the cache with the intent that the next rendering traversal can use it.
-        /// @note Not thread safe.
-        virtual bool storeView(const View* view, double referenceTime) {return true;}
+        virtual void preload(View* view, const osg::Vec3f& viewPoint, const osg::Vec4i &cellgrid, std::atomic<bool>& abort, Loading::Reporter& reporter) {}
 
         virtual void rebuildViews() {}
 

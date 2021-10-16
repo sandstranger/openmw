@@ -9,6 +9,7 @@ unsigned int ESM::DebugProfile::sRecordId = REC_DBGP;
 void ESM::DebugProfile::load (ESMReader& esm, bool &isDeleted)
 {
     isDeleted = false;
+    mRecordFlags = esm.getRecordFlags();
 
     while (esm.hasMoreSubs())
     {
@@ -44,7 +45,7 @@ void ESM::DebugProfile::save (ESMWriter& esm, bool isDeleted) const
 
     if (isDeleted)
     {
-        esm.writeHNCString("DELE", "");
+        esm.writeHNString("DELE", "", 3);
         return;
     }
 

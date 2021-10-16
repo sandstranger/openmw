@@ -5,6 +5,7 @@
 #include <memory>
 #include <map>
 #include <set>
+#include <unordered_map>
 #include <algorithm>
 
 #include <osg/Quat>
@@ -56,7 +57,7 @@ namespace MWPhysics
     class PhysicsTaskScheduler;
     class Projectile;
 
-    using ActorMap = std::map<MWWorld::ConstPtr, std::shared_ptr<Actor>>;
+    using ActorMap = std::unordered_map<const MWWorld::LiveCellRefBase*, std::shared_ptr<Actor>>;
 
     struct ContactPoint
     {
@@ -78,27 +79,30 @@ namespace MWPhysics
 
     struct ActorFrameData
     {
-        ActorFrameData(const std::shared_ptr<Actor>& actor, const MWWorld::Ptr standingOn, bool moveToWaterSurface, osg::Vec3f movement, float slowFall, float waterlevel);
-        void  updatePosition(btCollisionWorld* world);
-        std::weak_ptr<Actor> mActor;
-        Actor* mActorRaw;
-        MWWorld::Ptr mStandingOn;
-        bool mFlying;
-        bool mSwimming;
-        bool mWasOnGround;
-        bool mWantJump;
-        bool mDidJump;
-        bool mFloatToSurface;
-        bool mNeedLand;
-        bool mWaterCollision;
-        bool mSkipCollisionDetection;
-        float mWaterlevel;
-        float mSlowFall;
-        float mOldHeight;
-        float mFallHeight;
-        osg::Vec3f mMovement;
+        ActorFrameData(Actor& actor, bool inert, bool waterCollision, float slowFall, float waterlevel);
+        void  updatePosition(Actor& actor, btCollisionWorld* world);
         osg::Vec3f mPosition;
-        ESM::Position mRefpos;
+        osg::Vec3f mInertia;
+        const btCollisionObject* mStandingOn;
+        bool mIsOnGround;
+        bool mIsOnSlope;
+        bool mWalkingOnWater;
+        const bool mInert;
+        btCollisionObject* mCollisionObject;
+        const float mSwimLevel;
+        const float mSlowFall;
+        osg::Vec2f mRotation;
+        osg::Vec3f mMovement;
+        osg::Vec3f mLastStuckPosition;
+        const float mWaterlevel;
+        const float mHalfExtentsZ;
+        float mOldHeight;
+        unsigned int mStuckFrames;
+        const bool mFlying;
+        const bool mWasOnGround;
+        const bool mIsAquatic;
+        const bool mWaterCollision;
+        const bool mSkipCollisionDetection;
     };
 
     struct WorldFrameData
@@ -122,10 +126,10 @@ namespace MWPhysics
             void setWaterHeight(float height);
             void disableWater();
 
-            void addObject (const MWWorld::Ptr& ptr, const std::string& mesh, int collisionType = CollisionType_World);
+            void addObject (const MWWorld::Ptr& ptr, const std::string& mesh, osg::Quat rotation, int collisionType = CollisionType_World);
             void addActor (const MWWorld::Ptr& ptr, const std::string& mesh);
 
-            int addProjectile(const MWWorld::Ptr& caster, const osg::Vec3f& position, const std::string& mesh, bool computeRadius, bool canTraverseWater);
+            int addProjectile(const MWWorld::Ptr& caster, const osg::Vec3f& position, const std::string& mesh, bool computeRadius);
             void setCaster(int projectileId, const MWWorld::Ptr& caster);
             void updateProjectile(const int projectileId, const osg::Vec3f &position) const;
             void removeProjectile(const int projectileId);
@@ -143,10 +147,10 @@ namespace MWPhysics
             void remove (const MWWorld::Ptr& ptr);
 
             void updateScale (const MWWorld::Ptr& ptr);
-            void updateRotation (const MWWorld::Ptr& ptr);
+            void updateRotation (const MWWorld::Ptr& ptr, osg::Quat rotate);
             void updatePosition (const MWWorld::Ptr& ptr);
 
-            void addHeightField (const float* heights, int x, int y, float triSize, float sqrtVerts, float minH, float maxH, const osg::Object* holdObject);
+            void addHeightField(const float* heights, int x, int y, int size, int verts, float minH, float maxH, const osg::Object* holdObject);
 
             void removeHeightField (int x, int y);
 
@@ -154,7 +158,11 @@ namespace MWPhysics
 
             bool toggleCollisionMode();
 
-            void stepSimulation();
+            /// Determine new position based on all queued movements, then clear the list.
+            void stepSimulation(float dt, bool skipSimulation, osg::Timer_t frameStart, unsigned int frameNumber, osg::Stats& stats);
+
+            /// Apply new positions to actors
+            void moveActors();
             void debugDraw();
 
             std::vector<MWWorld::Ptr> getCollisions(const MWWorld::ConstPtr &ptr, int collisionGroup, int collisionMask) const; ///< get handles this object collides with
@@ -175,10 +183,11 @@ namespace MWPhysics
 
             /// @param me Optional, a Ptr to ignore in the list of results. targets are actors to filter for, ignoring all other actors.
             RayCastingResult castRay(const osg::Vec3f &from, const osg::Vec3f &to, const MWWorld::ConstPtr& ignore = MWWorld::ConstPtr(),
-                    std::vector<MWWorld::Ptr> targets = std::vector<MWWorld::Ptr>(),
-                    int mask = CollisionType_World|CollisionType_HeightMap|CollisionType_Actor|CollisionType_Door, int group=0xff) const override;
+                    const std::vector<MWWorld::Ptr>& targets = std::vector<MWWorld::Ptr>(),
+                    int mask = CollisionType_Default, int group=0xff) const override;
 
-            RayCastingResult castSphere(const osg::Vec3f& from, const osg::Vec3f& to, float radius) const override;
+            RayCastingResult castSphere(const osg::Vec3f& from, const osg::Vec3f& to, float radius,
+                    int mask = CollisionType_Default, int group=0xff) const override;
 
             /// Return true if actor1 can see actor2.
             bool getLineOfSight(const MWWorld::ConstPtr& actor1, const MWWorld::ConstPtr& actor2) const override;
@@ -204,11 +213,8 @@ namespace MWPhysics
             osg::BoundingBox getBoundingBox(const MWWorld::ConstPtr &object) const;
 
             /// Queues velocity movement for a Ptr. If a Ptr is already queued, its velocity will
-            /// be overwritten. Valid until the next call to applyQueuedMovement.
+            /// be overwritten. Valid until the next call to stepSimulation
             void queueObjectMovement(const MWWorld::Ptr &ptr, const osg::Vec3f &velocity);
-
-            /// Apply all queued movements, then clear the list.
-            const std::vector<MWWorld::Ptr>& applyQueuedMovement(float dt, bool skipSimulation, osg::Timer_t frameStart, unsigned int frameNumber, osg::Stats& stats);
 
             /// Clear the queued movements list without applying.
             void clearQueuedMovement();
@@ -244,7 +250,8 @@ namespace MWPhysics
                 std::for_each(mAnimatedObjects.begin(), mAnimatedObjects.end(), function);
             }
 
-            bool isAreaOccupiedByOtherActor(const osg::Vec3f& position, const float radius, const MWWorld::ConstPtr& ignore) const;
+            bool isAreaOccupiedByOtherActor(const osg::Vec3f& position, const float radius,
+                const MWWorld::ConstPtr& ignore, std::vector<MWWorld::Ptr>* occupyingActors) const;
 
             void reportStats(unsigned int frameNumber, osg::Stats& stats) const;
             void reportCollision(const btVector3& position, const btVector3& normal);
@@ -253,7 +260,7 @@ namespace MWPhysics
 
             void updateWater();
 
-            std::vector<ActorFrameData> prepareFrameData(bool willSimulate);
+            std::pair<std::vector<std::shared_ptr<Actor>>, std::vector<ActorFrameData>> prepareFrameData(bool willSimulate);
 
             osg::ref_ptr<SceneUtil::UnrefQueue> mUnrefQueue;
 
@@ -266,7 +273,7 @@ namespace MWPhysics
             std::unique_ptr<Resource::BulletShapeManager> mShapeManager;
             Resource::ResourceSystem* mResourceSystem;
 
-            using ObjectMap = std::map<MWWorld::ConstPtr, std::shared_ptr<Object>>;
+            using ObjectMap = std::unordered_map<const MWWorld::LiveCellRefBase*, std::shared_ptr<Object>>;
             ObjectMap mObjects;
 
             std::set<Object*> mAnimatedObjects; // stores pointers to elements in mObjects
@@ -280,9 +287,6 @@ namespace MWPhysics
             HeightFieldMap mHeightFields;
 
             bool mDebugDrawEnabled;
-
-            using PtrVelocityList = std::vector<std::pair<MWWorld::Ptr, osg::Vec3f>>;
-            PtrVelocityList mMovementQueue;
 
             float mTimeAccum;
 

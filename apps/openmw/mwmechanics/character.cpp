@@ -23,6 +23,7 @@
 
 #include <components/misc/mathutil.hpp>
 #include <components/misc/rng.hpp>
+#include <components/misc/stringops.hpp>
 
 #include <components/settings/settings.hpp>
 
@@ -387,7 +388,7 @@ void CharacterController::refreshJumpAnims(const std::string& weapShortGroup, Ju
 
 bool CharacterController::onOpen()
 {
-    if (mPtr.getTypeName() == typeid(ESM::Container).name())
+    if (mPtr.getType() == ESM::Container::sRecordId)
     {
         if (!mAnimation->hasAnimation("containeropen"))
             return true;
@@ -408,7 +409,7 @@ bool CharacterController::onOpen()
 
 void CharacterController::onClose()
 {
-    if (mPtr.getTypeName() == typeid(ESM::Container).name())
+    if (mPtr.getType() == ESM::Container::sRecordId)
     {
         if (!mAnimation->hasAnimation("containerclose"))
             return;
@@ -595,7 +596,7 @@ void CharacterController::refreshMovementAnims(const std::string& weapShortGroup
             // even if we are running. This must be replicated, otherwise the observed speed would differ drastically.
             std::string anim = mCurrentMovement;
             mAdjustMovementAnimSpeed = true;
-            if (mPtr.getClass().getTypeName() == typeid(ESM::Creature).name()
+            if (mPtr.getClass().getType() == ESM::Creature::sRecordId
                     && !(mPtr.get<ESM::Creature>()->mBase->mFlags & ESM::Creature::Flies))
             {
                 CharacterState walkState = runStateToWalkState(mMovementState);
@@ -949,14 +950,6 @@ CharacterController::~CharacterController()
     }
 }
 
-void split(const std::string &s, char delim, std::vector<std::string> &elems) {
-    std::stringstream ss(s);
-    std::string item;
-    while (std::getline(ss, item, delim)) {
-        elems.push_back(item);
-    }
-}
-
 void CharacterController::handleTextKey(const std::string &groupname, SceneUtil::TextKeyMap::ConstIterator key, const SceneUtil::TextKeyMap& map)
 {
     const std::string &evt = key->second;
@@ -976,7 +969,7 @@ void CharacterController::handleTextKey(const std::string &groupname, SceneUtil:
         if (soundgen.find(' ') != std::string::npos)
         {
             std::vector<std::string> tokens;
-            split(soundgen, ' ', tokens);
+            Misc::StringUtils::split(soundgen, tokens);
             soundgen = tokens[0];
             if (tokens.size() >= 2)
             {
@@ -996,8 +989,7 @@ void CharacterController::handleTextKey(const std::string &groupname, SceneUtil:
         if(!sound.empty())
         {
             MWBase::SoundManager *sndMgr = MWBase::Environment::get().getSoundManager();
-            // NB: landing sound is not played for NPCs here
-            if(soundgen == "left" || soundgen == "right" || soundgen == "land")
+            if (soundgen == "left" || soundgen == "right")
             {
                 sndMgr->playSound3D(mPtr, sound, volume, pitch, MWSound::Type::Foot,
                                     MWSound::PlayMode::NoPlayerLocal);
@@ -1447,7 +1439,7 @@ bool CharacterController::updateWeaponState(CharacterState& idle)
     {
         MWWorld::InventoryStore &inv = cls.getInventoryStore(mPtr);
         MWWorld::ConstContainerStoreIterator weapon = getActiveWeapon(mPtr, &weaptype);
-        isWeapon = (weapon != inv.end() && weapon->getTypeName() == typeid(ESM::Weapon).name());
+        isWeapon = (weapon != inv.end() && weapon->getType() == ESM::Weapon::sRecordId);
         if (isWeapon)
         {
             weapSpeed = weapon->get<ESM::Weapon>()->mBase->mData.mSpeed;
@@ -1482,7 +1474,7 @@ bool CharacterController::updateWeaponState(CharacterState& idle)
             mAttackStrength = 0;
 
             // Randomize attacks for non-bipedal creatures with Weapon flag
-            if (mPtr.getClass().getTypeName() == typeid(ESM::Creature).name() &&
+            if (mPtr.getClass().getType() == ESM::Creature::sRecordId &&
                 !mPtr.getClass().isBipedal(mPtr) &&
                 (!mAnimation->hasAnimation(mCurrentWeapon) || isRandomAttackAnimation(mCurrentWeapon)))
             {
@@ -1605,9 +1597,9 @@ bool CharacterController::updateWeaponState(CharacterState& idle)
 
                 if(!target.isEmpty())
                 {
-                    if(item.getTypeName() == typeid(ESM::Lockpick).name())
+                    if(item.getType() == ESM::Lockpick::sRecordId)
                         Security(mPtr).pickLock(target, item, resultMessage, resultSound);
-                    else if(item.getTypeName() == typeid(ESM::Probe).name())
+                    else if(item.getType() == ESM::Probe::sRecordId)
                         Security(mPtr).probeTrap(target, item, resultMessage, resultSound);
                 }
                 mAnimation->play(mCurrentWeapon, priorityWeapon,
@@ -1668,7 +1660,8 @@ bool CharacterController::updateWeaponState(CharacterState& idle)
                                  MWRender::Animation::BlendMask_All, false,
                                  weapSpeed, startKey, stopKey,
                                  0.0f, 0);
-                mUpperBodyState = UpperCharState_StartToMinAttack;
+                if(mAnimation->getCurrentTime(mCurrentWeapon) != -1.f)
+                    mUpperBodyState = UpperCharState_StartToMinAttack;
             }
         }
 
@@ -1881,7 +1874,7 @@ bool CharacterController::updateWeaponState(CharacterState& idle)
     {
         const MWWorld::InventoryStore& inv = mPtr.getClass().getInventoryStore(mPtr);
         MWWorld::ConstContainerStoreIterator torch = inv.getSlot(MWWorld::InventoryStore::Slot_CarriedLeft);
-        if(torch != inv.end() && torch->getTypeName() == typeid(ESM::Light).name()
+        if(torch != inv.end() && torch->getType() == ESM::Light::sRecordId
                 && updateCarriedLeftVisible(mWeaponType))
         {
             if (mAnimation->isPlaying("shield"))
@@ -2401,20 +2394,20 @@ void CharacterController::update(float duration)
             if(!isKnockedDown() && !isKnockedOut())
             {
                 if (rot != osg::Vec3f())
-                    world->rotateObject(mPtr, rot.x(), rot.y(), rot.z(), true);
+                    world->rotateObject(mPtr, rot, true);
             }
             else //avoid z-rotating for knockdown
             {
                 if (rot.x() != 0 && rot.y() != 0)
-                    world->rotateObject(mPtr, rot.x(), rot.y(), 0.0f, true);
+                {
+                    rot.z() = 0.0f;
+                    world->rotateObject(mPtr, rot, true);
+                }
             }
 
             if (!mMovementAnimationControlled)
                 world->queueMovement(mPtr, vec);
         }
-        else
-            // We must always queue movement, even if there is none, to apply gravity.
-            world->queueMovement(mPtr, osg::Vec3f(0.f, 0.f, 0.f));
 
         { // First Person Head Bobbing
             static const float fSneakOffset = gmst.find("i1stPersonSneakDelta")->mValue.getFloat();
@@ -2495,8 +2488,6 @@ void CharacterController::update(float duration)
             if (cls.isPersistent(mPtr) || cls.getCreatureStats(mPtr).isDeathAnimationFinished())
                 playDeath(1.f, mDeathState);
         }
-        // We must always queue movement, even if there is none, to apply gravity.
-        world->queueMovement(mPtr, osg::Vec3f(0.f, 0.f, 0.f));
     }
 
     bool isPersist = isPersistentAnimPlaying();
@@ -2529,7 +2520,7 @@ void CharacterController::update(float duration)
     if (mFloatToSurface && cls.isActor())
     {
         if (cls.getCreatureStats(mPtr).isDead()
-            || (!godmode && cls.getCreatureStats(mPtr).isParalyzed()))
+            || (!godmode && cls.getCreatureStats(mPtr).getMagicEffects().get(ESM::MagicEffect::Paralyze).getModifier() > 0))
         {
             moved.z() = 1.0;
         }
@@ -2928,7 +2919,7 @@ void CharacterController::setAttackingOrSpell(bool attackingOrSpell)
     mAttackingOrSpell = attackingOrSpell;
 }
 
-void CharacterController::castSpell(const std::string spellId, bool manualSpell)
+void CharacterController::castSpell(const std::string& spellId, bool manualSpell)
 {
     mAttackingOrSpell = true;
     mCastingManualSpell = manualSpell;

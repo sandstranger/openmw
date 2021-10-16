@@ -92,9 +92,8 @@ namespace MWGui
 
         std::string filter = Misc::StringUtils::lowerCaseUtf8(mFilter);
 
-        for (MWMechanics::Spells::TIterator it = spells.begin(); it != spells.end(); ++it)
+        for (const ESM::Spell* spell : spells)
         {
-            const ESM::Spell* spell = it->first;
             if (spell->mData.mType != ESM::Spell::ST_Power && spell->mData.mType != ESM::Spell::ST_Spell)
                 continue;
 
@@ -109,7 +108,7 @@ namespace MWGui
             if (spell->mData.mType == ESM::Spell::ST_Spell)
             {
                 newSpell.mType = Spell::Type_Spell;
-                std::string cost = std::to_string(spell->mData.mCost);
+                std::string cost = std::to_string(MWMechanics::calcSpellCost(*spell));
                 std::string chance = std::to_string(int(MWMechanics::getSpellSuccessChance(spell, mActor)));
                 newSpell.mCostColumn = cost + "/" + chance;
             }

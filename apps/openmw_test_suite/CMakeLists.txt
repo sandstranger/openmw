@@ -15,6 +15,13 @@ if (GTEST_FOUND AND GMOCK_FOUND)
         esm/test_fixed_string.cpp
         esm/variant.cpp
 
+        lua/test_lua.cpp
+        lua/test_scriptscontainer.cpp
+        lua/test_utilpackage.cpp
+        lua/test_serialization.cpp
+        lua/test_querypackage.cpp
+        lua/test_omwscriptsparser.cpp
+
         misc/test_stringops.cpp
         misc/test_endianness.cpp
 
@@ -33,13 +40,16 @@ if (GTEST_FOUND AND GMOCK_FOUND)
         shader/parsedefines.cpp
         shader/parsefors.cpp
         shader/shadermanager.cpp
+
+        ../openmw/options.cpp
+        openmw/options.cpp
     )
 
     source_group(apps\\openmw_test_suite FILES openmw_test_suite.cpp ${UNITTEST_SRC_FILES})
 
     openmw_add_executable(openmw_test_suite openmw_test_suite.cpp ${UNITTEST_SRC_FILES})
 
-    target_link_libraries(openmw_test_suite ${GMOCK_LIBRARIES} components)
+    target_link_libraries(openmw_test_suite ${GMOCK_LIBRARIES} components ${LUA_LIBRARIES})
     # Fix for not visible pthreads functions for linker with glibc 2.15
     if (UNIX AND NOT APPLE)
         target_link_libraries(openmw_test_suite ${CMAKE_THREAD_LIBS_INIT})

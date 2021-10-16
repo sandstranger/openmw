@@ -43,6 +43,7 @@
 #include "rotatecontroller.hpp"
 #include "renderbin.hpp"
 #include "vismask.hpp"
+#include "util.hpp"
 
 namespace
 {
@@ -147,44 +148,6 @@ public:
     float getValue(osg::NodeVisitor* nv) override;
 };
 
-// --------------------------------------------------------------------------------
-
-/// Subclass RotateController to add a Z-offset for sneaking in first person mode.
-/// @note We use inheritance instead of adding another controller, so that we do not have to compute the worldOrient twice.
-/// @note Must be set on a MatrixTransform.
-class NeckController : public RotateController
-{
-public:
-    NeckController(osg::Node* relativeTo)
-        : RotateController(relativeTo)
-    {
-    }
-
-    void setOffset(const osg::Vec3f& offset)
-    {
-        mOffset = offset;
-    }
-
-    void operator()(osg::Node* node, osg::NodeVisitor* nv) override
-    {
-        osg::MatrixTransform* transform = static_cast<osg::MatrixTransform*>(node);
-        osg::Matrix matrix = transform->getMatrix();
-
-        osg::Quat worldOrient = getWorldOrientation(node);
-        osg::Quat orient = worldOrient * mRotate * worldOrient.inverse() * matrix.getRotate();
-
-        matrix.setRotate(orient);
-        matrix.setTrans(matrix.getTrans() + worldOrient.inverse() * mOffset);
-
-        transform->setMatrix(matrix);
-
-        traverse(node,nv);
-    }
-
-private:
-    osg::Vec3f mOffset;
-};
-
 // --------------------------------------------------------------------------------------------------------------
 
 HeadAnimationTime::HeadAnimationTime(const MWWorld::Ptr& reference)
@@ -286,37 +249,36 @@ NpcAnimation::NpcType NpcAnimation::getNpcType(const MWWorld::Ptr& ptr)
     return curType;
 }
 
-static NpcAnimation::PartBoneMap createPartListMap()
+static const inline NpcAnimation::PartBoneMap createPartListMap()
 {
-    NpcAnimation::PartBoneMap result;
-    result.insert(std::make_pair(ESM::PRT_Head, "Head"));
-    result.insert(std::make_pair(ESM::PRT_Hair, "Head")); // note it uses "Head" as attach bone, but "Hair" as filter
-    result.insert(std::make_pair(ESM::PRT_Neck, "Neck"));
-    result.insert(std::make_pair(ESM::PRT_Cuirass, "Chest"));
-    result.insert(std::make_pair(ESM::PRT_Groin, "Groin"));
-    result.insert(std::make_pair(ESM::PRT_Skirt, "Groin"));
-    result.insert(std::make_pair(ESM::PRT_RHand, "Right Hand"));
-    result.insert(std::make_pair(ESM::PRT_LHand, "Left Hand"));
-    result.insert(std::make_pair(ESM::PRT_RWrist, "Right Wrist"));
-    result.insert(std::make_pair(ESM::PRT_LWrist, "Left Wrist"));
-    result.insert(std::make_pair(ESM::PRT_Shield, "Shield Bone"));
-    result.insert(std::make_pair(ESM::PRT_RForearm, "Right Forearm"));
-    result.insert(std::make_pair(ESM::PRT_LForearm, "Left Forearm"));
-    result.insert(std::make_pair(ESM::PRT_RUpperarm, "Right Upper Arm"));
-    result.insert(std::make_pair(ESM::PRT_LUpperarm, "Left Upper Arm"));
-    result.insert(std::make_pair(ESM::PRT_RFoot, "Right Foot"));
-    result.insert(std::make_pair(ESM::PRT_LFoot, "Left Foot"));
-    result.insert(std::make_pair(ESM::PRT_RAnkle, "Right Ankle"));
-    result.insert(std::make_pair(ESM::PRT_LAnkle, "Left Ankle"));
-    result.insert(std::make_pair(ESM::PRT_RKnee, "Right Knee"));
-    result.insert(std::make_pair(ESM::PRT_LKnee, "Left Knee"));
-    result.insert(std::make_pair(ESM::PRT_RLeg, "Right Upper Leg"));
-    result.insert(std::make_pair(ESM::PRT_LLeg, "Left Upper Leg"));
-    result.insert(std::make_pair(ESM::PRT_RPauldron, "Right Clavicle"));
-    result.insert(std::make_pair(ESM::PRT_LPauldron, "Left Clavicle"));
-    result.insert(std::make_pair(ESM::PRT_Weapon, "Weapon Bone")); // Fallback. The real node name depends on the current weapon type.
-    result.insert(std::make_pair(ESM::PRT_Tail, "Tail"));
-    return result;
+    return {
+        {ESM::PRT_Head, "Head"},
+        {ESM::PRT_Hair, "Head"}, // note it uses "Head" as attach bone, but "Hair" as filter
+        {ESM::PRT_Neck, "Neck"},
+        {ESM::PRT_Cuirass, "Chest"},
+        {ESM::PRT_Groin, "Groin"},
+        {ESM::PRT_Skirt, "Groin"},
+        {ESM::PRT_RHand, "Right Hand"},
+        {ESM::PRT_LHand, "Left Hand"},
+        {ESM::PRT_RWrist, "Right Wrist"},
+        {ESM::PRT_LWrist, "Left Wrist"},
+        {ESM::PRT_Shield, "Shield Bone"},
+        {ESM::PRT_RForearm, "Right Forearm"},
+        {ESM::PRT_LForearm, "Left Forearm"},
+        {ESM::PRT_RUpperarm, "Right Upper Arm"},
+        {ESM::PRT_LUpperarm, "Left Upper Arm"},
+        {ESM::PRT_RFoot, "Right Foot"},
+        {ESM::PRT_LFoot, "Left Foot"},
+        {ESM::PRT_RAnkle, "Right Ankle"},
+        {ESM::PRT_LAnkle, "Left Ankle"},
+        {ESM::PRT_RKnee, "Right Knee"},
+        {ESM::PRT_LKnee, "Left Knee"},
+        {ESM::PRT_RLeg, "Right Upper Leg"},
+        {ESM::PRT_LLeg, "Left Upper Leg"},
+        {ESM::PRT_RPauldron, "Right Clavicle"},
+        {ESM::PRT_LPauldron, "Left Clavicle"},
+        {ESM::PRT_Weapon, "Weapon Bone"}, // Fallback. The real node name depends on the current weapon type.
+        {ESM::PRT_Tail, "Tail"}};
 }
 const NpcAnimation::PartBoneMap NpcAnimation::sPartList = createPartListMap();
 
@@ -375,7 +337,7 @@ class DepthClearCallback : public osgUtil::RenderBin::DrawCallback
 public:
     DepthClearCallback()
     {
-        mDepth = new osg::Depth;
+        mDepth = SceneUtil::createDepth();
         mDepth->setWriteMask(true);
     }
 
@@ -405,7 +367,7 @@ public:
     {
         osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
         float fov, aspect, zNear, zFar;
-        if (cv->getProjectionMatrix()->getPerspective(fov, aspect, zNear, zFar))
+        if (cv->getProjectionMatrix()->getPerspective(fov, aspect, zNear, zFar) && std::abs(fov-mFov) > 0.001)
         {
             fov = mFov;
             osg::ref_ptr<osg::RefMatrix> newProjectionMatrix = new osg::RefMatrix();
@@ -553,7 +515,7 @@ void NpcAnimation::updateNpcBase()
     mWeaponAnimationTime->updateStartTime();
 }
 
-std::string NpcAnimation::getShieldMesh(MWWorld::ConstPtr shield) const
+std::string NpcAnimation::getShieldMesh(const MWWorld::ConstPtr& shield) const
 {
     std::string mesh = shield.getClass().getModel(shield);
     const ESM::Armor *armor = shield.get<ESM::Armor>()->mBase;
@@ -634,13 +596,13 @@ void NpcAnimation::updateParts()
         int prio = 1;
         bool enchantedGlow = !store->getClass().getEnchantment(*store).empty();
         osg::Vec4f glowColor = store->getClass().getEnchantmentColor(*store);
-        if(store->getTypeName() == typeid(ESM::Clothing).name())
+        if(store->getType() == ESM::Clothing::sRecordId)
         {
             prio = ((slotlist[i].mBasePriority+1)<<1) + 0;
             const ESM::Clothing *clothes = store->get<ESM::Clothing>()->mBase;
             addPartGroup(slotlist[i].mSlot, prio, clothes->mParts.mParts, enchantedGlow, &glowColor);
         }
-        else if(store->getTypeName() == typeid(ESM::Armor).name())
+        else if(store->getType() == ESM::Armor::sRecordId)
         {
             prio = ((slotlist[i].mBasePriority+1)<<1) + 1;
             const ESM::Armor *armor = store->get<ESM::Armor>()->mBase;
@@ -680,7 +642,7 @@ void NpcAnimation::updateParts()
     {
         MWWorld::ConstContainerStoreIterator store = inv.getSlot(MWWorld::InventoryStore::Slot_CarriedLeft);
         MWWorld::ConstPtr part;
-        if(store != inv.end() && (part=*store).getTypeName() == typeid(ESM::Light).name())
+        if(store != inv.end() && (part=*store).getType() == ESM::Light::sRecordId)
         {
             const ESM::Light *light = part.get<ESM::Light>()->mBase;
             addOrReplaceIndividualPart(ESM::PRT_Shield, MWWorld::InventoryStore::Slot_CarriedLeft,
@@ -716,14 +678,14 @@ void NpcAnimation::updateParts()
 
 PartHolderPtr NpcAnimation::insertBoundedPart(const std::string& model, const std::string& bonename, const std::string& bonefilter, bool enchantedGlow, osg::Vec4f* glowColor)
 {
-    osg::ref_ptr<osg::Node> instance = mResourceSystem->getSceneManager()->getInstance(model);
+    osg::ref_ptr<const osg::Node> templateNode = mResourceSystem->getSceneManager()->getTemplate(model);
 
     const NodeMap& nodeMap = getNodeMap();
     NodeMap::const_iterator found = nodeMap.find(Misc::StringUtils::lowerCase(bonename));
     if (found == nodeMap.end())
         throw std::runtime_error("Can't find attachment node " + bonename);
 
-    osg::ref_ptr<osg::Node> attached = SceneUtil::attach(instance, mObjectRoot, bonefilter, found->second);
+    osg::ref_ptr<osg::Node> attached = SceneUtil::attach(templateNode, mObjectRoot, bonefilter, found->second);
     if (enchantedGlow)
         mGlowUpdater = SceneUtil::addEnchantedGlow(attached, mResourceSystem, *glowColor);
 
@@ -818,7 +780,7 @@ bool NpcAnimation::addOrReplaceIndividualPart(ESM::PartReferenceType type, int g
         {
             const MWWorld::InventoryStore& inv = mPtr.getClass().getInventoryStore(mPtr);
             MWWorld::ConstContainerStoreIterator weapon = inv.getSlot(MWWorld::InventoryStore::Slot_CarriedRight);
-            if(weapon != inv.end() && weapon->getTypeName() == typeid(ESM::Weapon).name())
+            if(weapon != inv.end() && weapon->getType() == ESM::Weapon::sRecordId)
             {
                 int weaponType = weapon->get<ESM::Weapon>()->mBase->mData.mType;
                 const std::string weaponBonename = MWMechanics::getWeaponType(weaponType)->mAttachBone;
@@ -963,7 +925,7 @@ void NpcAnimation::addControllers()
         if (found != mNodeMap.end())
         {
             osg::MatrixTransform* node = found->second.get();
-            mFirstPersonNeckController = new NeckController(mObjectRoot.get());
+            mFirstPersonNeckController = new RotateController(mObjectRoot.get());
             node->addUpdateCallback(mFirstPersonNeckController);
             mActiveControllers.emplace_back(node, mFirstPersonNeckController);
         }
@@ -990,7 +952,7 @@ void NpcAnimation::showWeapons(bool showWeapon)
                                        mesh, !weapon->getClass().getEnchantment(*weapon).empty(), &glowColor);
 
             // Crossbows start out with a bolt attached
-            if (weapon->getTypeName() == typeid(ESM::Weapon).name() &&
+            if (weapon->getType() == ESM::Weapon::sRecordId &&
                     weapon->get<ESM::Weapon>()->mBase->mData.mType == ESM::Weapon::MarksmanCrossbow)
             {
                 int ammotype = MWMechanics::getWeaponType(ESM::Weapon::MarksmanCrossbow)->mAmmoType;
@@ -1022,7 +984,7 @@ void NpcAnimation::showCarriedLeft(bool show)
         osg::Vec4f glowColor = iter->getClass().getEnchantmentColor(*iter);
         std::string mesh = iter->getClass().getModel(*iter);
         // For shields we must try to use the body part model
-        if (iter->getTypeName() == typeid(ESM::Armor).name())
+        if (iter->getType() == ESM::Armor::sRecordId)
         {
             const ESM::Armor *armor = iter->get<ESM::Armor>()->mBase;
             const std::vector<ESM::PartReference>& bodyparts = armor->mParts.mParts;
@@ -1034,7 +996,7 @@ void NpcAnimation::showCarriedLeft(bool show)
         {
             if (mesh.empty())
                 reserveIndividualPart(ESM::PRT_Shield, MWWorld::InventoryStore::Slot_CarriedLeft, 1);
-            if (iter->getTypeName() == typeid(ESM::Light).name() && mObjectParts[ESM::PRT_Shield])
+            if (iter->getType() == ESM::Light::sRecordId && mObjectParts[ESM::PRT_Shield])
                 addExtraLight(mObjectParts[ESM::PRT_Shield]->getNode()->asGroup(), iter->get<ESM::Light>()->mBase);
         }
     }
@@ -1080,7 +1042,7 @@ osg::Group* NpcAnimation::getArrowBone()
 
     const MWWorld::InventoryStore& inv = mPtr.getClass().getInventoryStore(mPtr);
     MWWorld::ConstContainerStoreIterator weapon = inv.getSlot(MWWorld::InventoryStore::Slot_CarriedRight);
-    if(weapon == inv.end() || weapon->getTypeName() != typeid(ESM::Weapon).name())
+    if(weapon == inv.end() || weapon->getType() != ESM::Weapon::sRecordId)
         return nullptr;
 
     int type = weapon->get<ESM::Weapon>()->mBase->mData.mType;
@@ -1108,34 +1070,6 @@ osg::Node* NpcAnimation::getWeaponNode()
 Resource::ResourceSystem* NpcAnimation::getResourceSystem()
 {
     return mResourceSystem;
-}
-
-void NpcAnimation::permanentEffectAdded(const ESM::MagicEffect *magicEffect, bool isNew)
-{
-    // During first auto equip, we don't play any sounds.
-    // Basically we don't want sounds when the actor is first loaded,
-    // the items should appear as if they'd always been equipped.
-    if (isNew)
-    {
-        static const std::string schools[] = {
-            "alteration", "conjuration", "destruction", "illusion", "mysticism", "restoration"
-        };
-
-        MWBase::SoundManager *sndMgr = MWBase::Environment::get().getSoundManager();
-        if(!magicEffect->mHitSound.empty())
-            sndMgr->playSound3D(mPtr, magicEffect->mHitSound, 1.0f, 1.0f);
-        else
-            sndMgr->playSound3D(mPtr, schools[magicEffect->mData.mSchool]+" hit", 1.0f, 1.0f);
-    }
-
-    if (!magicEffect->mHit.empty())
-    {
-        const ESM::Static* castStatic = MWBase::Environment::get().getWorld()->getStore().get<ESM::Static>().find (magicEffect->mHit);
-        bool loop = (magicEffect->mData.mFlags & ESM::MagicEffect::ContinuousVfx) != 0;
-        // Don't play particle VFX unless the effect is new or it should be looping.
-        if (isNew || loop)
-            addEffect("meshes\\" + castStatic->mModel, magicEffect->mIndex, loop, "", magicEffect->mParticle);
-    }
 }
 
 void NpcAnimation::enableHeadAnimation(bool enable)
