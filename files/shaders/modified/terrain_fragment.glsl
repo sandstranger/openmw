@@ -22,7 +22,7 @@ varying float depth;
 #include "vertexcolors.glsl"
 #include "lighting_util.glsl"
 
-#if @terrainParallaxShadows || @underwaterFog
+#if @parallaxShadows || @underwaterFog
 uniform mat4 osg_ViewMatrixInverse;
 #endif
 
@@ -97,7 +97,7 @@ if(fogValue != 1.0)
     vec3 objectPos = (gl_ModelViewMatrixInverse * vec4(passViewPos, 1)).xyz;
     vec3 eyeDir = normalize(cameraPos - objectPos);
 
-    #if @terrainParallaxShadows
+    #if @parallaxShadows
         shadowpara = getParallaxShadow(normalTex.a, adjustedUV);
     #endif
 

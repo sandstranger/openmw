@@ -8,7 +8,7 @@ vec2 getParallaxOffset(vec3 eyeDir, mat3 tbnTranspose, float height, float flipY
     return vec2(TSeyeDir.x, TSeyeDir.y * flipY) * ( height * PARALLAX_SCALE + PARALLAX_BIAS );
 }
 
-#if @terrainParallaxShadows || @objectsParallaxShadows
+#if @parallaxShadows
 float getParallaxShadow(float height, vec2 UV)
 {
         vec2 shadowUV = UV;
