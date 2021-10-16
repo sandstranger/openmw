@@ -35,7 +35,17 @@ namespace MWWorld
                 return mRef == nullptr;
             }
 
-            const std::string& getTypeName() const;
+            // Returns a 32-bit id of the ESM record this object is based on.
+            // Specific values of ids are defined in ESM::RecNameInts.
+            // Note 1: ids are not sequential. E.g. for a creature `getType` returns 0x41455243.
+            // Note 2: Life is not easy and full of surprises. For example
+            //         prison marker reuses ESM::Door record. Player is ESM::NPC.
+            unsigned int getType() const;
+
+            std::string_view getTypeDescription() const
+            {
+                return mRef ? mRef->getTypeDescription() : "nullptr";
+            }
 
             const Class& getClass() const
             {
@@ -51,8 +61,8 @@ namespace MWWorld
                 if(ref) return ref;
 
                 std::stringstream str;
-                str<< "Bad LiveCellRef cast to "<<typeid(T).name()<<" from ";
-                if(mRef != nullptr) str<< getTypeName();
+                str<< "Bad LiveCellRef cast to "<<T::getRecordType()<<" from ";
+                if(mRef != nullptr) str<< getTypeDescription();
                 else str<< "an empty object";
 
                 throw std::runtime_error(str.str());
@@ -111,7 +121,12 @@ namespace MWWorld
             return mRef == nullptr;
         }
 
-        const std::string& getTypeName() const;
+        unsigned int getType() const;
+
+        std::string_view getTypeDescription() const
+        {
+            return mRef ? mRef->getTypeDescription() : "nullptr";
+        }
 
         const Class& getClass() const
         {
@@ -127,8 +142,8 @@ namespace MWWorld
             if(ref) return ref;
 
             std::stringstream str;
-            str<< "Bad LiveCellRef cast to "<<typeid(T).name()<<" from ";
-            if(mRef != nullptr) str<< getTypeName();
+            str<< "Bad LiveCellRef cast to "<<T::getRecordType()<<" from ";
+            if(mRef != nullptr) str<< getTypeDescription();
             else str<< "an empty object";
 
             throw std::runtime_error(str.str());

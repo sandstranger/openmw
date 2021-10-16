@@ -249,8 +249,8 @@ void RigGeometry::cull(osg::NodeVisitor* nv)
     if (tangentDst)
         tangentDst->dirty();
 
-#if OSG_MIN_VERSION_REQUIRED(3, 5, 6)
-    geom.dirtyGLObjects();
+#if OSG_MIN_VERSION_REQUIRED(3, 5, 10)
+    geom.osg::Drawable::dirtyGLObjects();
 #endif
 
     nv->pushOntoNodePath(&geom);
