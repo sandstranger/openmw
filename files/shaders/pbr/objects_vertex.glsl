@@ -60,7 +60,7 @@ uniform float emissiveMult;
 varying vec3 passViewPos;
 varying vec3 passNormal;
 
-#include "helperutil.glsl"			  
+#include "helperutil.glsl"
 #include "vertexcolors.glsl"
 #include "shadows_vertex.glsl"
 
@@ -128,10 +128,10 @@ void main(void)
 #if !PER_PIXEL_LIGHTING
     vec3 diffuseLight, ambientLight;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
-    vec3 emission = SRGBToLinearApprox(getEmissionColor().xyz) * emissiveMult;
-    passLighting = SRGBToLinearApprox(getDiffuseColor().xyz) * diffuseLight + sqrt(getAmbientColor().xyz) * ambientLight + emission;
+    vec3 emission = colLoad(getEmissionColor().xyz) * emissiveMult;
+    passLighting = colLoad(getDiffuseColor().xyz) * diffuseLight + vcolLoad(getAmbientColor().xyz) * ambientLight + emission;
     clampLightingResult(passLighting);
-    shadowDiffuseLighting *= SRGBToLinearApprox(getDiffuseColor().xyz);
+    shadowDiffuseLighting *= colLoad(getDiffuseColor().xyz);
 #endif
 
 #if (@shadows_enabled)

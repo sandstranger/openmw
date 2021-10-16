@@ -50,11 +50,6 @@ uniform mat2 bumpMapMatrix;
 #define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL))
 
 #include "helpsettings.glsl"
-
-#if defined(LINEAR_LIGHTING) || @underwaterFog
-uniform bool isInterior;
-#endif
-
 #include "vertexcolors.glsl"
 #include "lighting_util.glsl"
 
@@ -64,6 +59,10 @@ uniform bool simpleWater;
 
 #if @underwaterFog || defined(NORMAL_MAP_FADING)
 uniform bool skip;
+#endif
+
+#if defined(LINEAR_LIGHTING) || @underwaterFog
+uniform bool isInterior;
 #endif
 
 #if @underwaterFog

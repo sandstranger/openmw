@@ -315,15 +315,6 @@ namespace MWRender
         resourceSystem->getSceneManager()->setApplyLightingToEnvMaps(Settings::Manager::getBool("apply lighting to environment maps", "Shaders"));
         resourceSystem->getSceneManager()->setConvertAlphaTestToAlphaToCoverage(Settings::Manager::getBool("antialias alpha test", "Shaders") && Settings::Manager::getInt("antialiasing", "Video") > 1);
 
-        const char *glesmode = getenv("OPENMW_GLES_VERSION");
-	if (strcmp(glesmode, "1") == 0)
-	{
-	    resourceSystem->getSceneManager()->setForceShaders(false);
-	    resourceSystem->getSceneManager()->setClampLighting(false);
-	    resourceSystem->getSceneManager()->setAutoUseNormalMaps(false);
-	    lightingMethod = SceneUtil::LightingMethod::FFP;
-	}
-
         // Let LightManager choose which backend to use based on our hint. For methods besides legacy lighting, this depends on support for various OpenGL extensions.
         osg::ref_ptr<SceneUtil::LightManager> sceneRoot = new SceneUtil::LightManager(lightingMethod == SceneUtil::LightingMethod::FFP);
         resourceSystem->getSceneManager()->setLightingMethod(sceneRoot->getLightingMethod());
@@ -399,10 +390,7 @@ namespace MWRender
         const bool useTerrainNormalMaps = Settings::Manager::getBool("auto use terrain normal maps", "Shaders");
         const bool useTerrainSpecularMaps = Settings::Manager::getBool("auto use terrain specular maps", "Shaders");
 
-	if (strcmp(glesmode, "1") == 0)
-            mTerrainStorage.reset(new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, false, specularMapPattern, false));
-	else
-            mTerrainStorage.reset(new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps));
+        mTerrainStorage.reset(new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps));
 
         const float lodFactor = Settings::Manager::getFloat("lod factor", "Terrain");
 

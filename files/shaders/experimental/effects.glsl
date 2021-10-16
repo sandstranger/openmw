@@ -1,3 +1,4 @@
+
 #if @parallax
 #define PARALLAX_SCALE 0.04
 #define PARALLAX_BIAS -0.02

@@ -1,4 +1,5 @@
 #version 120
+#pragma import_defines(FORCE_OPAQUE)
 
 #define OBJECT
 
@@ -70,10 +71,6 @@ varying vec3 passViewPos;
 
 #if PER_PIXEL_LIGHTING || @specularMap
     varying vec3 passNormal;
-#endif
-
-#if @translucentFramebuffer
-uniform bool noAlpha;
 #endif
 
 varying highp float depth;
@@ -256,7 +253,6 @@ if(gl_FragData[0].a != 0.0)
 
     gl_FragData[0].xyz *= lighting;
 
-
 #if @emissiveMap
     gl_FragData[0].xyz += pow(texture2D(emissiveMap, diffuseMapUV).xyz, vec3(2.2));
 #endif
@@ -281,9 +277,8 @@ if(gl_FragData[0].a != 0.0)
 
 }
 
-#if @translucentFramebuffer
+#if defined(FORCE_OPAQUE) && FORCE_OPAQUE
 // having testing & blending isn't enough - we need to write an opaque pixel to be opaque
-    if (noAlpha)
          gl_FragData[0].a = 1.0;
 #endif
  }

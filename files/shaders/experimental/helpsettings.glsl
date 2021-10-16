@@ -1,3 +1,6 @@
+#define LINEAR
+
+
 //#define HEIGHT_FOG
 //#define DYNAMICHFOG
 //#define ANIMATED_HEIGHT_FOG

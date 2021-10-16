@@ -305,10 +305,10 @@
                             <Property key="Caption" value="Hint: press F3 to show \nthe current frame rate."/>
                         </Widget>
 
-                        <Widget type="TextBox" skin="SandText" position="182 130 300 32" align="Left Top" name="TonemaperLabel">
-                            <Property key="Caption" value="Tonemaper \nmodified shader only"/>
+                        <Widget type="TextBox" skin="SandText" position="182 113 300 32" align="Left Top" name="TonemaperLabel">
+                            <Property key="Caption" value="Tonemaper"/>
                         </Widget>
-                        <Widget type="HBox" skin="" position="182 166 350 24">
+                        <Widget type="HBox" skin="" position="182 150 350 24">
                             <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 115 24" align="Left Top" name="TonemaperSwitch">
                                 <Property key="AddItem" value="None"/>
                                 <Property key="AddItem" value="Aces"/>
@@ -812,16 +812,19 @@
                         </Widget>
                     </Widget>
 
-                    <Widget type="HBox" skin="" position="4 90 350 24">
-                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
-                            <UserString key="SettingCategory" value="Game"/>
-                            <UserString key="SettingName" value="show owned"/>
-                            <UserString key="SettingType" value="CheckButton"/>
-                        </Widget>
-                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+
+                        <Widget type="TextBox" skin="SandText" position="4 60 350 24" align="Left Top" name="ShowOwnedLabel">
                             <Property key="Caption" value="Show Owned"/>
                         </Widget>
-                    </Widget>
+                        <Widget type="HBox" skin="" position="4 90 350 24">
+                            <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 115 24" align="Left Top" name="ShowOwnedSwitch">
+                                <Property key="AddItem" value="Tooltip"/>
+                                <Property key="AddItem" value="Crosshair"/>
+                                <Property key="AddItem" value="Both"/>
+                            </Widget>
+                        </Widget>
+
+
 
                     <Widget type="HBox" skin="" position="170 90 350 24">
                         <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">

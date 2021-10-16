@@ -138,9 +138,7 @@ void main(void)
     passLighting += shadowDiffuseLighting;
 #endif
 
-#if PER_PIXEL_LIGHTING || @underwaterFog
     passViewPos = viewPos.xyz;
-#endif
 
 #if PER_PIXEL_LIGHTING
     passNormal = gl_Normal.xyz;

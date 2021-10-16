@@ -2,9 +2,11 @@
 
 #define PER_PIXEL_LIGHTING @normalMap
 
-#define GRASS
+#define GROUNDCOVER
+#define GROUNDCOVERVERTEX
 
 #include "vertexcolors.glsl"
+#include "helperutil.glsl"
 
 #if @diffuseMap
 varying vec2 diffuseMapUV;
@@ -14,25 +16,28 @@ varying vec2 diffuseMapUV;
 varying vec4 passTangent;
 #endif
 
-varying float depth;
+varying float euclideanDepth;
+varying float linearDepth;
 
-#if PER_PIXEL_LIGHTING
-varying vec3 passNormal;
-varying vec3 passViewPos;
-#endif
-
-#include "helperutil.glsl"
-
-#if !PER_PIXEL_LIGHTING
-    centroid varying vec3 passLighting;
-    #include "lighting.glsl"
-#endif
 
 uniform highp mat4 osg_ViewMatrixInverse;
 uniform float osg_SimulationTime;
 
+varying vec3 passViewPos;
+
+#if PER_PIXEL_LIGHTING
+varying vec3 passNormal;
+#endif
+
+#if !PER_PIXEL_LIGHTING
+    centroid varying vec3 passLighting;
+    centroid varying vec3 shadowDiffuseLighting;
+    #include "lighting.glsl"
+#endif
+
 uniform highp mat3 grassData;
 attribute float originalCoords;
+uniform bool radialFog;
 
 #if @groundcoverStompMode == 0
 #else
@@ -110,7 +115,8 @@ void main(void)
     gl_Position = gl_ModelViewProjectionMatrix * grassDisplacement(viewPos.xyz, gl_Vertex);
 
     gl_ClipVertex = viewPos;
-    depth = length(viewPos.xyz);
+    euclideanDepth = length(viewPos.xyz);
+    linearDepth = gl_Position.z;
 
 #if @diffuseMap
     diffuseMapUV = (gl_TextureMatrix[@diffuseMapUV] * gl_MultiTexCoord@diffuseMapUV).xy;
@@ -120,21 +126,19 @@ void main(void)
     passTangent = gl_MultiTexCoord7.xyzw;
 #endif
 
-vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
-
-
 #if !PER_PIXEL_LIGHTING
-    vec3 shadowDiffuseLighting;
+    vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
     vec3 diffuseLight, ambientLight;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
     passLighting = diffuseLight + ambientLight;
     clampLightingResult(passLighting);
-    passLighting += shadowDiffuseLighting;
+#endif
+
+#if PER_PIXEL_LIGHTING || @underwaterFog
+    passViewPos = viewPos.xyz;
 #endif
 
 #if PER_PIXEL_LIGHTING
-    passViewPos = viewPos.xyz;
     passNormal = gl_Normal.xyz;
 #endif
-
 }

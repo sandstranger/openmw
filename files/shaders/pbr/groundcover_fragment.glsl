@@ -25,13 +25,15 @@ varying vec4 passTangent;
 // They may do not look as intended with per-pixel lighting, so ignore this setting for now.
 #define PER_PIXEL_LIGHTING @normalMap
 
-varying float depth;
+varying float euclideanDepth;
+varying float linearDepth;
 
 #if PER_PIXEL_LIGHTING
 varying vec3 passViewPos;
 varying vec3 passNormal;
 #else
 centroid varying vec3 passLighting;
+centroid varying vec3 shadowDiffuseLighting;
 #endif
 
 #include "helperutil.glsl"
@@ -39,15 +41,10 @@ centroid varying vec3 passLighting;
 #include "lighting.glsl"
 #include "alpha.glsl"
 
-uniform mat3 grassData;
+uniform highp mat3 grassData;
 
 void main()
 {
-
-if(grassData[2].y != grassData[2].x)
-    if (depth > grassData[2].y)
-        discard;
-
 #if @normalMap
     vec4 normalTex = texture2D(normalMap, normalMapUV);
 
@@ -61,48 +58,49 @@ if(grassData[2].y != grassData[2].x)
 
 #if @diffuseMap
     gl_FragData[0] = texture2D(diffuseMap, diffuseMapUV);
-	gl_FragData[0].rgb = SRGBToLinear(gl_FragData[0].rgb);
+	gl_FragData[0].rgb = texLoad(gl_FragData[0].rgb);
+	#ifdef DEBUGLIGHTING
+		#ifdef LINEAR
+		gl_FragData[0].rgb = vec3(0.5 * 0.5);
+		#else
+		gl_FragData[0].rgb = vec3(0.5);
+		#endif
+	#endif
 #else
     gl_FragData[0] = vec4(1.0);
 #endif
 
-    if (depth > grassData[2].x)
-        gl_FragData[0].a *= 1.0-smoothstep(grassData[2].x, grassData[2].y, depth);
+    if (euclideanDepth > grassData[2].x)
+        gl_FragData[0].a *= 1.0-smoothstep(grassData[2].x, grassData[2].y, euclideanDepth);
 
     alphaTest();
 
-    float shadowing = unshadowedLightRatio(depth);
+    float shadowing = unshadowedLightRatio(linearDepth);
 
     vec3 lighting;
 #if !PER_PIXEL_LIGHTING
-    lighting = passLighting;
+    lighting = passLighting + shadowDiffuseLighting * shadowing;
+	gl_FragData[0].xyz *= lighting * Fd_Lambert();
 #else
-    vec3 diffuseLight, ambientLight;
-    doLighting(passViewPos, normalize(viewNormal), shadowing, diffuseLight, ambientLight);
+	vec4 param = vec4(0.0, 0.98, 0.5, 1.0);
+	#if @specularMap
+	param = texture2D(specularMap, adjustedDiffuseUV);
+	#endif
+    vec3 diffuseLight, ambientLight, specularLight;
+    doLighting(passViewPos, normalize(viewNormal), param, shadowing, diffuseLight, ambientLight, specularLight);
     lighting = diffuseLight + ambientLight;
-    clampLightingResult(lighting);
+    //clampLightingResult(lighting);
+	gl_FragData[0].xyz *= lighting * Fd_Lambert();
 #endif
 
-    gl_FragData[0].xyz *= lighting * Fd_Lambert();
-
-    float fogValue = clamp((depth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
-
-	float exposure = mix(4.6, 2.6, length(SRGBToLinearApprox(lcalcDiffuse(0).xyz) + SRGBToLinearApprox(gl_LightModel.ambient.xyz)) * 0.5);
+#if @radialFog
+    float fogValue = clamp((euclideanDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
+#else
+    float fogValue = clamp((linearDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
+#endif
 	
-	
-	#ifdef PBRDEBUG
-	gl_FragData[0].xyz *= 1.0;
-	#else
-	gl_FragData[0].xyz *= pow(2.0, exposure);
-	
-	
-    // convert unbounded HDR color range to SDR color range
-    gl_FragData[0].xyz = ACESFilm(gl_FragData[0].xyz);
- 
-    // convert from linear to sRGB for display
-    gl_FragData[0].xyz = LinearToSRGB(gl_FragData[0].xyz);
-	#endif
-
+	float exposure = getExposure(length(SRGBToLinearApprox(lcalcDiffuse(0).xyz) + SRGBToLinearApprox(gl_LightModel.ambient.xyz)) * 0.5);
+	gl_FragData[0].xyz = toScreen(gl_FragData[0].xyz, exposure);
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
     applyShadowDebugOverlay();

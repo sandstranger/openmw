@@ -50,9 +50,9 @@ void main(void)
 #if !PER_PIXEL_LIGHTING
     vec3 diffuseLight, ambientLight;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
-    passLighting = SRGBToLinearApprox(getDiffuseColor().xyz) * diffuseLight + sqrt(getAmbientColor().xyz) * ambientLight + SRGBToLinearApprox(getEmissionColor().xyz);
+    passLighting = colLoad(getDiffuseColor().xyz) * diffuseLight + vcolLoad(getAmbientColor().xyz) * ambientLight + colLoad(getEmissionColor().xyz);
     clampLightingResult(passLighting);
-    shadowDiffuseLighting *= SRGBToLinearApprox(getDiffuseColor().xyz);
+    shadowDiffuseLighting *= colLoad(getDiffuseColor().xyz);
 #endif
 
     uv = gl_MultiTexCoord0.xy;

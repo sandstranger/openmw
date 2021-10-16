@@ -233,6 +233,7 @@ namespace MWGui
         getWidget(mWaterTextureSize, "WaterTextureSize");
         getWidget(mWaterReflectionDetail, "WaterReflectionDetail");
         getWidget(mTonemaperSwitch, "TonemaperSwitch");
+        getWidget(mShowOwnedSwitch, "ShowOwnedSwitch");
         getWidget(mLightingMethodButton, "LightingMethodButton");
         getWidget(mLightsResetButton, "LightsResetButton");
         getWidget(mMaxLights, "MaxLights");
@@ -270,7 +271,7 @@ namespace MWGui
 
             MyGUI::Button *PPLButton;
             getWidget(PPLButton, "PPLLightingButton");
-            mLightingMethodButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
+            PPLButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
 
 	const char *shaderPreset = getenv("OPENMW_SHADERS");
         if(!shaderPreset || strcmp(shaderPreset, "experimental") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
@@ -328,6 +329,7 @@ namespace MWGui
         mWaterReflectionDetail->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterReflectionDetailChanged);
 
         mTonemaperSwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onTonemaperSwitchChanged);
+        mShowOwnedSwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onShowOwnedSwitchChanged);
 
         mLightingMethodButton->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onLightingMethodButtonChanged);
         mLightsResetButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onLightsResetButtonClicked);
@@ -381,6 +383,10 @@ namespace MWGui
         int tonemaperSwitch = Settings::Manager::getInt("tonemaper", "Shaders");
         tonemaperSwitch = std::min(9, std::max(0, tonemaperSwitch));
         mTonemaperSwitch->setIndexSelected(tonemaperSwitch);
+
+        int showOwnedSwitch = Settings::Manager::getInt("show owned", "Game");
+        showOwnedSwitch = std::min(3, std::max(0, showOwnedSwitch));
+        mshowOwnedSwitch->setIndexSelected(showOwnedSwitch);
 
         updateMaxLightsComboBox(mMaxLights);
 
@@ -480,6 +486,13 @@ namespace MWGui
     {
         unsigned int level = std::min((unsigned int)9, (unsigned int)pos);
         Settings::Manager::setInt("tonemaper", "Shaders", level);
+        apply();
+    }
+
+    void SettingsWindow::onShowOwnedSwitchChanged(MyGUI::ComboBox* _sender, size_t pos)
+    {
+        unsigned int level = std::min((unsigned int)3, (unsigned int)pos);
+        Settings::Manager::setInt("show owned", "Game", level);
         apply();
     }
 

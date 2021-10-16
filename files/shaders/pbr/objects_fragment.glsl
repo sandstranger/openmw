@@ -1,4 +1,5 @@
 #version 120
+#pragma import_defines(FORCE_OPAQUE)
 
 #if @useUBO
     #extension GL_ARB_uniform_buffer_object : require
@@ -58,7 +59,6 @@ uniform mat2 bumpMapMatrix;
 #endif
 
 uniform bool simpleWater;
-uniform bool noAlpha;
 
 varying float euclideanDepth;
 varying float linearDepth;
@@ -84,7 +84,7 @@ varying vec3 passNormal;
 void main()
 {
 #if @diffuseMap
-    vec2 adjustedDiffuseUV = diffuseMapUV;
+    vec2 adjustedUV = diffuseMapUV;
 #endif
 
 #if @normalMap
@@ -92,8 +92,12 @@ void main()
 
     vec3 normalizedNormal = normalize(passNormal);
     vec3 normalizedTangent = normalize(passTangent.xyz);
+    vec3 bitangent = normalize(cross(passNormal, passTangent.xyz) * passTangent.w);
     vec3 binormal = cross(normalizedTangent, normalizedNormal) * passTangent.w;
-    mat3 tbnTranspose = mat3(normalizedTangent, binormal, normalizedNormal);
+	mat3 tbnTranspose = mat3(normalizedTangent, binormal, normalizedNormal);
+    mat3 tbnInverse = transpose2(gl_NormalMatrix * mat3(normalizedTangent, bitangent, normalizedNormal));
+	
+	
 
     vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
 #endif
@@ -103,32 +107,72 @@ void main()
 #endif
 
 #if @parallax
-    vec3 cameraPos = (gl_ModelViewMatrixInverse * vec4(0,0,0,1)).xyz;
-    vec3 objectPos = (gl_ModelViewMatrixInverse * vec4(passViewPos, 1)).xyz;
-    vec3 eyeDir = normalize(cameraPos - objectPos);
-    vec2 offset = getParallaxOffset(eyeDir, tbnTranspose, normalTex.a, (passTangent.w > 0.0) ? -1.f : 1.f);
-    adjustedDiffuseUV += offset; // only offset diffuse for now, other textures are more likely to be using a completely different UV set
+	vec3 eyeDir = tbnInverse * -normalize(passViewPos);
+	
+	vec3 lightdir = tbnInverse * normalize(vec4(lcalcPosition(0).xyz,1.0)).xyz;
+	
+	
+	float flip = 1.0; //(passTangent.w > 0.0) ? -1.f : 1.f;
+	
+	
+    getParallaxOffset(adjustedUV, eyeDir, tbnInverse, normalMap, flip);
+	
+	
+	vec2 shadowUV = adjustedUV;
+    
+    float h0 = 1.0 - normalTex.a;
+    float h = h0;
+    
+    float dist = euclideanDepth*0.0001;
+    float lod1 = 1.0 - step(0.1, dist);
+    
+    float shadowpara = 1.0;
+
+	float soften = 5.0;
+	
+	
+	
+	vec2 lDir = (vec2(lightdir.x, lightdir.y * flip)) * 0.04 * 0.75;
+	
+	h = min(1.0, 1.0 - texture2D(normalMap, shadowUV + lDir ).w);
+	
+	if(lod1 != 0.0)
+	{
+		h = min( h, 1.0 - texture2D(normalMap, shadowUV + 0.750 * lDir).w);
+		h = min( h, 1.0 - texture2D(normalMap, shadowUV + 0.500 * lDir).w);
+		h = min( h, 1.0 - texture2D(normalMap, shadowUV + 0.250 * lDir).w);
+	}
+	shadowpara =  min(shadowpara, 1.0 - saturate((h0 - h) * soften));
+	
+    //adjustedUV += offset; // only offset diffuse for now, other textures are more likely to be using a completely different UV set
 
     // TODO: check not working as the same UV buffer is being bound to different targets
     // if diffuseMapUV == normalMapUV
 #if 1
     // fetch a new normal using updated coordinates
-    normalTex = texture2D(normalMap, adjustedDiffuseUV);
+    normalTex = texture2D(normalMap, adjustedUV);
     viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
 #endif
 
 #endif
 
 #if @diffuseMap
-    gl_FragData[0] = texture2D(diffuseMap, adjustedDiffuseUV);
-	gl_FragData[0].rgb = SRGBToLinear(gl_FragData[0].rgb);
-    gl_FragData[0].a *= coveragePreservingAlphaScale(diffuseMap, adjustedDiffuseUV);
+    gl_FragData[0] = texture2D(diffuseMap, adjustedUV);
+	gl_FragData[0].rgb = texLoad(gl_FragData[0].rgb);
+	#ifdef DEBUGLIGHTING
+		#ifdef LINEAR
+		gl_FragData[0].rgb = vec3(0.5 * 0.5);
+		#else
+		gl_FragData[0].rgb = vec3(0.5);
+		#endif
+	#endif
+    gl_FragData[0].a *= coveragePreservingAlphaScale(diffuseMap, adjustedUV);
 #else
     gl_FragData[0] = vec4(1.0);
 #endif
 
     vec4 diffuseColor = getDiffuseColor();
-	diffuseColor.rgb = SRGBToLinearApprox(diffuseColor.rgb);
+	diffuseColor.rgb = colLoad(diffuseColor.rgb);
     gl_FragData[0].a *= diffuseColor.a;
 
 #if @darkMap
@@ -144,7 +188,7 @@ void main()
 
 #if @decalMap
     vec4 decalTex = texture2D(decalMap, decalMapUV);
-	decalTex.rgb = SRGBToLinear(decalTex.rgb);
+	decalTex.rgb = texLoad(decalTex.rgb);			   
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, decalTex.xyz, decalTex.a);
 #endif
 
@@ -174,62 +218,41 @@ void main()
 #endif
 
     float shadowing = unshadowedLightRatio(linearDepth);
+	
+	#if @parallax
+	shadowing *= shadowpara;
+	#endif
+	
     vec3 lighting;
 #if !PER_PIXEL_LIGHTING
     lighting = passLighting + shadowDiffuseLighting * shadowing;
 	gl_FragData[0].xyz *= lighting * Fd_Lambert();
 #else
-    vec3 diffuseLight, ambientLight;
-    doLighting(passViewPos, normalize(viewNormal), shadowing, diffuseLight, ambientLight);
-    vec3 emission = SRGBToLinearApprox(getEmissionColor().xyz) * emissiveMult;
-
-	vec3 specularBRDF = vec3(0.0,0.0,0.0);
-
-	float microAO = 1.0;
-
-	#if @specularMap
 	vec4 param = vec4(0.0, 0.98, 0.5, 1.0);
-
-	param = texture2D(specularMap, adjustedDiffuseUV);
-
-	float metallic = param.x; // maps should have 1 for metals
-	float roughness = max(0.015, param.y * param.y); //linear roughness
-	float reflectance = param.z; // 0.5 to 0.04 see conversion below
-	float AO = param.a;
-
-	//gl_FragData[0].xyz = (1.0 - metallic) * gl_FragData[0].xyz;
-	vec3 f0 = vec3(0.16,0.16,0.16) * reflectance * reflectance;
-
-	vec3 l = normalize(lcalcPosition(0));
-
-	vec3 v = normalize(-passViewPos.xyz);
-
-	vec3 n = normalize(viewNormal);
-
-	float aoFadeTerm = clamp(dot(gl_NormalMatrix * normalize(passNormal), v), 0.0, 1.0);
-	AO = mix(1.0, AO, aoFadeTerm);
-
-	microAO = applyAO(AO, dot(l, n)); 
-
-	BRDF(v, l, n, roughness, f0, specularBRDF);
-	specularBRDF *= microAO;
+	#if @specularMap
+	param = texture2D(specularMap, adjustedUV);
 	#endif
+    vec3 diffuseLight, ambientLight, specularLight;
+    doLighting(passViewPos, normalize(viewNormal), param, shadowing, diffuseLight, ambientLight, specularLight);
+    vec3 emission = colLoad(getEmissionColor().xyz) * emissiveMult;
+    lighting = diffuseColor.xyz * diffuseLight * Fd_Lambert() + vcolLoad(getAmbientColor().xyz) * ambientLight * Fd_Lambert() + emission;
+    //clampLightingResult(lighting);
 	
-	vec3 diffuseBRDF = diffuseColor.xyz * diffuseLight * Fd_Lambert()+ microAO * sqrt(getAmbientColor().xyz) * ambientLight * Fd_Lambert() + emission;
-
 	#ifdef PBRDEBUG
-	gl_FragData[0].xyz = specularBRDF;
+	gl_FragData[0].xyz = specularLight;
 	#else
-	gl_FragData[0].xyz = gl_FragData[0].xyz * diffuseBRDF + sqrt(getAmbientColor().xyz) * specularBRDF * shadowing * SRGBToLinearApprox(lcalcDiffuse(0).xyz);
+	gl_FragData[0].xyz = gl_FragData[0].xyz * lighting + specularLight * vcolLoad(getAmbientColor().xyz);	
 	#endif
 #endif
 
+
+
 #if @envMap && !@preLightEnv
-    gl_FragData[0].xyz += SRGBToLinear(texture2D(envMap, envTexCoordGen).xyz) * envMapColor.xyz * envLuma;
+    gl_FragData[0].xyz += texLoad(texture2D(envMap, envTexCoordGen).xyz) * envMapColor.xyz * envLuma;
 #endif
 
 #if @emissiveMap
-    gl_FragData[0].xyz += SRGBToLinear(texture2D(emissiveMap, emissiveMapUV).xyz);
+    gl_FragData[0].xyz += texLoad(texture2D(emissiveMap, emissiveMapUV).xyz);
 #endif
 
 #if @specularMap
@@ -259,34 +282,30 @@ void main()
 #else
     float fogValue = clamp((linearDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
 #endif
-
-	float exposure = mix(3.6, 2.6, length(SRGBToLinearApprox(lcalcDiffuse(0).xyz) + SRGBToLinearApprox(gl_LightModel.ambient.xyz)) * 0.5);
-
+	
+	float exposure = getExposure(length(SRGBToLinearApprox(lcalcDiffuse(0).xyz) + SRGBToLinearApprox(gl_LightModel.ambient.xyz)) * 0.5);
+	
 	// spare maps and paper toy
-	if (noAlpha || gl_Fog.start > 9000000.0) {
+    #if defined(FORCE_OPAQUE) && FORCE_OPAQUE
+        exposure = 1.0;
+    #endif
+    
+	if (gl_Fog.start > 9000000.0) {
 		exposure = 1.0;
 	}
 	
 	#ifdef PBRDEBUG
 	gl_FragData[0].xyz *= 1.0;
 	#else
-	gl_FragData[0].xyz *= pow(2.0, exposure);
-
-	// convert unbounded HDR color range to SDR color range
-	gl_FragData[0].xyz = clamp(ACESFilm(gl_FragData[0].xyz), vec3(0.0), vec3(1.0));
-
-	// convert from linear to sRGB for display
-	gl_FragData[0].xyz = LinearToSRGB(gl_FragData[0].xyz);
+	gl_FragData[0].xyz = toScreen(gl_FragData[0].xyz, exposure);
 	#endif
+	
+    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-	gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
-
-	#if @translucentFramebuffer
+#if defined(FORCE_OPAQUE) && FORCE_OPAQUE
     // having testing & blending isn't enough - we need to write an opaque pixel to be opaque
-	exposure = 1.0;
-    if (noAlpha)
         gl_FragData[0].a = 1.0;
-	#endif
+#endif
 
     applyShadowDebugOverlay();
 }
