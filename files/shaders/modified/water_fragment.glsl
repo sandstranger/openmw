@@ -142,9 +142,7 @@ uniform sampler2D normalMap;
 uniform sampler2D reflectionMap;
 #if REFRACTION
 uniform sampler2D refractionMap;
-    #if @refraction_depth_enabled
-        uniform highp sampler2D refractionDepthMap;
-    #endif
+uniform highp sampler2D refractionDepthMap;
 #endif
 
 uniform float osg_SimulationTime;
@@ -239,7 +237,7 @@ if(fogValue != 1.0)
     vec2 screenCoordsOffset = normal.xy * REFL_BUMP;
 
 
-#if REFRACTION && @refraction_depth_enabled
+#if REFRACTION
     float depthSample = linearizeDepth(texture2D(refractionDepthMap,screenCoords).x) * radialise;
     float depthSampleDistorted = linearizeDepth(texture2D(refractionDepthMap,screenCoords-screenCoordsOffset).x) * radialise;
     float surfaceDepth = linearizeDepth(gl_FragCoord.z) * radialise;
@@ -266,15 +264,7 @@ if(fogValue != 1.0)
     if (cameraPos.z < 0.0)
         refraction = clamp(refraction * 1.5, 0.0, 1.0);
     else
-#if @refraction_depth_enabled
         refraction = mix(refraction, waterColor, clamp(depthSampleDistorted/VISIBILITY, 0.0, 1.0));
-#else
-    #if @radialFog 
-        refraction = mix(refraction, waterColor, clamp(radialDepth/VISIBILITY, 0.7, 1.0));
-    #else
-        refraction = mix(refraction, waterColor, clamp(distance(position.xyz, cameraPos)/VISIBILITY, 0.7, 1.0));
-    #endif
-#endif
 
     // sunlight scattering
     // normal for sunlight scattering
@@ -288,7 +278,6 @@ if(fogValue != 1.0)
     gl_FragData[0].xyz = mix( mix(refraction,  scatterColour,  lightScatter),  reflection,  fresnel) + specular * sunSpec.xyz + vec3(rainRipple.w) * 0.2;
     gl_FragData[0].w = 1.0;
 
-#if @refraction_depth_enabled
     // wobbly water: hard-fade into refraction texture at extremely low depth, with a wobble based on normal mapping
     vec3 normalShoreRippleRain = texture2D(normalMap,normalCoords(UV, 2.0, 2.7, -1.0*waterTimer,  0.05,  0.1,  normal3)).rgb - 0.5
                                + texture2D(normalMap,normalCoords(UV, 2.0, 2.7,      waterTimer,  0.04, -0.13, normal4)).rgb - 0.5;
@@ -298,7 +287,6 @@ if(fogValue != 1.0)
     shoreOffset *= fuzzFactor;
     shoreOffset = clamp(shoreOffset, 0.0, 1.0);
     gl_FragData[0].xyz = mix(rawRefraction, gl_FragData[0].xyz, shoreOffset);
-#endif
 
 #else
     gl_FragData[0].xyz = mix(reflection,  waterColor,  (1.0-fresnel)*0.5) + specular * sunSpec.xyz + vec3(rainRipple.w) * 0.7;

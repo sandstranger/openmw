@@ -146,13 +146,23 @@ float shadowpara = 1.0;
         if(nmFade != 0.0) viewNormal = mix(viewNormal, gl_NormalMatrix * normalize(passNormal), nmFade);
     #endif
 #else
+/*
     vec3 cameraPos = (gl_ModelViewMatrixInverse * vec4(0,0,0,1)).xyz;
     vec3 objectPos = (gl_ModelViewMatrixInverse * vec4(passViewPos, 1)).xyz;
     vec3 eyeDir = normalize(cameraPos - objectPos);
     adjustedDiffuseUV += getParallaxOffset(eyeDir, tbnTranspose, normalTex.a, (passTangent.w > 0.0) ? -1.f : 1.f);
+*/
+
+    vec3 bitangent = normalize(cross(passNormal, passTangent.xyz) * passTangent.w);
+    mat3 tbnInverse = transpose2(gl_NormalMatrix * mat3(normalizedTangent, bitangent, normalizedNormal));
+	  vec3 eyeDir = tbnInverse * -normalize(passViewPos);
+    getParallaxOffset2(adjustedDiffuseUV, eyeDir, tbnTranspose, normalMap, 1.f);
+
 
     if(parallaxShadows){
-        shadowpara = getParallaxShadow(normalTex.a, adjustedDiffuseUV);
+        //shadowpara = getParallaxShadow(normalTex.a, adjustedDiffuseUV);
+        vec3 bitangent = normalize(cross(passNormal, passTangent.xyz) * passTangent.w);
+        shadowpara = getParallaxShadow2(normalTex.a, adjustedDiffuseUV, normalizedTangent, bitangent, normalizedNormal);
         #ifdef NORMAL_MAP_FADING
             if(nmFade != 0.0) shadowpara = mix(shadowpara, 1.0, nmFade);
         #endif

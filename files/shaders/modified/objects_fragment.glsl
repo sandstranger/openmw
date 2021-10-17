@@ -164,7 +164,7 @@ float shadowpara = 1.0;
     vec3 eyeDir = normalize(cameraPos - objectPos);
     adjustedDiffuseUV += getParallaxOffset(eyeDir, tbnTranspose, normalTex.a, (passTangent.w > 0.0) ? -1.f : 1.f);
 
-    #if @parallaxShadows
+    #if @objectsParallaxShadows
         shadowpara = getParallaxShadow(normalTex.a, adjustedDiffuseUV);
         #ifdef NORMAL_MAP_FADING
             if(nmFade != 0.0) shadowpara = mix(shadowpara, 1.0, nmFade);
@@ -312,7 +312,7 @@ if(simpleWater)
     // having testing & blending isn't enough - we need to write an opaque pixel to be opaque
     gl_FragData[0].a = 1.0;
 #endif
-
+}
 //else gl_FragData[0].x = 1.0;
 
 #if @underwaterFog

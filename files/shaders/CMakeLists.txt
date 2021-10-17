@@ -50,6 +50,8 @@ set(SHADER_FILES_PBR
     pbr/helperutil.glsl
     pbr/groundcover_vertex.glsl
     pbr/groundcover_fragment.glsl
+    vtastek_water_vertex.glsl
+    vtastek_water_fragment.glsl
     pbr/water_vertex.glsl
     pbr/water_fragment.glsl
     pbr/water_nm.png
@@ -89,6 +91,8 @@ set(MODIFIED_SHADER_FILES
     modified/helpsettings.glsl
     modified/groundcover_vertex.glsl
     modified/groundcover_fragment.glsl
+    vtastek_water_vertex.glsl
+    vtastek_water_fragment.glsl
     modified/water_vertex.glsl
     modified/water_fragment.glsl
     modified/water_nm.png

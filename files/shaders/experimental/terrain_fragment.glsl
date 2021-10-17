@@ -93,10 +93,13 @@ if(fogValue != 1.0 && underwaterFogValue != 1.0)
     vec3 objectPos = (gl_ModelViewMatrixInverse * vec4(passViewPos, 1)).xyz;
     vec3 eyeDir = normalize(cameraPos - objectPos);
 
-    if(parallaxShadows)
-        shadowpara = getParallaxShadow(normalTex.a, adjustedUV);
-
     adjustedUV += getParallaxOffset(eyeDir, tbnTranspose, normalTex.a, 1.f);
+
+    if(parallaxShadows) {
+        vec3 bitangent = normalize(cross(passNormal, tangent));
+        shadowpara = getParallaxShadow2(normalTex.a, adjustedUV, tangent, bitangent, normalizedNormal);
+        //shadowpara = getParallaxShadow(normalTex.a, adjustedUV);
+    }
 
     // update normal using new coordinates
     normalTex = texture2D(normalMap, adjustedUV);

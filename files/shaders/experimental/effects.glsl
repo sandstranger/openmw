@@ -9,6 +9,63 @@ vec2 getParallaxOffset(vec3 eyeDir, mat3 tbnTranspose, float height, float flipY
     return vec2(TSeyeDir.x, TSeyeDir.y * flipY) * ( height * PARALLAX_SCALE + PARALLAX_BIAS );
 }
 
+void getParallaxOffset2(inout vec2 adjustedUV, vec3 eyeDir, mat3 tbnTranspose, sampler2D normalmap, float flipY)
+{
+    vec3 TSeyeDir = eyeDir;
+	
+	for(int i = 0; i < 4; i++) {
+	vec4 Normal = texture2D(normalMap, adjustedUV.xy);
+	float h = Normal.a;
+	adjustedUV += (h - 0.6) * 0.015 * Normal.z * TSeyeDir.xy;
+	}
+}
+
+highp mat3 transpose2(in highp mat3 inMatrix)
+{
+highp vec3 i0 = inMatrix[0];
+highp vec3 i1 = inMatrix[1];
+highp vec3 i2 = inMatrix[2];
+highp mat3 outMatrix = mat3( vec3(i0.x, i1.x, i2.x), vec3(i0.y, i1.y, i2.y), vec3(i0.z, i1.z, i2.z) );
+return outMatrix;
+}
+
+float saturate(float x) {
+	return clamp(x, 0.0, 1.0);
+}
+
+float getParallaxShadow2(float height, vec2 UV, vec3 tangent, vec3 bitangent, vec3 normalizedNormal)
+{
+    mat3 tbnInverse = transpose2(gl_NormalMatrix * mat3(tangent, bitangent, normalizedNormal));
+    vec3 lightdir = tbnInverse * normalize(vec4(lcalcPosition(0).xyz,1.0)).xyz;
+
+	  vec2 shadowUV = UV;
+    
+    float h0 = 1.0 - height;
+    float h = h0;
+    
+    float dist = depth*0.0001;
+    float lod1 = 1.0 - step(0.1, dist);
+
+	  float soften = 5.0;
+
+	  vec2 lDir = (vec2(lightdir.x, lightdir.y)) * 0.04 * 0.75;
+	
+	  h = min(1.0, 1.0 - texture2D(normalMap, shadowUV + lDir ).w);
+	
+	  if(lod1 != 0.0)
+	  {
+	  	h = min( h, 1.0 - texture2D(normalMap, shadowUV + 0.750 * lDir).w);
+		  h = min( h, 1.0 - texture2D(normalMap, shadowUV + 0.500 * lDir).w);
+		  h = min( h, 1.0 - texture2D(normalMap, shadowUV + 0.250 * lDir).w);
+	  }
+	return min(1.0, 1.0 - saturate((h0 - h) * soften));
+}
+
+
+
+
+
+
 float getParallaxShadow(float height, vec2 UV)
 {
         vec2 shadowUV = UV;
