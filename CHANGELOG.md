@@ -53,9 +53,11 @@
     Bug #6291: Can't pickup the dead mage's journal from the mysterious hunter mod
     Bug #6302: Teleporting disabled actor breaks its disabled state
     Bug #6307: Pathfinding in Infidelities quest from Tribunal addon is broken
+    Bug #6321: Arrow enchantments should always be applied to the target
     Bug #6322: Total sold/cost should reset to 0 when there are no items offered
     Bug #6323: Wyrmhaven: Alboin doesn't follower the player character out of his house
     Bug #6326: Detect Enchantment/Key should detect items in unresolved containers
+    Bug #6347: PlaceItem/PlaceItemCell/PlaceAt should work with levelled creatures
     Feature #890: OpenMW-CS: Column filtering
     Feature #2554: Modifying an object triggers the instances table to scroll to the corresponding record
     Feature #2780: A way to see current OpenMW version in the console
@@ -70,6 +72,7 @@
     Feature #5996: Support Lua scripts in OpenMW
     Feature #6017: Separate persistent and temporary cell references when saving
     Feature #6032: Reverse-z depth buffer
+    Feature #6078: First person should not clear depth buffer
     Feature #6162: Refactor GUI to use shaders and to be GLES and GL3+ friendly
     Feature #6199: Support FBO Rendering
     Feature #6249: Alpha testing support for Collada
@@ -77,7 +80,6 @@
     Feature #6288: Preserve the "blocked" record flag for referenceable objects.
     Task #6201: Remove the "Note: No relevant classes found. No output generated" warnings
     Task #6264: Remove the old classes in animation.cpp
-
 
 0.47.0
 ------

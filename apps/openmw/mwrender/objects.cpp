@@ -4,7 +4,6 @@
 #include <osg/UserDataContainer>
 
 #include <components/sceneutil/positionattitudetransform.hpp>
-#include <components/sceneutil/unrefqueue.hpp>
 
 #include "../mwworld/ptr.hpp"
 #include "../mwworld/class.hpp"
@@ -19,10 +18,9 @@
 namespace MWRender
 {
 
-Objects::Objects(Resource::ResourceSystem* resourceSystem, osg::ref_ptr<osg::Group> rootNode, SceneUtil::UnrefQueue* unrefQueue)
+Objects::Objects(Resource::ResourceSystem* resourceSystem, osg::ref_ptr<osg::Group> rootNode)
     : mRootNode(rootNode)
     , mResourceSystem(resourceSystem)
-    , mUnrefQueue(unrefQueue)
 {
 }
 
@@ -121,9 +119,6 @@ bool Objects::removeObject (const MWWorld::Ptr& ptr)
     PtrAnimationMap::iterator iter = mObjects.find(ptr);
     if(iter != mObjects.end())
     {
-        if (mUnrefQueue.get())
-            mUnrefQueue->push(iter->second);
-
         mObjects.erase(iter);
 
         if (ptr.getClass().isActor())
@@ -150,9 +145,6 @@ void Objects::removeCell(const MWWorld::CellStore* store)
         MWWorld::Ptr ptr = iter->second->getPtr();
         if(ptr.getCell() == store)
         {
-            if (mUnrefQueue.get())
-                mUnrefQueue->push(iter->second);
-
             if (ptr.getClass().isNpc() && ptr.getRefData().getCustomData())
             {
                 MWWorld::InventoryStore& invStore = ptr.getClass().getInventoryStore(ptr);
@@ -170,8 +162,6 @@ void Objects::removeCell(const MWWorld::CellStore* store)
     if(cell != mCellSceneNodes.end())
     {
         cell->second->getParent(0)->removeChild(cell->second);
-        if (mUnrefQueue.get())
-            mUnrefQueue->push(cell->second);
         mCellSceneNodes.erase(cell);
     }
 }
