@@ -1,10 +1,7 @@
 #version 120
 
 #define TERRAIN
-
-varying vec2 uv;
-
-uniform sampler2D diffuseMap;
+#define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
 
 #if @normalMap
 uniform sampler2D normalMap;
@@ -14,26 +11,27 @@ uniform sampler2D normalMap;
 uniform sampler2D blendMap;
 #endif
 
+#ifdef ANIMATED_HEIGHT_FOG
+uniform float osg_SimulationTime;
+#endif
+
+varying vec2 uv;
+uniform sampler2D diffuseMap;
 varying highp float depth;
+uniform highp mat4 osg_ViewMatrixInverse;
+uniform bool skip;
+varying vec3 passViewPos;
 
-#define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
-
-uniform mat3 shaderSettings;
+uniform bool parallaxShadows;
+uniform bool underwaterFog;
+uniform float gamma;
 
 #include "helpsettings.glsl"
 #include "tonemap.glsl"
 #include "vertexcolors.glsl"
 #include "lighting_util.glsl"
-
-uniform highp mat4 osg_ViewMatrixInverse;
-
-#ifdef ANIMATED_HEIGHT_FOG
-uniform float osg_SimulationTime;
-#endif
-
-uniform bool skip;
-
-varying vec3 passViewPos;
+#include "effects.glsl"
+#include "fog.glsl"
 
 #if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG))
     varying vec3 passNormal;
@@ -45,13 +43,6 @@ varying vec3 passViewPos;
     #include "lighting.glsl"
 #endif
 
-#include "effects.glsl"
-#include "fog.glsl"
-
-uniform bool PPL;
-uniform bool parallaxShadows;
-uniform bool underwaterFog;
-uniform float gamma;
 
 void main()
 {
@@ -63,7 +54,7 @@ if(underwaterFog) {
 
     float fogValue = getFogValue(depth);
 
-if(fogValue != 1.0 && underwaterFogValue != 1.0)
+//if(fogValue != 1.0 && underwaterFogValue != 1.0)
 {
 
     float shadowpara = 1.0;
@@ -95,11 +86,15 @@ if(fogValue != 1.0 && underwaterFogValue != 1.0)
 
     adjustedUV += getParallaxOffset(eyeDir, tbnTranspose, normalTex.a, 1.f);
 
+
     if(parallaxShadows) {
-        vec3 bitangent = normalize(cross(passNormal, tangent));
-        shadowpara = getParallaxShadow2(normalTex.a, adjustedUV, tangent, bitangent, normalizedNormal);
         //shadowpara = getParallaxShadow(normalTex.a, adjustedUV);
+
+        vec3 bitangent = normalize(cross(passNormal, tangent));
+        mat3 tbnInverse = transpose2(gl_NormalMatrix * mat3(tangent, bitangent, normalizedNormal));
+        shadowpara = getParallaxShadow2(normalTex.a, adjustedUV, normalMap, tbnInverse);
     }
+
 
     // update normal using new coordinates
     normalTex = texture2D(normalMap, adjustedUV);
@@ -118,23 +113,28 @@ if(fogValue != 1.0 && underwaterFogValue != 1.0)
     gl_FragData[0].a *= texture2D(blendMap, blendMapUV).a;
 #endif
 
-    gl_FragData[0].xyz = preLight(gl_FragData[0].xyz);
+    gl_FragData[0].xyz = texLoad(gl_FragData[0].xyz);
 
     vec4 diffuseColor = getDiffuseColor();
+    diffuseColor.rgb = colLoad(diffuseColor.rgb);
     gl_FragData[0].a *= diffuseColor.a;
 
     vec3 lighting;
 
 #if !PER_PIXEL_LIGHTING
-    lighting = passLighting;
+    lighting = passLighting * Fd_Lambert();
 #else
     vec3 diffuseLight, ambientLight;
     doLighting(passViewPos, normalize(viewNormal), shadowpara, diffuseLight, ambientLight);
-    lighting = diffuseColor.xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
+    lighting = diffuseColor.xyz * diffuseLight * Fd_Lambert() + vcolLoad(getAmbientColor().xyz) * ambientLight * Fd_Lambert() + colLoad(getEmissionColor().xyz);
     clampLightingResult(lighting);
 #endif
 
+#if @linearLighting
+    gl_FragData[0].xyz *= lighting * vcolLoad(getAmbientColor().xyz);
+#else
     gl_FragData[0].xyz *= lighting;
+#endif
 
 #if @specularMap
     float shininess = 128.0; // TODO: make configurable
@@ -142,7 +142,8 @@ if(fogValue != 1.0 && underwaterFogValue != 1.0)
     gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos), shininess, matSpec) * shadowpara;
 #endif
 
-   gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz);
+      float exposure = getExposure(length(colLoad(lcalcDiffuse(0).xyz) + colLoad(gl_LightModel.ambient.xyz)) * 0.5);
+      gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz, exposure);
 
 }
 /*

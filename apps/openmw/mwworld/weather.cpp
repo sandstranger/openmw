@@ -556,6 +556,8 @@ namespace MWWorld
         , mIsStorm(false)
         , mPrecipitation(false)
         , mStormDirection(Weather::defaultDirection())
+        , mSmoothedStormDirection(0,0,0)
+        , mSmoothedStormDirectionNeedReset(true)
         , mCurrentRegion()
         , mTimePassed(0)
         , mFastForward(false)
@@ -673,6 +675,7 @@ namespace MWWorld
             if(it != mRegions.end() && playerRegion != mCurrentRegion)
             {
                 mCurrentRegion = playerRegion;
+                mSmoothedStormDirectionNeedReset = true;
                 forceWeather(it->second.getWeather());
             }
         }
@@ -728,6 +731,7 @@ namespace MWWorld
             mWindSpeed = 0.f;
             mCurrentWindSpeed = 0.f;
             mNextWindSpeed = 0.f;
+            mSmoothedStormDirectionNeedReset = true;
             return;
         }
 
@@ -748,6 +752,33 @@ namespace MWWorld
 
         mStormDirection = calculateStormDirection(mResult.mParticleEffect);
         mRendering.getSkyManager()->setStormParticleDirection(mStormDirection);
+
+        if (mSmoothedStormDirectionNeedReset)
+        {
+            if (mIsStorm)
+                mSmoothedStormDirection = mStormDirection;
+            else
+                mSmoothedStormDirection = osg::Vec3f(0, 0, 0);
+
+            mSmoothedStormDirectionNeedReset = false;
+        }
+        else
+        {
+            // need to be based on time
+            osg::Vec3f stormDir(0, 0, 0);
+            if (mIsStorm)
+                stormDir = mStormDirection;
+
+            if (mSmoothedStormDirection[0] < stormDir[0])
+                mSmoothedStormDirection[0] = std::min(stormDir[0] * 1.0, mSmoothedStormDirection[0] + 0.002);
+            else
+                mSmoothedStormDirection[0] = std::max(stormDir[0] * 1.0, mSmoothedStormDirection[0] - 0.002);
+
+            if (mSmoothedStormDirection[1] < stormDir[1])
+                mSmoothedStormDirection[1] = std::min(stormDir[1] * 1.0, mSmoothedStormDirection[1] + 0.002);
+            else
+                mSmoothedStormDirection[1] = std::max(stormDir[1] * 1.0, mSmoothedStormDirection[1] - 0.002);
+        }
 
         // disable sun during night
         if (time.getHour() >= mTimeSettings.mNightStart || time.getHour() <= mSunriseTime)
@@ -849,6 +880,12 @@ namespace MWWorld
         return mStormDirection;
     }
 
+
+    osg::Vec2f WeatherManager::getSmoothedStormDirection() const
+    {
+        return osg::Vec2f (mSmoothedStormDirection[0], mSmoothedStormDirection[1]);
+    }
+
     void WeatherManager::advanceTime(double hours, bool incremental)
     {
         // In Morrowind, when the player sleeps/waits, serves jail time, travels, or trains, all weather transitions are
@@ -948,6 +985,7 @@ namespace MWWorld
         mCurrentRegion = "";
         mTimePassed = 0.0f;
         mWeatherUpdateTime = 0.0f;
+        mSmoothedStormDirectionNeedReset = true;
         forceWeather(0);
         mRegions.clear();
         importRegions();

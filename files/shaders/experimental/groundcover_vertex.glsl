@@ -4,10 +4,6 @@
 
 #define GRASS
 
-#include "helpsettings.glsl"
-#include "vertexcolors.glsl"
-#include "lighting_util.glsl"
-
 #if @diffuseMap
 varying vec2 diffuseMapUV;
 #endif
@@ -29,17 +25,21 @@ varying vec3 passViewPos;
 varying vec3 passNormal;
 #endif
 
-#if !PER_PIXEL_LIGHTING
-  centroid varying vec3 passLighting;
-    #include "lighting.glsl"
-#endif
-
 uniform highp mat4 osg_ViewMatrixInverse;
 uniform float osg_SimulationTime;
 
 uniform highp mat3 grassData;
 attribute float originalCoords;
 uniform bool radialFog;
+
+#include "helpsettings.glsl"
+#include "vertexcolors.glsl"
+#include "lighting_util.glsl"
+
+#if !PER_PIXEL_LIGHTING
+  centroid varying vec3 passLighting;
+    #include "lighting.glsl"
+#endif
 
 #if @groundcoverStompMode == 0
 #else
@@ -127,6 +127,11 @@ void main(void)
 #if @normalMap
     passTangent = gl_MultiTexCoord7.xyzw;
 #endif
+
+
+   // vec3 emission = colLoad(getEmissionColor().xyz) * emissiveMult;
+   // passLighting = colLoad(getDiffuseColor().xyz) * diffuseLight + vcolLoad(getAmbientColor().xyz) * ambientLight + emission;
+
 
 #if !PER_PIXEL_LIGHTING
     vec3 shadowDiffuseLighting;

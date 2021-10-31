@@ -28,13 +28,13 @@ varying vec3 passNormal;
 #endif
 
 #if !PER_PIXEL_LIGHTING
-    #include "lighting_util.glsl"
+    uniform highp mat4 osg_ViewMatrixInverse;
     centroid varying vec3 passLighting;
+    #include "lighting_util.glsl"
     #include "lighting.glsl"
 #endif
 
 uniform bool radialFog;
-uniform bool PPL;
 
 void main(void)
 {
@@ -77,9 +77,9 @@ if(osg_ViewMatrixInverse[3].z < -1.0)
     vec3 shadowDiffuseLighting, diffuseLight, ambientLight;
     vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
-    passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
+    passLighting = colLoad(getDiffuseColor().xyz) * diffuseLight + vcolLoad(getAmbientColor().xyz) * ambientLight + colLoad(getEmissionColor().xyz);
     clampLightingResult(passLighting);
-    shadowDiffuseLighting *= getDiffuseColor().xyz;
+    shadowDiffuseLighting *= colLoad(getDiffuseColor().xyz);
     passLighting += shadowDiffuseLighting;
 #endif
 }

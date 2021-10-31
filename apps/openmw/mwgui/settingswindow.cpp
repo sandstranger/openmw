@@ -269,9 +269,13 @@ namespace MWGui
             grassDensitySlider->setVisible(false);
         }
 
-            MyGUI::Button *PPLButton;
-            getWidget(PPLButton, "PPLLightingButton");
-            PPLButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
+        MyGUI::Button *PPLButton;
+        getWidget(PPLButton, "PPLLightingButton");
+        PPLButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
+
+        MyGUI::Button *linearLightingButton;
+        getWidget(linearLightingButton, "LinearLightingButton");
+        linearLightingButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked)
 
 	const char *shaderPreset = getenv("OPENMW_SHADERS");
         if(!shaderPreset || strcmp(shaderPreset, "experimental") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
@@ -307,6 +311,10 @@ namespace MWGui
             getWidget(textBox, "PPLLightingLabel");
             textBox->setVisible(false);
             PPLButton->setVisible(false);
+
+            getWidget(textBox, "LinearLightingLabel");
+            textBox->setVisible(false);
+            linearLightingButton->setVisible(false);
 
             getWidget(textBox, "UnderwaterFogLabel");
             textBox->setVisible(false);

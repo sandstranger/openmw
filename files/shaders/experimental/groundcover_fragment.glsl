@@ -84,6 +84,7 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
 
 #if @diffuseMap
     gl_FragData[0] = texture2D(diffuseMap, diffuseMapUV);
+    gl_FragData[0].xyz = texLoad(gl_FragData[0].xyz);
     //gl_FragData[0].a *= coveragePreservingAlphaScale(diffuseMap, diffuseMapUV);
 #else
     gl_FragData[0] = vec4(1.0);
@@ -94,21 +95,25 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
 
     alphaTest();
 
-    gl_FragData[0].xyz = preLight(gl_FragData[0].xyz);
-
     vec3 lighting;
 #if !PER_PIXEL_LIGHTING
-    lighting = passLighting;
+    lighting = passLighting * Fd_Lambert();
 #else
     vec3 diffuseLight, ambientLight;
-    doLighting(passViewPos, normalize(viewNormal), 1.0, diffuseLight, ambientLight);
-    lighting = diffuseLight + ambientLight;
+    doLighting(passViewPos, normalize(viewNormal), shadowpara, diffuseLight, ambientLight);
+    lighting = diffuseColor.xyz * diffuseLight * Fd_Lambert() + vcolLoad(getAmbientColor().xyz) * ambientLight * Fd_Lambert() + colLoad(getEmissionColor().xyz);
     clampLightingResult(lighting);
 #endif
 
+#if @linearLighting
+    gl_FragData[0].xyz *= lighting * vcolLoad(getAmbientColor().xyz);
+#else
     gl_FragData[0].xyz *= lighting;
+#endif
 
-    gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz);
+   float exposure = getExposure(length(colLoad(lcalcDiffuse(0).xyz) + colLoad(gl_LightModel.ambient.xyz)) * 0.5);
+   gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz, exposure);
+
 
 }
 

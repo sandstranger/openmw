@@ -1,6 +1,7 @@
 #version 120
 
 #define OBJECT
+#define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL))
 
 #if @diffuseMap
 varying vec2 diffuseMapUV;
@@ -26,18 +27,9 @@ varying vec4 passTangent;
 varying vec2 envMapUV;
 #endif
 
-varying highp float depth;
-
-#define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL))
-
-#include "helpsettings.glsl"
-#include "vertexcolors.glsl"
-
 #if PER_PIXEL_LIGHTING || @specularMap
 varying vec3 passNormal;
 #endif
-
-varying vec3 passViewPos;
 
 #ifdef HEIGHT_FOG
 varying vec3 fogH;
@@ -56,15 +48,20 @@ uniform float osg_SimulationTime;
 uniform bool isPlayer;
 #endif
 
-#if !PER_PIXEL_LIGHTING
-    #include "lighting_util.glsl"
-    centroid varying vec3 passLighting;
-    #include "lighting.glsl"
-#endif
-
+varying highp float depth;
+varying vec3 passViewPos;
 
 uniform bool radialFog;
-uniform bool PPL;
+
+#include "helpsettings.glsl"
+#include "vertexcolors.glsl"
+
+#if !PER_PIXEL_LIGHTING
+    uniform highp mat4 osg_ViewMatrixInverse;
+    centroid varying vec3 passLighting;
+    #include "lighting_util.glsl"
+    #include "lighting.glsl"
+#endif
 
 void main(void)
 {
@@ -135,9 +132,9 @@ if(osg_ViewMatrixInverse[3].z < -1.0 && !isInterior && !isPlayer)
 #if !PER_PIXEL_LIGHTING
     vec3 shadowDiffuseLighting, diffuseLight, ambientLight;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
-    passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
+    passLighting = colLoad(getDiffuseColor().xyz) * diffuseLight + vcolLoad(getAmbientColor().xyz) * ambientLight + colLoad(getEmissionColor().xyz);
     clampLightingResult(passLighting);
-    shadowDiffuseLighting *= getDiffuseColor().xyz;
+    shadowDiffuseLighting *= colLoad(getDiffuseColor().xyz);
     passLighting += shadowDiffuseLighting;
 #endif
 }

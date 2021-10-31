@@ -364,6 +364,7 @@ namespace MWRender
         globalDefines["groundcoverStompIntensity"] = std::to_string(std::clamp(Settings::Manager::getInt("stomp intensity", "Groundcover"), 0, 2));
 	globalDefines["underwaterFog"] = Settings::Manager::getBool("underwater fog", "Water") ? "1" : "0";
 	globalDefines["parallaxShadows"] = Settings::Manager::getBool("parallax soft shadows", "Shaders") ? "1" : "0";
+	globalDefines["linearLighting"] = Settings::Manager::getBool("linear lighting", "Shaders") ? "1" : "0";
 
         globalDefines["reverseZ"] = reverseZ ? "1" : "0";
 
@@ -518,19 +519,19 @@ namespace MWRender
 
 	mRadialFogUniform = new osg::Uniform("radialFog", Settings::Manager::getBool("radial fog", "Shaders"));
 	mClampLightingUniform = new osg::Uniform("clampLighting", Settings::Manager::getBool("clamp lighting", "Shaders"));
-	mForcePerPixelLightingUniform = new osg::Uniform("PPL", Settings::Manager::getBool("force per pixel lighting", "Shaders"));
 	mParallaxShadowsUniform = new osg::Uniform("parallaxShadows", Settings::Manager::getBool("parallax soft shadows", "Shaders"));
 	mUnderwaterFogUniform = new osg::Uniform("underwaterFog", Settings::Manager::getBool("underwater fog", "Water"));
 	mTonemaperUniform = new osg::Uniform("tonemaper", Settings::Manager::getInt("tonemaper", "Shaders"));
 	mGammaUniform = new osg::Uniform("gamma", Settings::Manager::getFloat("gamma", "Video"));
+	mExposureUniform = new osg::Uniform("exposure", Settings::Manager::getFloat("gamma", "Video"));
 
 	mRootNode->getOrCreateStateSet()->addUniform(mRadialFogUniform);
 	mRootNode->getOrCreateStateSet()->addUniform(mClampLightingUniform);
-	mRootNode->getOrCreateStateSet()->addUniform(mForcePerPixelLightingUniform);
 	mRootNode->getOrCreateStateSet()->addUniform(mParallaxShadowsUniform);
 	mRootNode->getOrCreateStateSet()->addUniform(mUnderwaterFogUniform);
 	mRootNode->getOrCreateStateSet()->addUniform(mTonemaperUniform);
 	mRootNode->getOrCreateStateSet()->addUniform(mGammaUniform);
+	mRootNode->getOrCreateStateSet()->addUniform(mExposureUniform);
 
         // Hopefully, anything genuinely requiring the default alpha func of GL_ALWAYS explicitly sets it
         mRootNode->getOrCreateStateSet()->setAttribute(Shader::RemovedAlphaFunc::getInstance(GL_ALWAYS));
@@ -1258,10 +1259,6 @@ namespace MWRender
             {
 		mClampLightingUniform->set(Settings::Manager::getBool("clamp lighting", "Shaders"));
             }
-            else if (it->first == "Shaders" && it->second == "force per pixel lighting")
-            {
-		mForcePerPixelLightingUniform->set(Settings::Manager::getBool("force per pixel lighting", "Shaders"));
-            }
             else if (it->first == "Shaders" && it->second == "parallax soft shadows")
             {
 		mParallaxShadowsUniform->set(Settings::Manager::getBool("parallax soft shadows", "Shaders"));
@@ -1277,6 +1274,10 @@ namespace MWRender
             else if (it->first == "Video" && it->second == "gamma")
             {
 		mGammaUniform->set(Settings::Manager::getFloat("gamma", "Video"));
+            }
+            else if (it->first == "Video" && it->second == "exposure")
+            {
+		mExposureUniform->set(Settings::Manager::getFloat("exposure", "Video"));
             }
             else if (it->first == "General" && (it->second == "texture filter" ||
                                                 it->second == "texture mipmap" ||
