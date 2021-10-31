@@ -275,7 +275,7 @@ namespace MWGui
 
         MyGUI::Button *linearLightingButton;
         getWidget(linearLightingButton, "LinearLightingButton");
-        linearLightingButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked)
+        linearLightingButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
 
 	const char *shaderPreset = getenv("OPENMW_SHADERS");
         if(!shaderPreset || strcmp(shaderPreset, "experimental") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
