@@ -1,14 +1,16 @@
 #include "esmstore.hpp"
 
 #include <algorithm>
+#include <fstream>
 #include <set>
 
 #include <boost/filesystem/operations.hpp>
 
 #include <components/debug/debuglog.hpp>
-#include <components/loadinglistener/loadinglistener.hpp>
 #include <components/esm/esmreader.hpp>
 #include <components/esm/esmwriter.hpp>
+#include <components/loadinglistener/loadinglistener.hpp>
+#include <components/lua/configuration.hpp>
 #include <components/misc/algorithm.hpp>
 
 #include "../mwmechanics/spelllist.hpp"
@@ -59,7 +61,7 @@ namespace
         }
     }
 
-    std::vector<ESM::NPC> getNPCsToReplace(const MWWorld::Store<ESM::Faction>& factions, const MWWorld::Store<ESM::Class>& classes, const std::map<std::string, ESM::NPC>& npcs)
+    std::vector<ESM::NPC> getNPCsToReplace(const MWWorld::Store<ESM::Faction>& factions, const MWWorld::Store<ESM::Class>& classes, const std::unordered_map<std::string, ESM::NPC, Misc::StringUtils::CiHash, Misc::StringUtils::CiEqual>& npcs)
     {
         // Cache first class from store - we will use it if current class is not found
         std::string defaultCls;
@@ -112,8 +114,8 @@ namespace
 
     // Custom enchanted items can reference scripts that no longer exist, this doesn't necessarily mean the base item no longer exists however.
     // So instead of removing the item altogether, we're only removing the script.
-    template<class T>
-    void removeMissingScripts(const MWWorld::Store<ESM::Script>& scripts, std::map<std::string, T>& items)
+    template<class MapT>
+    void removeMissingScripts(const MWWorld::Store<ESM::Script>& scripts, MapT& items)
     {
         for(auto& [id, item] : items)
         {
@@ -166,7 +168,10 @@ void ESMStore::load(ESM::ESMReader &esm, Loading::Listener* listener)
         std::string fname = mast.name;
         int index = ~0;
         for (int i = 0; i < esm.getIndex(); i++) {
-            const std::string candidate = allPlugins->at(i).getContext().filename;
+            ESM::ESMReader& reader = allPlugins->at(i);
+            if (reader.getFileSize() == 0)
+                continue;  // Content file in non-ESM format
+            const std::string candidate = reader.getContext().filename;
             std::string fnamecandidate = boost::filesystem::path(candidate).filename().string();
             if (Misc::StringUtils::ciEqual(fname, fnamecandidate)) {
                 index = i;
@@ -213,6 +218,13 @@ void ESMStore::load(ESM::ESMReader &esm, Loading::Listener* listener)
                 // ignore project file only records
                 esm.skipRecord();
             }
+            else if (n.toInt() == ESM::REC_LUAL)
+            {
+                ESM::LuaScriptsCfg cfg;
+                cfg.load(esm);
+                // TODO: update refnums in cfg.mScripts[].mInitializationData according to load order
+                mLuaContent.push_back(std::move(cfg));
+            }
             else {
                 throw std::runtime_error("Unknown record: " + n.toString());
             }
@@ -232,6 +244,32 @@ void ESMStore::load(ESM::ESMReader &esm, Loading::Listener* listener)
         }
         listener->setProgress(static_cast<size_t>(esm.getFileOffset() / (float)esm.getFileSize() * 1000));
     }
+}
+
+ESM::LuaScriptsCfg ESMStore::getLuaScriptsCfg() const
+{
+    ESM::LuaScriptsCfg cfg;
+    for (const LuaContent& c : mLuaContent)
+    {
+        if (std::holds_alternative<std::string>(c))
+        {
+            // *.omwscripts are intentionally reloaded every time when `getLuaScriptsCfg` is called.
+            // It is important for the `reloadlua` console command.
+            try
+            {
+                auto file = std::ifstream(std::get<std::string>(c));
+                std::string fileContent(std::istreambuf_iterator<char>(file), {});
+                LuaUtil::parseOMWScripts(cfg, fileContent);
+            }
+            catch (std::exception& e) { Log(Debug::Error) << e.what(); }
+        }
+        else
+        {
+            const ESM::LuaScriptsCfg& addition = std::get<ESM::LuaScriptsCfg>(c);
+            cfg.mScripts.insert(cfg.mScripts.end(), addition.mScripts.begin(), addition.mScripts.end());
+        }
+    }
+    return cfg;
 }
 
 void ESMStore::setUp(bool validateRecords)
@@ -286,7 +324,6 @@ void ESMStore::countRecords()
         if (value.mRefID != deletedRefID)
         {
             std::string& refId = refIDs[value.mRefID];
-            Misc::StringUtils::lowerCaseInPlace(refId);
             ++mRefCount[std::move(refId)];
         }
     };
@@ -295,8 +332,7 @@ void ESMStore::countRecords()
 
 int ESMStore::getRefCount(const std::string& id) const
 {
-    const std::string lowerId = Misc::StringUtils::lowerCase(id);
-    auto it = mRefCount.find(lowerId);
+    auto it = mRefCount.find(id);
     if(it == mRefCount.end())
         return 0;
     return it->second;
@@ -495,9 +531,8 @@ void ESMStore::removeMissingObjects(Store<T>& store)
             throw std::runtime_error ("Invalid player record (race or class unavailable");
     }
 
-    std::pair<std::shared_ptr<MWMechanics::SpellList>, bool> ESMStore::getSpellList(const std::string& originalId) const
+    std::pair<std::shared_ptr<MWMechanics::SpellList>, bool> ESMStore::getSpellList(const std::string& id) const
     {
-        const std::string id = Misc::StringUtils::lowerCase(originalId);
         auto result = mSpellListCache.find(id);
         std::shared_ptr<MWMechanics::SpellList> ptr;
         if (result != mSpellListCache.end())

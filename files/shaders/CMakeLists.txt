@@ -44,6 +44,9 @@ set(SHADER_FILES
     gui_fragment.glsl
     debug_vertex.glsl
     debug_fragment.glsl
+    sky_vertex.glsl
+    sky_fragment.glsl
+    skypasses.glsl
 )
 
 set(SHADER_FILES_PBR
@@ -81,6 +84,9 @@ set(SHADER_FILES_PBR
     pbr/gui_fragment.glsl
     pbr/debug_vertex.glsl
     pbr/debug_fragment.glsl
+    pbr/sky_vertex.glsl
+    pbr/sky_fragment.glsl
+    pbr/skypasses.glsl
 )
 
 set(MODIFIED_SHADER_FILES
@@ -120,6 +126,9 @@ set(MODIFIED_SHADER_FILES
     modified/gui_fragment.glsl
     modified/debug_vertex.glsl
     modified/debug_fragment.glsl
+    modified/sky_vertex.glsl
+    modified/sky_fragment.glsl
+    modified/skypasses.glsl
 )
 
 set(MODIFIED_SHADER_TONEMAP_FILES
@@ -172,6 +181,9 @@ set(EXPERIMENTAL_SHADER_FILES
     experimental/gui_fragment.glsl
     experimental/debug_vertex.glsl
     experimental/debug_fragment.glsl
+    experimental/sky_vertex.glsl
+    experimental/sky_fragment.glsl
+    experimental/skypasses.glsl
 )
 
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIR} "${SHADER_FILES}")

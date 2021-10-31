@@ -14,6 +14,7 @@
 
 #include "collisiontype.hpp"
 #include "mtphysics.hpp"
+#include "trace.h"
 
 #include <cmath>
 
@@ -24,7 +25,7 @@ namespace MWPhysics
 Actor::Actor(const MWWorld::Ptr& ptr, const Resource::BulletShape* shape, PhysicsTaskScheduler* scheduler, bool canWaterWalk)
   : mStandingOnPtr(nullptr), mCanWaterWalk(canWaterWalk), mWalkingOnWater(false)
   , mMeshTranslation(shape->mCollisionBox.center), mOriginalHalfExtents(shape->mCollisionBox.extents)
-  , mVelocity(0,0,0), mStuckFrames(0), mLastStuckPosition{0, 0, 0}
+  , mStuckFrames(0), mLastStuckPosition{0, 0, 0}
   , mForce(0.f, 0.f, 0.f), mOnGround(true), mOnSlope(false)
   , mInternalCollisionMode(true)
   , mExternalCollisionMode(true)
@@ -125,7 +126,6 @@ void Actor::updatePosition()
     mSimulationPosition = worldPosition;
     mPositionOffset = osg::Vec3f();
     mStandingOnPtr = nullptr;
-    mSkipCollisions = true;
     mSkipSimulation = true;
 }
 
@@ -133,11 +133,6 @@ void Actor::setSimulationPosition(const osg::Vec3f& position)
 {
     if (!std::exchange(mSkipSimulation, false))
         mSimulationPosition = position;
-}
-
-osg::Vec3f Actor::getSimulationPosition() const
-{
-    return mSimulationPosition;
 }
 
 osg::Vec3f Actor::getScaledMeshTranslation() const
@@ -169,17 +164,19 @@ bool Actor::setPosition(const osg::Vec3f& position)
 {
     std::scoped_lock lock(mPositionMutex);
     applyOffsetChange();
-    bool hasChanged = mPosition != position || mWorldPositionChanged;
-    mPreviousPosition = mPosition;
-    mPosition = position;
+    bool hasChanged = (mPosition != position && !mSkipSimulation) || mWorldPositionChanged;
+    if (!mSkipSimulation)
+    {
+        mPreviousPosition = mPosition;
+        mPosition = position;
+    }
     return hasChanged;
 }
 
-void Actor::adjustPosition(const osg::Vec3f& offset, bool ignoreCollisions)
+void Actor::adjustPosition(const osg::Vec3f& offset)
 {
     std::scoped_lock lock(mPositionMutex);
     mPositionOffset += offset;
-    mSkipCollisions = mSkipCollisions || ignoreCollisions;
 }
 
 void Actor::applyOffsetChange()
@@ -191,16 +188,6 @@ void Actor::applyOffsetChange()
     mSimulationPosition += mPositionOffset;
     mPositionOffset = osg::Vec3f();
     mWorldPositionChanged = true;
-}
-
-osg::Vec3f Actor::getPosition() const
-{
-    return mPosition;
-}
-
-osg::Vec3f Actor::getPreviousPosition() const
-{
-    return mPreviousPosition;
 }
 
 void Actor::setRotation(osg::Quat quat)
@@ -290,19 +277,15 @@ void Actor::setStandingOnPtr(const MWWorld::Ptr& ptr)
     mStandingOnPtr = ptr;
 }
 
-bool Actor::skipCollisions()
+bool Actor::canMoveToWaterSurface(float waterlevel, const btCollisionWorld* world) const
 {
-    return std::exchange(mSkipCollisions, false);
-}
-
-void Actor::setVelocity(osg::Vec3f velocity)
-{
-    mVelocity = velocity;
-}
-
-osg::Vec3f Actor::velocity()
-{
-    return std::exchange(mVelocity, osg::Vec3f());
+    const float halfZ = getHalfExtents().z();
+    const osg::Vec3f actorPosition = getPosition();
+    const osg::Vec3f startingPosition(actorPosition.x(), actorPosition.y(), actorPosition.z() + halfZ);
+    const osg::Vec3f destinationPosition(actorPosition.x(), actorPosition.y(), waterlevel + halfZ);
+    MWPhysics::ActorTracer tracer;
+    tracer.doTrace(getCollisionObject(), startingPosition, destinationPosition, world);
+    return (tracer.mFraction >= 1.0f);
 }
 
 }

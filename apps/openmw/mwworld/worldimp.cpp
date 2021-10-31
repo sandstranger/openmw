@@ -111,6 +111,17 @@ namespace MWWorld
           LoadersContainer mLoaders;
     };
 
+    struct OMWScriptsLoader : public ContentLoader
+    {
+        ESMStore& mStore;
+        OMWScriptsLoader(Loading::Listener& listener, ESMStore& store) : ContentLoader(listener), mStore(store) {}
+        void load(const boost::filesystem::path& filepath, int& index) override
+        {
+            ContentLoader::load(filepath.filename(), index);
+            mStore.addOMWScripts(filepath.string());
+        }
+    };
+
     void World::adjustSky()
     {
         if (mSky && (isCellExterior() || isCellQuasiExterior()))
@@ -155,6 +166,9 @@ namespace MWWorld
         gameContentLoader.addLoader(".omwgame", &esmLoader);
         gameContentLoader.addLoader(".omwaddon", &esmLoader);
         gameContentLoader.addLoader(".project", &esmLoader);
+
+        OMWScriptsLoader omwScriptsLoader(*listener, mStore);
+        gameContentLoader.addLoader(".omwscripts", &omwScriptsLoader);
 
         loadContentFiles(fileCollections, contentFiles, groundcoverFiles, gameContentLoader);
 
@@ -1244,14 +1258,14 @@ namespace MWWorld
         return moveObject(ptr, cell, position, movePhysics);
     }
 
-    MWWorld::Ptr World::moveObjectBy(const Ptr& ptr, const osg::Vec3f& vec, bool moveToActive, bool ignoreCollisions)
+    MWWorld::Ptr World::moveObjectBy(const Ptr& ptr, const osg::Vec3f& vec)
     {
         auto* actor = mPhysics->getActor(ptr);
         osg::Vec3f newpos = ptr.getRefData().getPosition().asVec3() + vec;
         if (actor)
-            actor->adjustPosition(vec, ignoreCollisions);
+            actor->adjustPosition(vec);
         if (ptr.getClass().isActor())
-            return moveObject(ptr, newpos, false, moveToActive && ptr != getPlayerPtr());
+            return moveObject(ptr, newpos, false, ptr != getPlayerPtr());
         return moveObject(ptr, newpos);
     }
 
@@ -3797,7 +3811,7 @@ namespace MWWorld
             cast.mSlot = slot;
             ESM::EffectList effectsToApply;
             effectsToApply.mList = applyPair.second;
-            cast.inflict(applyPair.first, caster, effectsToApply, rangeType, false, true);
+            cast.inflict(applyPair.first, caster, effectsToApply, rangeType, true);
         }
     }
 
