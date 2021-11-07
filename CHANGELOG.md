@@ -3,6 +3,7 @@
 
     Bug #1751: Birthsign abilities increase modified attribute values instead of base ones
     Bug #3246: ESSImporter: Most NPCs are dead on save load
+    Bug #3488: AI combat aiming is too slow
     Bug #3514: Editing a reference's position after loading an esp file makes the reference disappear
     Bug #3737: Scripts from The Underground 2 .esp do not play (all patched versions)
     Bug #3792: 1 frame late magicka recalc breaks early scripted magicka reactions to Intelligence change
@@ -28,6 +29,7 @@
     Bug #5842: GetDisposition adds temporary disposition change from different actors
     Bug #5863: GetEffect should return true after the player has teleported
     Bug #5913: Failed assertion during Ritual of Trees quest
+    Bug #5937: Lights always need to be rotated by 90 degrees
     Bug #6037: Morrowind Content Language Cannot be Set to English in OpenMW Launcher
     Bug #6051: NaN water height in ESM file is not handled gracefully
     Bug #6066: addtopic "return" does not work from within script. No errors thrown
@@ -65,6 +67,7 @@
     Bug #6326: Detect Enchantment/Key should detect items in unresolved containers
     Bug #6347: PlaceItem/PlaceItemCell/PlaceAt should work with levelled creatures
     Bug #6363: Some scripts in Morrowland fail to work
+    Bug #6376: Creatures should be able to use torches
     Feature #890: OpenMW-CS: Column filtering
     Feature #2554: Modifying an object triggers the instances table to scroll to the corresponding record
     Feature #2780: A way to see current OpenMW version in the console

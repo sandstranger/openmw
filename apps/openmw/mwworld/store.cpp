@@ -293,11 +293,6 @@ namespace MWWorld
     //=========================================================================
     Store<ESM::LandTexture>::Store()
     {
-        mStatic.emplace_back();
-        LandTextureList &ltexl = mStatic[0];
-        // More than enough to hold Morrowind.esm. Extra lists for plugins will we
-        //  added on-the-fly in a different method.
-        ltexl.reserve(128);
     }
     const ESM::LandTexture *Store<ESM::LandTexture>::search(size_t index, size_t plugin) const
     {
@@ -327,14 +322,12 @@ namespace MWWorld
         assert(plugin < mStatic.size());
         return mStatic[plugin].size();
     }
-    RecordId Store<ESM::LandTexture>::load(ESM::ESMReader &esm, size_t plugin)
+    RecordId Store<ESM::LandTexture>::load(ESM::ESMReader &esm)
     {
         ESM::LandTexture lt;
         bool isDeleted = false;
 
         lt.load(esm, isDeleted);
-
-        assert(plugin < mStatic.size());
 
         // Replace texture for records with given ID and index from all plugins.
         for (unsigned int i=0; i<mStatic.size(); i++)
@@ -347,7 +340,7 @@ namespace MWWorld
             }
         }
 
-        LandTextureList &ltexl = mStatic[plugin];
+        LandTextureList &ltexl = mStatic.back();
         if(lt.mIndex + 1 > (int)ltexl.size())
             ltexl.resize(lt.mIndex+1);
 
@@ -356,10 +349,6 @@ namespace MWWorld
         ltexl[idx] = std::move(lt);
 
         return RecordId(ltexl[idx].mId, isDeleted);
-    }
-    RecordId Store<ESM::LandTexture>::load(ESM::ESMReader &esm)
-    {
-        return load(esm, esm.getIndex());
     }
     Store<ESM::LandTexture>::iterator Store<ESM::LandTexture>::begin(size_t plugin) const
     {
@@ -370,11 +359,6 @@ namespace MWWorld
     {
         assert(plugin < mStatic.size());
         return mStatic[plugin].end();
-    }
-    void Store<ESM::LandTexture>::resize(size_t num)
-    {
-        if (mStatic.size() < num)
-            mStatic.resize(num);
     }
 
     // Land
@@ -1010,6 +994,9 @@ namespace MWWorld
         mShared.reserve(mStatic.size());
         for (auto & [_, dial] : mStatic)
             mShared.push_back(&dial);
+        // TODO: verify and document this inconsistent behaviour
+        // TODO: if we require this behaviour, maybe we should move it to the place that requires it
+        std::sort(mShared.begin(), mShared.end(), [](const ESM::Dialogue* l, const ESM::Dialogue* r) -> bool { return l->mId < r->mId; });
     }
 
     template <>

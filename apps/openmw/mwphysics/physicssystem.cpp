@@ -481,7 +481,7 @@ namespace MWPhysics
         if (ptr.mRef->mData.mPhysicsPostponed)
             return;
         osg::ref_ptr<Resource::BulletShapeInstance> shapeInstance = mShapeManager->getInstance(mesh);
-        if (!shapeInstance || !shapeInstance->getCollisionShape())
+        if (!shapeInstance || !shapeInstance->mCollisionShape)
             return;
 
         assert(!getObject(ptr));
@@ -618,7 +618,7 @@ namespace MWPhysics
         osg::ref_ptr<const Resource::BulletShape> shape = mShapeManager->getShape(mesh);
 
         // Try to get shape from basic model as fallback for creatures
-        if (!ptr.getClass().isNpc() && shape && shape->mCollisionBox.extents.length2() == 0)
+        if (!ptr.getClass().isNpc() && shape && shape->mCollisionBox.mExtents.length2() == 0)
         {
             const std::string fallbackModel = ptr.getClass().getModel(ptr);
             if (fallbackModel != mesh)
@@ -643,7 +643,7 @@ namespace MWPhysics
     {
         osg::ref_ptr<Resource::BulletShapeInstance> shapeInstance = mShapeManager->getInstance(mesh);
         assert(shapeInstance);
-        float radius = computeRadius ? shapeInstance->mCollisionBox.extents.length() / 2.f : 1.f;
+        float radius = computeRadius ? shapeInstance->mCollisionBox.mExtents.length() / 2.f : 1.f;
 
         mProjectileId++;
 
@@ -718,7 +718,7 @@ namespace MWPhysics
             physicActor->setCanWaterWalk(waterCollision);
 
             // Slow fall reduces fall speed by a factor of (effect magnitude / 200)
-            const float slowFall = 1.f - std::max(0.f, std::min(1.f, effects.get(ESM::MagicEffect::SlowFall).getMagnitude() * 0.005f));
+            const float slowFall = 1.f - std::clamp(effects.get(ESM::MagicEffect::SlowFall).getMagnitude() * 0.005f, 0.f, 1.f);
             const bool godmode = ptr == world->getPlayerConstPtr() && world->getGodModeState();
             const bool inert = stats.isDead() || (!godmode && stats.getMagicEffects().get(ESM::MagicEffect::Paralyze).getModifier() > 0);
 
@@ -943,24 +943,6 @@ namespace MWPhysics
         , mWaterCollision(waterCollision)
         , mSkipCollisionDetection(!actor.getCollisionMode())
     {
-    }
-
-    void ActorFrameData::updatePosition(Actor& actor, btCollisionWorld* world)
-    {
-        actor.applyOffsetChange();
-        mPosition = actor.getPosition();
-        if (mWaterCollision && mPosition.z() < mWaterlevel && actor.canMoveToWaterSurface(mWaterlevel, world))
-        {
-            MWBase::Environment::get().getWorld()->moveObjectBy(actor.getPtr(), osg::Vec3f(0, 0, mWaterlevel - mPosition.z()));
-            actor.applyOffsetChange();
-            mPosition = actor.getPosition();
-        }
-        mOldHeight = mPosition.z();
-        const auto rotation = actor.getPtr().getRefData().getPosition().asRotationVec3();
-        mRotation = osg::Vec2f(rotation.x(), rotation.z());
-        mInertia = actor.getInertialForce();
-        mStuckFrames = actor.getStuckFrames();
-        mLastStuckPosition = actor.getLastStuckPosition();
     }
 
     ProjectileFrameData::ProjectileFrameData(Projectile& projectile)
