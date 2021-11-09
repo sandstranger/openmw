@@ -68,9 +68,12 @@ if(underwaterFog) {
 if(underwaterFogValue != 1.0 && fogValue != 1.0)
 {
 
+#if !@grassDebugBatches
 if(grassData[2].y != grassData[2].x)
     if (depth > grassData[2].y)
         discard;
+#endif
+
 /*
 #if !@normalMap && PER_PIXEL_LIGHTING
     vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
@@ -94,8 +97,10 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
     gl_FragData[0] = vec4(1.0);
 #endif
 
+#if !@grassDebugBatches
     if (depth > grassData[2].x)
         gl_FragData[0].a *= 1.0-smoothstep(grassData[2].x, grassData[2].y, depth);
+#endif
 
     alphaTest();
 

@@ -90,6 +90,7 @@ namespace MWRender
             stateset->addUniform(new osg::Uniform("linearFac", 0.f));
             stateset->addUniform(new osg::Uniform("near", 0.f));
             stateset->addUniform(new osg::Uniform("far", 0.f));
+            stateset->addUniform(new osg::Uniform("screenRes", osg::Vec2f{}));
             if (mUsePlayerUniforms)
             {
                 stateset->addUniform(new osg::Uniform("grassData", osg::Matrix3(0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f)));
@@ -113,6 +114,10 @@ namespace MWRender
             auto* uFar = stateset->getUniform("far");
             if (uFar)
                 uFar->set(mFar);
+
+            auto* uScreenRes = stateset->getUniform("screenRes");
+            if (uScreenRes)
+                uScreenRes->set(mScreenRes);
 
             if (mUsePlayerUniforms)
             {
@@ -143,7 +148,13 @@ namespace MWRender
             mFar = far;
         }
 
+        void setScreenRes(float width, float height)
+        {
+            mScreenRes = osg::Vec2f(width, height);
+        }
+
         void setGrassData(osg::Matrix3 grassData)
+
         {
             mGrassData = grassData;
         }
@@ -156,6 +167,7 @@ namespace MWRender
         bool mUsePlayerUniforms;
         osg::Matrix3 mGrassData;
         osg::Vec4f mShaderSettings;
+        osg::Vec2f mScreenRes;
     };
 
     class StateUpdater : public SceneUtil::StateSetUpdater
@@ -430,18 +442,6 @@ namespace MWRender
 
         mTerrain->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
 
-/*
-        if (groundcover)
-        {
-            mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
-            static_cast<Terrain::QuadTreeWorld*>(mTerrain.get())->addChunkManager(mGroundcoverPaging.get());
-            mResourceSystem->addResourceManager(mGroundcoverPaging.get());
-
-            float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
-            mGroundcoverPaging->setViewDistance(groundcoverDistance);
-        }
-*/
-
         if (groundcover)
         {
             osg::ref_ptr<osg::Group> groundcoverRoot = new osg::Group;
@@ -459,10 +459,6 @@ namespace MWRender
             else if (chunkSize != 0.125f)
                 chunkSize = 0.125f;
 
-//                mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(
-//                    groundcoverRoot, mRootNode, mResourceSystem, mTerrainStorage.get(), Mask_Groundcover, Mask_PreCompile, Mask_Debug,
-//                    compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, debugChunks));
-
             mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(groundcoverRoot, mTerrainStorage.get(), Mask_Groundcover, lodFactor, chunkSize));
             mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
             static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
@@ -479,6 +475,7 @@ namespace MWRender
 
         mPostProcessor = new PostProcessor(*this, viewer, mRootNode);
         resourceSystem->getSceneManager()->setDepthFormat(mPostProcessor->getDepthFormat());
+        resourceSystem->getSceneManager()->setOpaqueDepthTex(mPostProcessor->getOpaqueDepthTex());
 
         if (reverseZ && !SceneUtil::isFloatingPointDepthFormat(mPostProcessor->getDepthFormat()))
             Log(Debug::Warning) << "Floating point depth format not in use but reverse-z buffer is enabled, consider disabling it.";
@@ -491,9 +488,6 @@ namespace MWRender
             mViewOverShoulderController.reset(new ViewOverShoulderController(mCamera.get()));
 
         mScreenshotManager.reset(new ScreenshotManager(viewer, mRootNode, sceneRoot, mResourceSystem, mWater.get()));
-
-        osg::ref_ptr<GammaCorrection> gamma = new GammaCorrection(1.0);
-        mViewer->getCamera()->getOrCreateStateSet()->setAttribute(gamma);
 
         mViewer->setLightingMode(osgViewer::View::NO_LIGHT);
 
@@ -1221,6 +1215,7 @@ namespace MWRender
 
         mSharedUniformStateUpdater->setNear(mNearClip);
         mSharedUniformStateUpdater->setFar(mViewDistance);
+        mSharedUniformStateUpdater->setScreenRes(mViewer->getCamera()->getViewport()->width(), mViewer->getCamera()->getViewport()->height()); 
 
         // Since our fog is not radial yet, we should take FOV in account, otherwise terrain near viewing distance may disappear.
         // Limit FOV here just for sure, otherwise viewing distance can be too high.

@@ -17,7 +17,9 @@
     Bug #5100: Persuasion doesn't always clamp the resulting disposition
     Bug #5120: Scripted object spawning updates physics system
     Bug #5207: Loose summons can be present in scene
+    Bug #5377: console does not appear after using menutest in inventory
     Bug #5379: Wandering NPCs falling through cantons
+    Bug #5394: Windows snapping no longer works
     Bug #5453: Magic effect VFX are offset for creatures
     Bug #5483: AutoCalc flag is not used to calculate spells cost
     Bug #5508: Engine binary links to Qt without using it
@@ -66,6 +68,7 @@
     Bug #6323: Wyrmhaven: Alboin doesn't follower the player character out of his house
     Bug #6326: Detect Enchantment/Key should detect items in unresolved containers
     Bug #6347: PlaceItem/PlaceItemCell/PlaceAt should work with levelled creatures
+    Bug #6354: SFX abruptly cut off after crossing max distance; implement soft fading of sound effects
     Bug #6363: Some scripts in Morrowland fail to work
     Bug #6376: Creatures should be able to use torches
     Feature #890: OpenMW-CS: Column filtering
@@ -83,6 +86,7 @@
     Feature #6017: Separate persistent and temporary cell references when saving
     Feature #6032: Reverse-z depth buffer
     Feature #6078: First person should not clear depth buffer
+    Feature #6128: Soft Particles
     Feature #6161: Refactor Sky to use shaders and GLES/GL3 friendly
     Feature #6162: Refactor GUI to use shaders and to be GLES and GL3+ friendly
     Feature #6199: Support FBO Rendering

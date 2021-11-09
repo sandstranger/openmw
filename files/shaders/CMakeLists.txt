@@ -47,6 +47,7 @@ set(SHADER_FILES
     sky_vertex.glsl
     sky_fragment.glsl
     skypasses.glsl
+    softparticles.glsl
 )
 
 set(SHADER_FILES_PBR
