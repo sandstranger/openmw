@@ -70,6 +70,32 @@
 #include "screenshotmanager.hpp"
 #include "postprocessor.hpp"
 
+namespace {
+    class GammaCorrection : public osg::StateAttribute
+    {
+        public :
+            GammaCorrection() : gamma(0) {}
+            GammaCorrection(float gamma_) : gamma(gamma_) {}
+            GammaCorrection(const GammaCorrection& copy,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY)
+                : osg::StateAttribute(copy,copyop), gamma(copy.gamma) {}
+
+            META_StateAttribute(, GammaCorrection, (osg::StateAttribute::Type)123)
+
+            /** Return -1 if *this < *rhs, 0 if *this==*rhs, 1 if *this>*rhs. */
+            virtual int compare(const StateAttribute& sa) const
+            {
+                throw std::runtime_error("");
+            }
+
+            virtual void apply(osg::State& state) const {
+                glLightModelfv(0x4242,&gamma);
+            }
+
+        private:
+            float gamma;
+    };
+}
+
 namespace MWRender
 {
     class SharedUniformStateUpdater : public SceneUtil::StateSetUpdater
@@ -183,6 +209,19 @@ namespace MWRender
             }
             else
                 stateset->removeAttribute(osg::StateAttribute::POLYGONMODE);
+
+            {
+                static bool init = false;
+                static float gamma = 0;
+                if (!init) {
+                    const char *s = getenv("OPENMW_GAMMA");
+                    if (s)
+                        gamma = atof(s);
+                    init = true;
+                }
+                osg::ref_ptr<GammaCorrection> gammaAttribute = new GammaCorrection(gamma);
+                stateset->setAttribute(gammaAttribute);
+            }
         }
 
         void apply(osg::StateSet* stateset, osg::NodeVisitor*) override
@@ -352,6 +391,10 @@ namespace MWRender
         for (auto itr = shadowDefines.begin(); itr != shadowDefines.end(); itr++)
             globalDefines[itr->first] = itr->second;
 
+        const char *s = getenv("OPENMW_GAMMA");
+        if (s) globalDefines["gamma"] = s;
+            else globalDefines["gamma"] = "1.0";
+
         globalDefines["forcePPL"] = Settings::Manager::getBool("force per pixel lighting", "Shaders") ? "1" : "0";
         globalDefines["clamp"] = Settings::Manager::getBool("clamp lighting", "Shaders") ? "1" : "0";
         globalDefines["preLightEnv"] = Settings::Manager::getBool("apply lighting to environment maps", "Shaders") ? "1" : "0";
@@ -366,6 +409,8 @@ namespace MWRender
 	globalDefines["underwaterFog"] = Settings::Manager::getBool("underwater fog", "Water") ? "1" : "0";
 	globalDefines["parallaxShadows"] = Settings::Manager::getBool("parallax soft shadows", "Shaders") ? "1" : "0";
 	globalDefines["linearLighting"] = Settings::Manager::getBool("linear lighting", "Shaders") ? "1" : "0";
+
+	globalDefines["grassDebugBatches"] = Settings::Manager::getBool("debug chunks", "Groundcover") ? "1" : "0";
 
         globalDefines["reverseZ"] = reverseZ ? "1" : "0";
 
@@ -427,6 +472,7 @@ namespace MWRender
 
         mTerrain->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
 
+/*
         if (groundcover)
         {
             mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
@@ -435,6 +481,36 @@ namespace MWRender
 
             float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
             mGroundcoverPaging->setViewDistance(groundcoverDistance);
+        }
+*/
+
+        if (groundcover)
+        {
+            osg::ref_ptr<osg::Group> groundcoverRoot = new osg::Group;
+            groundcoverRoot->setNodeMask(Mask_Groundcover);
+            groundcoverRoot->setName("Groundcover Root");
+            sceneRoot->addChild(groundcoverRoot);
+
+            float chunkSize = Settings::Manager::getFloat("min chunk size", "Groundcover");
+            if (chunkSize >= 1.0f)
+                chunkSize = 1.0f;
+            else if (chunkSize >= 0.5f)
+                chunkSize = 0.5f;
+            else if (chunkSize >= 0.25f)
+                chunkSize = 0.25f;
+            else if (chunkSize != 0.125f)
+                chunkSize = 0.125f;
+
+//                mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(
+//                    groundcoverRoot, mRootNode, mResourceSystem, mTerrainStorage.get(), Mask_Groundcover, Mask_PreCompile, Mask_Debug,
+//                    compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, debugChunks));
+
+            mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(groundcoverRoot, mTerrainStorage.get(), Mask_Groundcover, lodFactor, chunkSize));
+            mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
+            static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
+            mResourceSystem->addResourceManager(mGroundcoverPaging.get());
+
+            mGroundcoverWorld->setActiveGrid(osg::Vec4i(0, 0, 0, 0));
         }
 
         mStateUpdater = new StateUpdater;
@@ -457,6 +533,9 @@ namespace MWRender
             mViewOverShoulderController.reset(new ViewOverShoulderController(mCamera.get()));
 
         mScreenshotManager.reset(new ScreenshotManager(viewer, mRootNode, sceneRoot, mResourceSystem, mWater.get()));
+
+        osg::ref_ptr<GammaCorrection> gamma = new GammaCorrection(1.0);
+        mViewer->getCamera()->getOrCreateStateSet()->setAttribute(gamma);
 
         mViewer->setLightingMode(osgViewer::View::NO_LIGHT);
 
@@ -706,6 +785,8 @@ namespace MWRender
         if (store->getCell()->isExterior())
         {
             mTerrain->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+            if (mGroundcoverWorld)
+                mGroundcoverWorld->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
         }
     }
     void RenderingManager::removeCell(const MWWorld::CellStore *store)
@@ -717,6 +798,8 @@ namespace MWRender
         if (store->getCell()->isExterior())
         {
             mTerrain->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+            if (mGroundcoverWorld)
+                mGroundcoverWorld->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
         }
 
         mWater->removeCell(store);
@@ -727,6 +810,8 @@ namespace MWRender
         if (!enable)
             mWater->setCullCallback(nullptr);
         mTerrain->enable(enable);
+        if (mGroundcoverWorld)
+            mGroundcoverWorld->enable(enable);
     }
 
     void RenderingManager::setSkyEnabled(bool enabled)
@@ -1184,6 +1269,12 @@ namespace MWRender
         fov = std::min(mFieldOfView, 140.f);
         float distanceMult = std::cos(osg::DegreesToRadians(fov)/2.f);
         mTerrain->setViewDistance(mViewDistance * (distanceMult ? 1.f/distanceMult : 1.f));
+
+        if (mGroundcoverWorld)
+        {
+            float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
+            mGroundcoverWorld->setViewDistance(groundcoverDistance);
+        }
     }
 
     void RenderingManager::updateTextureFiltering()
@@ -1248,7 +1339,12 @@ namespace MWRender
             else if (it->first == "Groundcover" && it->second == "rendering distance")
             {
             	float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
-            	mGroundcoverPaging->setViewDistance(groundcoverDistance);
+            	mGroundcoverWorld->setViewDistance(groundcoverDistance);
+            }
+            else if (it->first == "Groundcover" && it->second == "density")
+            {
+            	mGroundcoverPaging->clearCache();
+                mGroundcoverWorld->rebuildViews();
             }
             else if (it->first == "Shaders" && it->second == "radial fog")
             {
@@ -1477,7 +1573,7 @@ namespace MWRender
         }
         if (mGroundcoverPaging && mGroundcoverPaging->unlockCache())
         {
-            mTerrain->rebuildViews();
+            mGroundcoverWorld->rebuildViews();
             result = true;
         }
         return result;

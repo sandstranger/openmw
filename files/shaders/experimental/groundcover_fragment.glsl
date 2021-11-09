@@ -34,6 +34,10 @@ varying vec3 passViewPos;
 varying vec3 passNormal;
 #endif
 
+#if @grassDebugBatches
+    uniform vec3 debugColor;
+#endif
+
 #if PER_PIXEL_LIGHTING
     #include "lighting.glsl"
 #else
@@ -122,5 +126,9 @@ if(underwaterFog)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
+
+#if @grassDebugBatches
+    gl_FragData[0].xyz = debugColor;
+#endif
 
 }

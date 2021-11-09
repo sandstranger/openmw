@@ -431,6 +431,7 @@ namespace MWRender
     {
         mActiveGrid = Settings::Manager::getBool("object paging active grid", "Terrain") || groundcover;
         mDebugBatches = Settings::Manager::getBool("debug chunks", "Terrain");
+        mDebugGroundcoverBatches = Settings::Manager::getBool("debug chunks", "Groundcover");
         mMergeFactor = Settings::Manager::getFloat("object paging merge factor", "Terrain");
         mMinSize = Settings::Manager::getFloat("object paging min size", "Terrain");
         mMinSizeMergeFactor = Settings::Manager::getFloat("object paging min size merge factor", "Terrain");
@@ -806,6 +807,13 @@ namespace MWRender
             //programTemplate->addBindAttribLocation("aOffset", 6);
             //programTemplate->addBindAttribLocation("aRotation", 7);
 
+            if (mDebugGroundcoverBatches)
+            {
+                osg::Vec3f color(Misc::Rng::rollProbability(), Misc::Rng::rollProbability(), Misc::Rng::rollProbability());
+                color.normalize();
+                stateset->addUniform(new osg::Uniform("debugColor", color));
+            }
+
             mSceneManager->recreateShaders(group, "groundcover", false, programTemplate);
         }
 
@@ -910,6 +918,11 @@ namespace MWRender
         }
         mCache->clear();
         return true;
+    }
+
+    void ObjectPaging::clearCache()
+    {
+        mCache->clear();
     }
 
     struct GetRefnumsFunctor
