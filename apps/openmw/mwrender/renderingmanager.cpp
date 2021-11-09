@@ -70,32 +70,6 @@
 #include "screenshotmanager.hpp"
 #include "postprocessor.hpp"
 
-namespace {
-    class GammaCorrection : public osg::StateAttribute
-    {
-        public :
-            GammaCorrection() : gamma(0) {}
-            GammaCorrection(float gamma_) : gamma(gamma_) {}
-            GammaCorrection(const GammaCorrection& copy,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY)
-                : osg::StateAttribute(copy,copyop), gamma(copy.gamma) {}
-
-            META_StateAttribute(, GammaCorrection, (osg::StateAttribute::Type)123)
-
-            /** Return -1 if *this < *rhs, 0 if *this==*rhs, 1 if *this>*rhs. */
-            virtual int compare(const StateAttribute& sa) const
-            {
-                throw std::runtime_error("");
-            }
-
-            virtual void apply(osg::State& state) const {
-                glLightModelfv(0x4242,&gamma);
-            }
-
-        private:
-            float gamma;
-    };
-}
-
 namespace MWRender
 {
     class SharedUniformStateUpdater : public SceneUtil::StateSetUpdater
@@ -210,18 +184,6 @@ namespace MWRender
             else
                 stateset->removeAttribute(osg::StateAttribute::POLYGONMODE);
 
-            {
-                static bool init = false;
-                static float gamma = 0;
-                if (!init) {
-                    const char *s = getenv("OPENMW_GAMMA");
-                    if (s)
-                        gamma = atof(s);
-                    init = true;
-                }
-                osg::ref_ptr<GammaCorrection> gammaAttribute = new GammaCorrection(gamma);
-                stateset->setAttribute(gammaAttribute);
-            }
         }
 
         void apply(osg::StateSet* stateset, osg::NodeVisitor*) override
@@ -390,10 +352,6 @@ namespace MWRender
 
         for (auto itr = shadowDefines.begin(); itr != shadowDefines.end(); itr++)
             globalDefines[itr->first] = itr->second;
-
-        const char *s = getenv("OPENMW_GAMMA");
-        if (s) globalDefines["gamma"] = s;
-            else globalDefines["gamma"] = "1.0";
 
         globalDefines["forcePPL"] = Settings::Manager::getBool("force per pixel lighting", "Shaders") ? "1" : "0";
         globalDefines["clamp"] = Settings::Manager::getBool("clamp lighting", "Shaders") ? "1" : "0";
