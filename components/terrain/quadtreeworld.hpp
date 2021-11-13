@@ -27,6 +27,8 @@ namespace Terrain
     public:
         QuadTreeWorld(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSystem* resourceSystem, Storage* storage, unsigned int nodeMask, unsigned int preCompileMask, unsigned int borderMask, int compMapResolution, float comMapLevel, float lodFactor, int vertexLodMod, float maxCompGeometrySize, bool debugChunks);
 
+        QuadTreeWorld(osg::Group *parent, Storage *storage, int nodeMask, float lodFactor, float chunkSize);
+
         ~QuadTreeWorld();
 
         void accept(osg::NodeVisitor& nv);
