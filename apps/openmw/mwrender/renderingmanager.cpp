@@ -598,7 +598,7 @@ namespace MWRender
 	mUnderwaterFogUniform = new osg::Uniform("underwaterFog", Settings::Manager::getBool("underwater fog", "Water"));
 	mTonemaperUniform = new osg::Uniform("tonemaper", Settings::Manager::getInt("tonemaper", "Shaders"));
 	mGammaUniform = new osg::Uniform("gamma", Settings::Manager::getFloat("gamma", "Video"));
-	mExposureUniform = new osg::Uniform("exposure", Settings::Manager::getFloat("gamma", "Video"));
+	mExposureUniform = new osg::Uniform("exposure", Settings::Manager::getFloat("exposure", "Video"));
 
 	mRootNode->getOrCreateStateSet()->addUniform(mRadialFogUniform);
 	mRootNode->getOrCreateStateSet()->addUniform(mClampLightingUniform);
