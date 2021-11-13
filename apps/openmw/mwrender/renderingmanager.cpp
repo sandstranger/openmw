@@ -70,7 +70,7 @@
 #include "screenshotmanager.hpp"
 #include "postprocessor.hpp"
 
-+namespace {
+namespace {
     class GammaCorrection : public osg::StateAttribute
     {
         public :
@@ -598,7 +598,7 @@ namespace MWRender
 	mUnderwaterFogUniform = new osg::Uniform("underwaterFog", Settings::Manager::getBool("underwater fog", "Water"));
 	mTonemaperUniform = new osg::Uniform("tonemaper", Settings::Manager::getInt("tonemaper", "Shaders"));
 	mGammaUniform = new osg::Uniform("gamma", Settings::Manager::getFloat("gamma", "Video"));
-	mExposureUniform = new osg::Uniform("exposure", Settings::Manager::getFloat("exposure", "Video"));
+	mExposureUniform = new osg::Uniform("exposure", Settings::Manager::getFloat("exposure", "Shaders"));
 
 	mRootNode->getOrCreateStateSet()->addUniform(mRadialFogUniform);
 	mRootNode->getOrCreateStateSet()->addUniform(mClampLightingUniform);
@@ -1368,9 +1368,9 @@ namespace MWRender
             {
 		mGammaUniform->set(Settings::Manager::getFloat("gamma", "Video"));
             }
-            else if (it->first == "Video" && it->second == "exposure")
+            else if (it->first == "Shaders" && it->second == "exposure")
             {
-		mExposureUniform->set(Settings::Manager::getFloat("exposure", "Video"));
+		mExposureUniform->set(Settings::Manager::getFloat("exposure", "Shaders"));
             }
             else if (it->first == "General" && (it->second == "texture filter" ||
                                                 it->second == "texture mipmap" ||
