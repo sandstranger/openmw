@@ -323,7 +323,7 @@ namespace MWRender
 
     RenderingManager::RenderingManager(osgViewer::Viewer* viewer, osg::ref_ptr<osg::Group> rootNode,
                                        Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue,
-                                       const std::string& resourcePath, DetourNavigator::Navigator& navigator)
+                                       const std::string& resourcePath, DetourNavigator::Navigator& navigator, const MWWorld::ESMStore& groundcoverStore)
         : mViewer(viewer)
         , mRootNode(rootNode)
         , mResourceSystem(resourceSystem)
@@ -557,6 +557,7 @@ namespace MWRender
         defaultMat->setSpecular(osg::Material::FRONT_AND_BACK, osg::Vec4f(0.f, 0.f, 0.f, 0.f));
         sceneRoot->getOrCreateStateSet()->setAttribute(defaultMat);
         sceneRoot->getOrCreateStateSet()->addUniform(new osg::Uniform("emissiveMult", 1.f));
+        sceneRoot->getOrCreateStateSet()->addUniform(new osg::Uniform("specStrength", 1.f));
 
         mFog.reset(new FogManager());
 

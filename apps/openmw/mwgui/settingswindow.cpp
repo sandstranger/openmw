@@ -234,6 +234,7 @@ namespace MWGui
         getWidget(mWaterReflectionDetail, "WaterReflectionDetail");
         getWidget(mTonemaperSwitch, "TonemaperSwitch");
 //        getWidget(mShowOwnedSwitch, "ShowOwnedSwitch");
+        getWidget(mWaterRainRippleDetail, "WaterRainRippleDetail");
         getWidget(mLightingMethodButton, "LightingMethodButton");
         getWidget(mLightsResetButton, "LightsResetButton");
         getWidget(mMaxLights, "MaxLights");
@@ -335,6 +336,7 @@ namespace MWGui
 
         mWaterTextureSize->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterTextureSizeChanged);
         mWaterReflectionDetail->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterReflectionDetailChanged);
+        mWaterRainRippleDetail->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterRainRippleDetailChanged);
 
         mTonemaperSwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onTonemaperSwitchChanged);
  //       mShowOwnedSwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onShowOwnedSwitchChanged);
@@ -345,6 +347,8 @@ namespace MWGui
 
         mKeyboardSwitch->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onKeyboardSwitchClicked);
         mControllerSwitch->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onControllerSwitchClicked);
+
+        computeMinimumWindowSize();
 
         center();
 
@@ -386,8 +390,7 @@ namespace MWGui
         if (waterTextureSize >= 2048)
             mWaterTextureSize->setIndexSelected(3);
 
-        int waterReflectionDetail = Settings::Manager::getInt("reflection detail", "Water");
-        waterReflectionDetail = std::clamp(waterReflectionDetail, 0, 5);
+        int waterReflectionDetail = std::clamp(Settings::Manager::getInt("reflection detail", "Water"), 0, 5);
         mWaterReflectionDetail->setIndexSelected(waterReflectionDetail);
 
         int tonemaperSwitch = Settings::Manager::getInt("tonemaper", "Shaders");
@@ -398,6 +401,9 @@ namespace MWGui
         showOwnedSwitch = std::min(3, std::max(0, showOwnedSwitch));
         mShowOwnedSwitch->setIndexSelected(showOwnedSwitch);
 */
+        int waterRainRippleDetail = std::clamp(Settings::Manager::getInt("rain ripple detail", "Water"), 0, 2);
+        mWaterRainRippleDetail->setIndexSelected(waterRainRippleDetail);
+
         updateMaxLightsComboBox(mMaxLights);
 
         mWindowBorderButton->setEnabled(!Settings::Manager::getBool("fullscreen", "Video"));
@@ -489,7 +495,7 @@ namespace MWGui
 
     void SettingsWindow::onWaterReflectionDetailChanged(MyGUI::ComboBox* _sender, size_t pos)
     {
-        unsigned int level = std::min((unsigned int)5, (unsigned int)pos);
+        unsigned int level = static_cast<unsigned int>(std::min<size_t>(pos, 5));
         Settings::Manager::setInt("reflection detail", "Water", level);
         apply();
     }
@@ -508,6 +514,14 @@ namespace MWGui
         apply();
     }
 */
+
+    void SettingsWindow::onWaterRainRippleDetailChanged(MyGUI::ComboBox* _sender, size_t pos)
+    {
+        unsigned int level = static_cast<unsigned int>(std::min<size_t>(pos, 2));
+        Settings::Manager::setInt("rain ripple detail", "Water", level);
+        apply();
+    }
+
     void SettingsWindow::onLightingMethodButtonChanged(MyGUI::ComboBox* _sender, size_t pos)
     {
         if (pos == MyGUI::ITEM_NONE)
@@ -857,6 +871,32 @@ namespace MWGui
     void SettingsWindow::onWindowResize(MyGUI::Window *_sender)
     {
         layoutControlsBox();
+    }
+
+    void SettingsWindow::computeMinimumWindowSize()
+    {
+        auto* window = mMainWidget->castType<MyGUI::Window>();
+        auto minSize = window->getMinSize();
+
+        // Window should be at minimum wide enough to show all tabs.
+        int tabBarWidth = 0;
+        for (uint32_t i = 0; i < mSettingsTab->getItemCount(); i++)
+        {
+            tabBarWidth += mSettingsTab->getButtonWidthAt(i);
+        }
+
+        // Need to include window margins
+        int margins = mMainWidget->getWidth() - mSettingsTab->getWidth();
+        int minimumWindowWidth = tabBarWidth + margins;
+
+        if (minimumWindowWidth > minSize.width)
+        {
+            minSize.width = minimumWindowWidth;
+            window->setMinSize(minSize);
+
+            // Make a dummy call to setSize so MyGUI can apply any resize resulting from the change in MinSize
+            mMainWidget->setSize(mMainWidget->getSize());
+        }
     }
 
     void SettingsWindow::resetScrollbars()

@@ -8,6 +8,7 @@
     Bug #3737: Scripts from The Underground 2 .esp do not play (all patched versions)
     Bug #3792: 1 frame late magicka recalc breaks early scripted magicka reactions to Intelligence change
     Bug #3846: Strings starting with "-" fail to compile if not enclosed in quotes
+    Bug #3855: AI sometimes spams defensive spells
     Bug #3905: Great House Dagoth issues
     Bug #4203: Resurrecting an actor should close the loot GUI
     Bug #4602: Robert's Bodies: crash inside createInstance()
@@ -67,10 +68,14 @@
     Bug #6322: Total sold/cost should reset to 0 when there are no items offered
     Bug #6323: Wyrmhaven: Alboin doesn't follower the player character out of his house
     Bug #6326: Detect Enchantment/Key should detect items in unresolved containers
+    Bug #6327: Blocking roots the character in place
+    Bug #6343: Magic projectile speed doesn't take race weight into account
     Bug #6347: PlaceItem/PlaceItemCell/PlaceAt should work with levelled creatures
     Bug #6354: SFX abruptly cut off after crossing max distance; implement soft fading of sound effects
     Bug #6363: Some scripts in Morrowland fail to work
     Bug #6376: Creatures should be able to use torches
+    Bug #6386: Artifacts in water reflection due to imprecise screen-space coordinate computation
+    Bug #6416: Morphs are applied to the wrong target
     Feature #890: OpenMW-CS: Column filtering
     Feature #2554: Modifying an object triggers the instances table to scroll to the corresponding record
     Feature #2780: A way to see current OpenMW version in the console
@@ -93,6 +98,7 @@
     Feature #6249: Alpha testing support for Collada
     Feature #6251: OpenMW-CS: Set instance movement based on camera zoom
     Feature #6288: Preserve the "blocked" record flag for referenceable objects.
+    Feature #6380: Commas are treated as whitespace in vanilla
     Task #6201: Remove the "Note: No relevant classes found. No output generated" warnings
     Task #6264: Remove the old classes in animation.cpp
 

@@ -404,6 +404,7 @@ namespace MWRender
             stateset->setAttribute(m);
             stateset->addUniform(new osg::Uniform("colorMode", 0));
             stateset->addUniform(new osg::Uniform("emissiveMult", 1.f));
+            stateset->addUniform(new osg::Uniform("specStrength", 1.f));
             node.setStateSet(stateset);
         }
     };
@@ -453,7 +454,12 @@ namespace MWRender
 
         std::map<ESM::RefNum, ESM::CellRef> refs;
         std::vector<ESM::ESMReader> esm;
-        const MWWorld::ESMStore& store = MWBase::Environment::get().getWorld()->getStore();
+        const MWWorld::ESMStore& store;
+
+        if(mGroundcover) 
+            store = MWBase::Environment::get().getWorld()->getGroundcoverStore();
+        else
+            store = MWBase::Environment::get().getWorld()->getStore();
 
         Misc::ResourceHelpers::DensityCalculator calculator;
         for (int cellX = startCell.x(); cellX < startCell.x() + size; ++cellX)
@@ -496,6 +502,7 @@ namespace MWRender
                                     if (!calculator.isInstanceEnabled(groundcoverDensity)) continue;
                                 }
                             }
+
                             refs[ref.mRefNum] = std::move(ref);
                         }
                     }
