@@ -616,7 +616,7 @@ namespace MWWorld
 
     const MWWorld::ESMStore& World::getGroundcoverStore() const
     {
-        return mGroundcoverStore
+        return mGroundcoverStore;
     }
     std::vector<ESM::ESMReader>& World::getEsmReader()
     {
@@ -2983,7 +2983,7 @@ namespace MWWorld
             const Files::MultiDirCollection& col = fileCollections.getCollection(filename.extension().string());
             if (col.doesExist(file))
             {
-                gameContentLoader.load(col.getPath(file), idx);
+                gameContentLoader.load(col.getPath(file), idx, false);
             }
             else
             {

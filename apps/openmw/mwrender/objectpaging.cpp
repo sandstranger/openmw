@@ -454,12 +454,11 @@ namespace MWRender
 
         std::map<ESM::RefNum, ESM::CellRef> refs;
         std::vector<ESM::ESMReader> esm;
-        const MWWorld::ESMStore& store;
 
-        if(mGroundcover) 
-            store = MWBase::Environment::get().getWorld()->getGroundcoverStore();
-        else
-            store = MWBase::Environment::get().getWorld()->getStore();
+// groundcoverStore empty???
+//        const MWWorld::ESMStore& store = (mGroundcover) ? MWBase::Environment::get().getWorld()->getGroundcoverStore() : MWBase::Environment::get().getWorld()->getStore();
+
+        const MWWorld::ESMStore& store = MWBase::Environment::get().getWorld()->getStore();
 
         Misc::ResourceHelpers::DensityCalculator calculator;
         for (int cellX = startCell.x(); cellX < startCell.x() + size; ++cellX)
