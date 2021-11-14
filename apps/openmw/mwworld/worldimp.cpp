@@ -89,12 +89,12 @@ namespace MWWorld
             return mLoaders.insert(std::make_pair(extension, loader)).second;
         }
 
-        void load(const boost::filesystem::path& filepath, int& index, bool isGroundcover) override
+        void load(const boost::filesystem::path& filepath, int& index) override
         {
             LoadersContainer::iterator it(mLoaders.find(Misc::StringUtils::lowerCase(filepath.extension().string())));
             if (it != mLoaders.end())
             {
-                it->second->load(filepath, index, isGroundcover);
+                it->second->load(filepath, index);
             }
             else
             {
@@ -113,7 +113,7 @@ namespace MWWorld
     {
         ESMStore& mStore;
         OMWScriptsLoader(Loading::Listener& listener, ESMStore& store) : ContentLoader(listener), mStore(store) {}
-        void load(const boost::filesystem::path& filepath, int& index, bool isGroundcover) override
+        void load(const boost::filesystem::path& filepath, int& index) override
         {
             ContentLoader::load(filepath.filename(), index, false);
             mStore.addOMWScripts(filepath.string());
@@ -2983,7 +2983,7 @@ namespace MWWorld
             const Files::MultiDirCollection& col = fileCollections.getCollection(filename.extension().string());
             if (col.doesExist(file))
             {
-                gameContentLoader.load(col.getPath(file), idx, false);
+                gameContentLoader.load(col.getPath(file), idx);
             }
             else
             {
