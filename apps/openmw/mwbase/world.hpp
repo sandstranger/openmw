@@ -150,6 +150,8 @@ namespace MWBase
 
             virtual const MWWorld::ESMStore& getStore() const = 0;
 
+            virtual const MWWorld::ESMStore& getGroundcoverStore() const = 0;
+
             virtual std::vector<ESM::ESMReader>& getEsmReader() = 0;
 
             virtual MWWorld::LocalScripts& getLocalScripts() = 0;
