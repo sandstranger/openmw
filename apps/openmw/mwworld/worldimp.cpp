@@ -115,7 +115,7 @@ namespace MWWorld
         OMWScriptsLoader(Loading::Listener& listener, ESMStore& store) : ContentLoader(listener), mStore(store) {}
         void load(const boost::filesystem::path& filepath, int& index) override
         {
-            ContentLoader::load(filepath.filename(), index, false);
+            ContentLoader::load(filepath.filename(), index);
             mStore.addOMWScripts(filepath.string());
         }
     };
