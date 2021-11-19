@@ -11,6 +11,7 @@
     Bug #3855: AI sometimes spams defensive spells
     Bug #3905: Great House Dagoth issues
     Bug #4203: Resurrecting an actor should close the loot GUI
+    Bug #4389: NPC's lips do not move if his head model has the NiBSAnimationNode root node
     Bug #4602: Robert's Bodies: crash inside createInstance()
     Bug #4700: Editor: Incorrect command implementation
     Bug #4744: Invisible particles must still be processed
@@ -75,6 +76,7 @@
     Bug #6363: Some scripts in Morrowland fail to work
     Bug #6376: Creatures should be able to use torches
     Bug #6386: Artifacts in water reflection due to imprecise screen-space coordinate computation
+    Bug #6396: Inputting certain Unicode characters triggers an assertion
     Bug #6416: Morphs are applied to the wrong target
     Feature #890: OpenMW-CS: Column filtering
     Feature #2554: Modifying an object triggers the instances table to scroll to the corresponding record
@@ -238,6 +240,8 @@
     Bug #6043: Actor can have torch missing when torch animation is played
     Bug #6047: Mouse bindings can be triggered during save loading
     Bug #6136: Game freezes when NPCs try to open doors that are about to be closed
+    Bug #6142: Groundcover plugins change cells flags
+    Bug #6276: Deleted groundcover instances are not deleted in game
     Bug #6294: Game crashes with empty pathgrid
     Feature #390: 3rd person look "over the shoulder"
     Feature #832: OpenMW-CS: Handle deleted references
