@@ -210,7 +210,7 @@ uniform sampler2D normalMap;
 uniform sampler2D reflectionMap;
 #if REFRACTION
 uniform sampler2D refractionMap;
-uniform highp sampler2D refractionDepthMap;
+uniform sampler2D refractionDepthMap;
 #endif
 
 uniform float osg_SimulationTime;
@@ -368,7 +368,4 @@ void main(void)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
     applyShadowDebugOverlay();
-
-gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
-
 }

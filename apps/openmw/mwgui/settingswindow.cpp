@@ -272,14 +272,14 @@ namespace MWGui
 
         MyGUI::Button *PPLButton;
         getWidget(PPLButton, "PPLLightingButton");
-        PPLButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
+        //PPLButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
 
         MyGUI::Button *linearLightingButton;
         getWidget(linearLightingButton, "LinearLightingButton");
-        linearLightingButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
+        //linearLightingButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
 
 	const char *shaderPreset = getenv("OPENMW_SHADERS");
-        if(!shaderPreset || strcmp(shaderPreset, "experimental") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
+        if(!shaderPreset || strcmp(shaderPreset, "modified") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
 	{
             MyGUI::ScrollBar *gammaSlider;
             MyGUI::TextBox *textBox;
@@ -303,16 +303,12 @@ namespace MWGui
             textBox->setVisible(false);
             getWidget(button, "ParallaxShadowsButton");
             button->setVisible(false);
-
-            getWidget(textBox, "ClampLightingLabel");
+/*
+            getWidget(textBox, "ActorsShadowsLabel");
             textBox->setVisible(false);
-            getWidget(button, "ClampLightingButton");
+            getWidget(button, "ActorsShadowsButton");
             button->setVisible(false);
-
-            getWidget(textBox, "PPLLightingLabel");
-            textBox->setVisible(false);
-            PPLButton->setVisible(false);
-
+*/
             getWidget(textBox, "LinearLightingLabel");
             textBox->setVisible(false);
             linearLightingButton->setVisible(false);

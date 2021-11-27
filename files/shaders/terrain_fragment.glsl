@@ -118,4 +118,6 @@ void main()
     applyShadowDebugOverlay();
 gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
 
+
+    //if(shadowing < 0.8) gl_FragData[0].x = 1.0;
 }

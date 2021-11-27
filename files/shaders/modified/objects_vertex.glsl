@@ -1,6 +1,7 @@
 #version 120
 
 #define OBJECT
+#define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL))
 
 #if @diffuseMap
 varying vec2 diffuseMapUV;
@@ -26,61 +27,44 @@ varying vec4 passTangent;
 varying vec2 envMapUV;
 #endif
 
-varying float depth;
-
-#define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL))
-
-#include "helpsettings.glsl"
-#include "vertexcolors.glsl"
-
 #if PER_PIXEL_LIGHTING || @specularMap
 varying vec3 passNormal;
-#endif
-
-#if PER_PIXEL_LIGHTING || @specularMap || @radialFog ||defined(SIMPLE_WATER_TWEAK) || @underwaterFog
-varying vec3 passViewPos;
 #endif
 
 #ifdef HEIGHT_FOG
 varying vec3 fogH;
 #endif
 
-#if defined(HEIGHT_FOG) || defined(UNDERWATER_DISTORTION)
-uniform mat4 osg_ViewMatrixInverse;
-#endif
+uniform highp mat4 osg_ViewMatrixInverse;
 
-#if (!PER_PIXEL_LIGHTING && defined(LINEAR_LIGHTING)) || defined(UNDERWATER_DISTORTION)
-uniform bool isInterior;
-#endif
+varying highp float depth;
+varying vec3 passViewPos;
 
-#ifdef UNDERWATER_DISTORTION
-uniform float osg_SimulationTime;
-uniform bool isPlayer;
-#endif
+uniform bool radialFog;
+
+#include "helpsettings.glsl"
+#include "vertexcolors.glsl"
+#include "shadows_vertex.glsl"
 
 #if !PER_PIXEL_LIGHTING
-  #include "lighting_util.glsl"
-  centroid varying vec3 passLighting;
-  #ifdef LINEAR_LIGHTING
-    #include "linear_lighting.glsl"
-  #else
+    centroid varying vec3 passLighting;
+    centroid varying vec3 shadowDiffuseLighting;
+    #include "lighting_util.glsl"
     #include "lighting.glsl"
-  #endif
 #endif
 
 void main(void)
 {
-    vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
+    highp vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
     gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
     gl_ClipVertex = viewPos;
 
-#if @radialFog
+if(radialFog)
     depth = length(viewPos.xyz);
-#else
+else
     depth = gl_Position.z;
-#endif
 
-#if (@envMap || !PER_PIXEL_LIGHTING)
+#if (@envMap || !PER_PIXEL_LIGHTING || @shadows_enabled)
     vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
 #endif
 
@@ -112,44 +96,25 @@ void main(void)
 #endif
 
     passColor = gl_Color;
+    passViewPos = viewPos.xyz;
 
 #if PER_PIXEL_LIGHTING || @specularMap
     passNormal = gl_Normal.xyz;
-#endif
-
-#if PER_PIXEL_LIGHTING || @specularMap || @radialFog || defined(SIMPLE_WATER_TWEAK) || @underwaterFog
-    passViewPos = viewPos.xyz;
 #endif
 
 #ifdef HEIGHT_FOG
     fogH = (osg_ViewMatrixInverse * viewPos).xyz;
 #endif
 
-#ifdef UNDERWATER_DISTORTION
-if(osg_ViewMatrixInverse[3].z < -1.0 && !isInterior && !isPlayer)
-{
-    vec2 harmonics;
-    vec4 wP = osg_ViewMatrixInverse * vec4(viewPos.xyz, 1.0);
-    harmonics += vec2(sin(1.0*osg_SimulationTime + wP.xy / 1100.0));
-    harmonics += vec2(cos(2.0*osg_SimulationTime + wP.xy / 750.0));
-    harmonics += vec2(sin(3.0*osg_SimulationTime + wP.xy / 500.0));
-    harmonics += vec2(sin(5.0*osg_SimulationTime + wP.xy / 200.0));
-    gl_Position.xy += (depth * 0.003) * harmonics;
-}
-#endif
-
-
 #if !PER_PIXEL_LIGHTING
-vec3 shadowDiffuseLighting;
-#ifdef LINEAR_LIGHTING
-    passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
-#else
     vec3 diffuseLight, ambientLight;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
-    passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
-#endif
+    passLighting = colLoad(getDiffuseColor().xyz) * diffuseLight + vcolLoad(getAmbientColor().xyz) * ambientLight + colLoad(getEmissionColor().xyz);
     clampLightingResult(passLighting);
-    shadowDiffuseLighting *= getDiffuseColor().xyz;
-    passLighting += shadowDiffuseLighting;
+    shadowDiffuseLighting *= colLoad(getDiffuseColor().xyz);
+#endif
+
+#if (@shadows_enabled)
+    setupShadowCoords(viewPos, viewNormal);
 #endif
 }

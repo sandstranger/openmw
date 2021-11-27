@@ -9,6 +9,8 @@ uniform float opacity;          // PASS_CLOUDS, PASS_ATMOSPHERE_NIGHT
 uniform vec4 moonBlend;         // PASS_MOON
 uniform vec4 atmosphereFade;    // PASS_MOON
 
+uniform float gamma;
+
 varying vec2 diffuseMapUV;
 varying vec4 passColor;
 
@@ -84,4 +86,7 @@ void main()
         paintSunglare(color);
 
     gl_FragData[0] = color;
+
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
+
 }

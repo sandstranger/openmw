@@ -63,24 +63,7 @@ float getQuadratic(int lightIndex)
 
 float lcalcIllumination(int lightIndex, float lightDistance)
 {
-#if defined(LINEAR_LIGHTING) && defined(ATTEN_FIX) && defined(OBJECT) && !@lightingMethodFFP
-if(isInterior)
-{
-    float illumination = clamp(1.0 / (getConstant(lightIndex) * 0.1 + 0.01 * getLinear(lightIndex) * lightDistance * lightDistance) - 0.054, 0.0, 1.0);
-    return clamp(illumination * illumination, 0.0, 1.0);
-}
-else
-{
-    float illumination = clamp(1.0 / (getConstant(lightIndex) + getLinear(lightIndex) * lightDistance + getQuadratic(lightIndex) * lightDistance * lightDistance), 0.0, 1.0);
-    return (illumination * (1.0 - quickstep((lightDistance / lcalcRadius(lightIndex)) - 1.0)));
-}
-#elif defined(LINEAR_LIGHTING) && !defined(ATTEN_FIX)
-    float illumination = clamp(1.0 / (getConstant(lightIndex) * 0.1 + 0.01 * getLinear(lightIndex) * lightDistance * lightDistance) - 0.054, 0.0, 1.0);
-    return clamp(illumination * illumination, 0.0, 1.0);
-#elif @lightingMethodFFP && defined(LINEAR_LIGHTING) && defined(ATTEN_FIX)
-    float illumination = clamp(1.0 / (getConstant(lightIndex) * 0.1 + 0.01 * getLinear(lightIndex) * lightDistance * lightDistance) - 0.054, 0.0, 1.0);
-    return clamp(illumination * illumination, 0.0, 1.0);
-#elif @lightingMethodFFP
+#if @lightingMethodFFP
     return clamp(1.0 / (getConstant(lightIndex) + getLinear(lightIndex) * lightDistance + getQuadratic(lightIndex) * lightDistance * lightDistance), 0.0, 1.0);
 #else
     float illumination = clamp(1.0 / (getConstant(lightIndex) + getLinear(lightIndex) * lightDistance + getQuadratic(lightIndex) * lightDistance * lightDistance), 0.0, 1.0);
@@ -124,11 +107,11 @@ vec4 lcalcSpecular(int lightIndex)
 #endif
 }
 
+uniform bool clampLighting;
 void clampLightingResult(inout vec3 lighting) 
 { 
-#if @clamp 
-    lighting = clamp(lighting, vec3(0.0), vec3(1.0)); 
-#else 
-    lighting = max(lighting, 0.0); 
-#endif 
+    if(clampLighting)
+        lighting = clamp(lighting, vec3(0.0), vec3(1.0)); 
+    else 
+        lighting = max(lighting, 0.0); 
 }
