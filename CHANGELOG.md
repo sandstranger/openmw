@@ -52,6 +52,7 @@
     Bug #6168: Weather particles flicker for a frame at start of storms
     Bug #6172: Some creatures can't open doors
     Bug #6174: Spellmaking and Enchanting sliders differences from vanilla
+    Bug #6177: Followers of player follower stop following after waiting for a day
     Bug #6184: Command and Calm and Demoralize and Frenzy and Rally magic effects inconsistencies with vanilla
     Bug #6197: Infinite Casting Loop
     Bug #6253: Multiple instances of Reflect stack additively
@@ -68,6 +69,7 @@
     Bug #6321: Arrow enchantments should always be applied to the target
     Bug #6322: Total sold/cost should reset to 0 when there are no items offered
     Bug #6323: Wyrmhaven: Alboin doesn't follower the player character out of his house
+    Bug #6324: Special Slave Companions: Can't buy the slave companions
     Bug #6326: Detect Enchantment/Key should detect items in unresolved containers
     Bug #6327: Blocking roots the character in place
     Bug #6343: Magic projectile speed doesn't take race weight into account
@@ -78,7 +80,11 @@
     Bug #6386: Artifacts in water reflection due to imprecise screen-space coordinate computation
     Bug #6396: Inputting certain Unicode characters triggers an assertion
     Bug #6416: Morphs are applied to the wrong target
+    Bug #6417: OpenMW doesn't always use the right node to accumulate movement
+    Bug #6429: Wyrmhaven: Can't add AI packages to player
+    Bug #6433: Items bound to Quick Keys sometimes do not appear until the Quick Key menu is opened.
     Feature #890: OpenMW-CS: Column filtering
+    Feature #1465: "Reset" argument for AI functions
     Feature #2554: Modifying an object triggers the instances table to scroll to the corresponding record
     Feature #2780: A way to see current OpenMW version in the console
     Feature #3616: Allow Zoom levels on the World Map
@@ -97,6 +103,7 @@
     Feature #6161: Refactor Sky to use shaders and GLES/GL3 friendly
     Feature #6162: Refactor GUI to use shaders and to be GLES and GL3+ friendly
     Feature #6199: Support FBO Rendering
+    Feature #6248: Embedded error marker mesh
     Feature #6249: Alpha testing support for Collada
     Feature #6251: OpenMW-CS: Set instance movement based on camera zoom
     Feature #6288: Preserve the "blocked" record flag for referenceable objects.

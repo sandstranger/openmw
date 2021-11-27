@@ -176,7 +176,7 @@ Debian_Clang_tests_Debug:
     - ccache -z -M "${CCACHE_SIZE}"
     - CI/before_script.osx.sh
     - cd build; make -j $(sysctl -n hw.logicalcpu) package
-    - for dmg in *.dmg; do mv "$dmg" "${dmg%.dmg}_${CI_COMMIT_REF_NAME}_${CI_JOB_ID}.dmg"; done
+    - for dmg in *.dmg; do mv "$dmg" "${dmg%.dmg}_${CI_COMMIT_REF_NAME##*/}_${CI_JOB_ID}.dmg"; done
     - ccache -s
   artifacts:
     paths:
@@ -201,11 +201,11 @@ macOS10.15_Xcode11:
     CCACHE_SIZE: 3G
 
 variables: &engine-targets
-  targets: "openmw,openmw-essimporter,openmw-iniimporter,openmw-launcher,openmw-wizard"
+  targets: "openmw,openmw-iniimporter,openmw-launcher,openmw-wizard"
   package: "Engine"
 
 variables: &cs-targets
-  targets: "openmw-cs,bsatool,esmtool,niftest"
+  targets: "openmw-cs,bsatool,esmtool,niftest,openmw-essimporter"
   package: "CS"
 
 variables: &tests-targets
