@@ -550,7 +550,7 @@ MWShadowTechnique::ShadowData::ShadowData(MWShadowTechnique::ViewDependentData* 
     else
     {
         _texture->setInternalFormat(GL_DEPTH_COMPONENT);
-        _texture->setShadowComparison(true);
+//        _texture->setShadowComparison(true);
         _texture->setShadowTextureMode(osg::Texture2D::LUMINANCE);
     }
 
@@ -1427,12 +1427,23 @@ void MWShadowTechnique::cull(osgUtil::CullVisitor& cv)
                 {
                     vdsmCallback->getProjectionMatrix()->set(camera->getProjectionMatrix());
                 }
+
+                for (auto& uniform : _uniforms[cv.getTraversalNumber() % 2])
+                {
+                    if (uniform->getName() == "validRegionMatrix" + std::to_string(sm_i))
+                    {
+                        uniform->set((osg::Matrixf)(camera->getViewMatrix() * camera->getProjectionMatrix()));
+                        break;
+                    }
+                }
+
             }
 
             // 4.4 compute main scene graph TexGen + uniform settings + setup state
             //
             assignTexGenSettings(&cv, camera.get(), textureUnit, sd->_texgen.get());
 
+/*
 //dont forget to remove this
 //===================================================================================================================================
 
@@ -1493,7 +1504,7 @@ void MWShadowTechnique::cull(osgUtil::CullVisitor& cv)
 
 
 //=========================================================================================================================================
-
+*/
 
 
             // mark the light as one that has active shadows and requires shaders
@@ -1697,7 +1708,7 @@ void MWShadowTechnique::createShaders()
         _fallbackShadowMapTexture->setWrap(osg::Texture2D::WRAP_T,osg::Texture2D::REPEAT);
         _fallbackShadowMapTexture->setFilter(osg::Texture2D::MIN_FILTER,osg::Texture2D::NEAREST);
         _fallbackShadowMapTexture->setFilter(osg::Texture2D::MAG_FILTER,osg::Texture2D::NEAREST);
-        _fallbackShadowMapTexture->setShadowComparison(true);
+        //_fallbackShadowMapTexture->setShadowComparison(true);
         _fallbackShadowMapTexture->setShadowCompareFunc(osg::Texture::ShadowCompareFunc::ALWAYS);
 
     }
@@ -1716,7 +1727,7 @@ void MWShadowTechnique::createShaders()
     osg::ref_ptr<osg::ClipControl> clipcontrol = new osg::ClipControl(osg::ClipControl::LOWER_LEFT, osg::ClipControl::NEGATIVE_ONE_TO_ONE);
     _shadowCastingStateSet->setAttribute(clipcontrol, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
     _shadowCastingStateSet->setAttribute(depth, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
-    _shadowCastingStateSet->setMode(GL_DEPTH_CLAMP, osg::StateAttribute::ON);
+//    _shadowCastingStateSet->setMode(GL_DEPTH_CLAMP, osg::StateAttribute::ON);
 
     // TODO: compare performance when alpha testing is handled here versus using a discard in the fragment shader
 }
