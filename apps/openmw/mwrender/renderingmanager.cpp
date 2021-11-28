@@ -1341,12 +1341,12 @@ namespace MWRender
             else if (it->first == "Shaders" && it->second == "auto use object specular maps")
             {
 		Settings::Manager::setBool("auto use terrain specular maps", "Shaders", 
-		    Settings::Manager::getBool("auto use object specular maps", "Shaders"))
+		    Settings::Manager::getBool("auto use object specular maps", "Shaders"));
             }
             else if (it->first == "Shaders" && it->second == "auto use object normal maps")
             {
 		Settings::Manager::setBool("auto use terrain normal maps", "Shaders", 
-		    Settings::Manager::getBool("auto use object normal maps", "Shaders"))
+		    Settings::Manager::getBool("auto use object normal maps", "Shaders"));
             }
             else if (it->first == "Shaders" && it->second == "parallax soft shadows")
             {
