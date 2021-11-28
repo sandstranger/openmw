@@ -150,9 +150,10 @@ if(underwaterFog) {
     gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos), shininess, matSpec) * shadowpara;
 #endif
 
+#if @linearLighting
       float exposure = getExposure(length(colLoad(lcalcDiffuse(0).xyz) + colLoad(gl_LightModel.ambient.xyz)) * 0.5);
       gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz, exposure);
-
+#endif
 }
 /*
 else
@@ -166,7 +167,10 @@ else
     if(underwaterFog)
         gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
 
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0 / (@gamma + gamma - 1.0)));
+
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
+    //gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
+
 }

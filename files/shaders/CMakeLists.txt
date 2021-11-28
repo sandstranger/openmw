@@ -60,6 +60,7 @@ set(MODIFIED_SHADER_FILES
     modified/vtastek_water_fragment.glsl
     modified/water_nm.png
     modified/alpha.glsl
+    modified/depth.glsl
     modified/tonemap.glsl
     modified/objects_vertex.glsl
     modified/objects_fragment.glsl
@@ -87,6 +88,7 @@ set(MODIFIED_SHADER_FILES
     modified/sky_vertex.glsl
     modified/sky_fragment.glsl
     modified/skypasses.glsl
+    modified/softparticles.glsl
 )
 
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIR} "${SHADER_FILES}")

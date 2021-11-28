@@ -114,7 +114,7 @@ vec3 vtastek(vec3 color)
 
 vec3 toneMap(vec3 x, float exposure)
 {
-    if(tonemaper == NONE) return x;
+    //if(tonemaper == NONE) return x;
 
     x *= pow(2.0, exposure);
 

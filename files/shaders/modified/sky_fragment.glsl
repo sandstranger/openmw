@@ -87,6 +87,6 @@ void main()
 
     gl_FragData[0] = color;
 
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ max(0.5, (@gamma + gamma - 1.0))));
 
 }

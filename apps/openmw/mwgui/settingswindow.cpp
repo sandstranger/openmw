@@ -303,12 +303,12 @@ namespace MWGui
             textBox->setVisible(false);
             getWidget(button, "ParallaxShadowsButton");
             button->setVisible(false);
-/*
+
             getWidget(textBox, "ActorsShadowsLabel");
             textBox->setVisible(false);
             getWidget(button, "ActorsShadowsButton");
             button->setVisible(false);
-*/
+
             getWidget(textBox, "LinearLightingLabel");
             textBox->setVisible(false);
             linearLightingButton->setVisible(false);

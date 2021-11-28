@@ -11,7 +11,7 @@ varying vec2 diffuseMapUV;
 varying float depth;
 centroid varying vec3 passLighting;
 
-uniform mat4 osg_ViewMatrixInverse;
+uniform highp mat4 osg_ViewMatrixInverse;
 
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"

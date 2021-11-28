@@ -49,6 +49,6 @@ if(fogValue != 1.0)
     gl_FragData[0].a *= calcSoftParticleFade();
 #endif
 
-    //gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (gamma + gamma - 1.0)));
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (gamma + gamma - 1.0)));
 
 }

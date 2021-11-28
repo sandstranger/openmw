@@ -704,8 +704,16 @@
                    <Widget type="TabItem" skin="" position="4 32 360 308" name="ShadersTab">
                         <Property key="Caption" value="  Shaders  "/>
 
+                        <Widget type="TextBox" skin="SandText" position="30 2 300 40" align="Center Top">
+                            <Property key="Caption" value="MOST SETTINGS HERE REQUIRE \n               RESTART!"/>
+                        </Widget>
+
+
                         <Widget type="TextBox" skin="SandText" position="30 35 300 25" align="Left Top" name="TonemaperLabel">
                             <Property key="Caption" value="Tonemapper"/>
+                                <UserString key="ToolTipType" value="Layout"/>
+                                <UserString key="ToolTipLayout" value="TextToolTip"/>
+                                <UserString key="Caption_Text" value="Set tonemapper, no effect if Linear Lighting is disabled"/>
                         </Widget>
                         <Widget type="HBox" skin="" position="30 65 350 24">
                             <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 115 24" align="Left Top" name="TonemaperSwitch">
@@ -730,6 +738,9 @@
                             </Widget>
                             <Widget type="AutoSizedTextBox" skin="SandText" position="28 64 75 16" align="Left Top" name="LinearLightingLabel">
                                 <Property key="Caption" value="Linear Lighting"/>
+                                <UserString key="ToolTipType" value="Layout"/>
+                                <UserString key="ToolTipLayout" value="TextToolTip"/>
+                                <UserString key="Caption_Text" value="Enable linear lighting and use of tonemappers.\n\nThis setting require restart."/>
                             </Widget>
                         </Widget>
 

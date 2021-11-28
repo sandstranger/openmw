@@ -71,6 +71,7 @@ centroid varying vec3 shadowDiffuseLighting;
 #else
 uniform float emissiveMult;
 #endif
+uniform float specStrength;
 varying vec3 passViewPos;
 varying vec3 passNormal;
 
@@ -79,6 +80,10 @@ varying vec3 passNormal;
 #include "lighting.glsl"
 #include "parallax.glsl"
 #include "alpha.glsl"
+
+#if @softParticles
+#include "softparticles.glsl"
+#endif
 
 void main()
 {
@@ -200,6 +205,7 @@ void main()
     vec3 matSpec = getSpecularColor().xyz;
 #endif
 
+    matSpec *= specStrength;
     if (matSpec != vec3(0.0))
     {
 #if (!@normalMap && !@parallax && !@forcePPL)
@@ -220,13 +226,16 @@ void main()
 #endif
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
+#if @softParticles
+    gl_FragData[0].a *= calcSoftParticleFade();
+#endif
+
 #if defined(FORCE_OPAQUE) && FORCE_OPAQUE
     // having testing & blending isn't enough - we need to write an opaque pixel to be opaque
     gl_FragData[0].a = 1.0;
 #endif
 
     applyShadowDebugOverlay();
-gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
 
-    // if(shadowing < 0.8) gl_FragData[0].x = 1.0;
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
 }

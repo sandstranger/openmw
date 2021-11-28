@@ -4,8 +4,7 @@
     uniform float maximumShadowMapDistance;
     uniform float shadowFadeStart;
     @foreach shadow_texture_unit_index @shadow_texture_unit_list
-        // uniform sampler2DShadow shadowTexture@shadow_texture_unit_index;
-        uniform sampler2D shadowTexture@shadow_texture_unit_index;
+        uniform sampler2DShadow shadowTexture@shadow_texture_unit_index;
         varying vec4 shadowSpaceCoords@shadow_texture_unit_index;
 
 #if @perspectiveShadowMaps
@@ -28,13 +27,13 @@ float unshadowedLightRatio(float distance)
         @foreach shadow_texture_unit_index @shadow_texture_unit_list
             if (!doneShadows)
             {
-                vec3 shadowXYZ = (shadowRegionCoords@shadow_texture_unit_index.xyz / shadowRegionCoords@shadow_texture_unit_index.w) * 0.5 + 0.5;
+                vec3 shadowXYZ = shadowSpaceCoords@shadow_texture_unit_index.xyz / shadowSpaceCoords@shadow_texture_unit_index.w;
 #if @perspectiveShadowMaps
-                vec3 shadowRegionXYZ = shadowXYZ;
+                vec3 shadowRegionXYZ = shadowRegionCoords@shadow_texture_unit_index.xyz / shadowRegionCoords@shadow_texture_unit_index.w;
 #endif
                 if (all(lessThan(shadowXYZ.xy, vec2(1.0, 1.0))) && all(greaterThan(shadowXYZ.xy, vec2(0.0, 0.0))))
                 {
-                    shadowing = min(texture2D(shadowTexture@shadow_texture_unit_index, shadowRegionXYZ.xy).r, shadowing);
+                    shadowing = min(shadow2DProj(shadowTexture@shadow_texture_unit_index, shadowSpaceCoords@shadow_texture_unit_index).r, shadowing);
 
                     
                     doneShadows = all(lessThan(shadowXYZ, vec3(0.95, 0.95, 1.0))) && all(greaterThan(shadowXYZ, vec3(0.05, 0.05, 0.0)));
@@ -46,7 +45,7 @@ float unshadowedLightRatio(float distance)
         @endforeach
     #else
         @foreach shadow_texture_unit_index @shadow_texture_unit_list
-            shadowing = min(texture2DProj(shadowTexture@shadow_texture_unit_index, shadowRegionCoords@shadow_texture_unit_index.xyw).r, shadowing);
+            shadowing = min(shadow2DProj(shadowTexture@shadow_texture_unit_index, shadowSpaceCoords@shadow_texture_unit_index).r, shadowing);
         @endforeach
     #endif
 #if @limitShadowMapDistance

@@ -228,8 +228,6 @@ uniform vec2 screenRes;
 
 #define PER_PIXEL_LIGHTING 0
 
-#include "shadows_fragment.glsl"
-
 #include "helpsettings.glsl"
 #include "lighting_util.glsl"
 #include "fog.glsl"
@@ -267,7 +265,7 @@ if(fogValue != 1.0)
     vec2 UV = worldPos.xy / (8192.0*5.0) * 3.0;
     UV.y *= -1.0;
 
-    float shadow = unshadowedLightRatio(linearDepth);
+    float shadow = 1.0;//unshadowedLightRatio(linearDepth);
 
     vec2 screenCoords = gl_FragCoord.xy / screenRes;
 
@@ -382,7 +380,9 @@ if(fogValue != 1.0)
 }
 //else gl_FragData[0] = vec4(1.0,0.0,0.0,1.0);
 
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
+
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
+    //gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
 }

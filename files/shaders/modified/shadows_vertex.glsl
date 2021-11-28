@@ -8,7 +8,7 @@
         varying vec4 shadowSpaceCoords@shadow_texture_unit_index;
 
 #if @perspectiveShadowMaps
-        uniform mat4 validRegionMatrix@shadow_texture_unit_index;
+        uniform highp mat4 validRegionMatrix@shadow_texture_unit_index;
         varying vec4 shadowRegionCoords@shadow_texture_unit_index;
 #endif
     @endforeach

@@ -14,8 +14,6 @@ uniform bool alphaTestShadows;
 
 #include "alpha.glsl"
 
-varying float z;
-
 void main()
 {
     gl_FragData[0].rgb = vec3(1.0);
@@ -30,6 +28,4 @@ void main()
     // This replaces alpha blending, which obviously doesn't work with depth buffers
     if (alphaTestShadows && gl_FragData[0].a <= 0.5)
         discard;
-
-    //gl_FragDepth = clamp(z, 0.0, 1.0);
 }
