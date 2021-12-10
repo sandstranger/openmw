@@ -414,7 +414,8 @@ else(USE_LUAJIT)
 endif(USE_LUAJIT)
 
 # C++ library binding to Lua
-set(SOL_INCLUDE_DIRS ${OpenMW_SOURCE_DIR}/extern/sol3.2.2 ${OpenMW_SOURCE_DIR}/extern/sol_config)
+set(SOL_INCLUDE_DIR ${OpenMW_SOURCE_DIR}/extern/sol3.2.2)
+set(SOL_CONFIG_DIR ${OpenMW_SOURCE_DIR}/extern/sol_config)
 
 include_directories(
     BEFORE SYSTEM
@@ -426,7 +427,8 @@ include_directories(
     ${OPENGL_INCLUDE_DIR}
     ${BULLET_INCLUDE_DIRS}
     ${LUA_INCLUDE_DIR}
-    ${SOL_INCLUDE_DIRS}
+    ${SOL_INCLUDE_DIR}
+    ${SOL_CONFIG_DIR}
 )
 
 link_directories(${SDL2_LIBRARY_DIRS} ${Boost_LIBRARY_DIRS})
@@ -443,9 +445,8 @@ if (APPLE)
         "${APP_BUNDLE_DIR}/Contents/Resources/OpenMW.icns" COPYONLY)
 endif (APPLE)
 
-if (NOT APPLE)
-    set(OPENMW_MYGUI_FILES_ROOT ${OpenMW_BINARY_DIR})
-    set(OPENMW_SHADERS_ROOT ${OpenMW_BINARY_DIR})
+if (NOT APPLE)  # this is modified for macOS use later in "apps/open[mw|cs]/CMakeLists.txt"
+    set(OPENMW_RESOURCES_ROOT ${OpenMW_BINARY_DIR})
 endif ()
 
 add_subdirectory(files/)

@@ -1,6 +1,7 @@
 #include "widget.hpp"
 
 #include <SDL_events.h>
+#include <components/sdlutil/sdlmappings.hpp>
 
 #include "text.hpp"
 #include "textedit.hpp"
@@ -13,13 +14,16 @@ namespace LuaUi
         , mAbsoluteCoord()
         , mRelativeCoord()
         , mAnchor()
+        , mLua{ nullptr }
+        , mWidget{ nullptr }
+        , mLayout{ sol::nil }
     {}
 
     void WidgetExtension::triggerEvent(std::string_view name, const sol::object& argument = sol::nil) const
     {
         auto it = mCallbacks.find(name);
         if (it != mCallbacks.end())
-            it->second(argument);
+            it->second(argument, mLayout);
     }
 
     void WidgetExtension::create(lua_State* lua, MyGUI::Widget* self)
@@ -84,9 +88,7 @@ namespace LuaUi
     sol::object WidgetExtension::keyEvent(MyGUI::KeyCode code) const
     {
         SDL_Keysym keySym;
-        // MyGUI key codes are not one to one with SDL key codes
-        // \todo refactor sdlmappings.cpp to map this back to SDL correctly
-        keySym.sym = static_cast<SDL_Keycode>(code.getValue());
+        keySym.sym = SDLUtil::myGuiKeyToSdl(code);
         keySym.scancode = SDL_GetScancodeFromKey(keySym.sym);
         keySym.mod = SDL_GetModState();
         return sol::make_object(mLua, keySym);
@@ -100,8 +102,7 @@ namespace LuaUi
         sol::table table = makeTable();
         table["position"] = position;
         table["offset"] = offset;
-        // \todo refactor sdlmappings.cpp to map this back to SDL properly
-        table["button"] = button.getValue() + 1;
+        table["button"] = SDLUtil::myGuiMouseButtonToSdl(button);
         return table;
     }
 
@@ -142,19 +143,12 @@ namespace LuaUi
         mCallbacks.clear();
     }
 
-    void WidgetExtension::setProperty(std::string_view name, sol::object value)
-    {
-        if (!setPropertyRaw(name, value))
-            Log(Debug::Error) << "Invalid value of property " << name
-                              << ": " << LuaUtil::toString(value);
-    }
-
-    MyGUI::IntCoord WidgetExtension::forcedOffset()
+    MyGUI::IntCoord WidgetExtension::forcedCoord()
     {
         return mForcedCoord;
     }
 
-    void WidgetExtension::setForcedOffset(const MyGUI::IntCoord& offset)
+    void WidgetExtension::setForcedCoord(const MyGUI::IntCoord& offset)
     {
         mForcedCoord = offset;
     }
@@ -164,55 +158,16 @@ namespace LuaUi
         mWidget->setCoord(calculateCoord());
     }
 
-    bool WidgetExtension::setPropertyRaw(std::string_view name, sol::object value)
+    void WidgetExtension::setProperties(sol::object props)
     {
-        if (name == "position")
-        {
-            if (!value.is<osg::Vec2f>())
-                return false;
-            auto v = value.as<osg::Vec2f>();
-            mAbsoluteCoord.left = v.x();
-            mAbsoluteCoord.top = v.y();
-        }
-        else if (name == "size")
-        {
-            if (!value.is<osg::Vec2f>())
-                return false;
-            auto v = value.as<osg::Vec2f>();
-            mAbsoluteCoord.width = v.x();
-            mAbsoluteCoord.height = v.y();
-        }
-        else if (name == "relativePosition")
-        {
-            if (!value.is<osg::Vec2f>())
-                return false;
-            auto v = value.as<osg::Vec2f>();
-            mRelativeCoord.left = v.x();
-            mRelativeCoord.top = v.y();
-        }
-        else if (name == "relativeSize")
-        {
-            if (!value.is<osg::Vec2f>())
-                return false;
-            auto v = value.as<osg::Vec2f>();
-            mRelativeCoord.width = v.x();
-            mRelativeCoord.height = v.y();
-        }
-        else if (name == "anchor")
-        {
-            if (!value.is<osg::Vec2f>())
-                return false;
-            auto v = value.as<osg::Vec2f>();
-            mAnchor.width = v.x();
-            mAnchor.height = v.y();
-        }
-        else if (name == "visible")
-        {
-            if (!value.is<bool>())
-                return false;
-            mWidget->setVisible(value.as<bool>());
-        }
-        return true;
+        mAbsoluteCoord = parseProperty(props, "position", MyGUI::IntPoint());
+        mAbsoluteCoord = parseProperty(props, "size", MyGUI::IntSize());
+        mRelativeCoord = parseProperty(props, "relativePosition", MyGUI::FloatPoint());
+        mRelativeCoord = parseProperty(props, "relativeSize", MyGUI::FloatSize());
+        mAnchor = parseProperty(props, "anchor", MyGUI::FloatSize());
+        mWidget->setVisible(parseProperty(props, "visible", true));
+
+        updateCoord();
     }
 
     void WidgetExtension::updateChildrenCoord(MyGUI::Widget* _widget)

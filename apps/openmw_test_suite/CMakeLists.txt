@@ -62,13 +62,15 @@ if (GTEST_FOUND AND GMOCK_FOUND)
 
         esmloader/load.cpp
         esmloader/esmdata.cpp
+
+        files/hash.cpp
     )
 
     source_group(apps\\openmw_test_suite FILES openmw_test_suite.cpp ${UNITTEST_SRC_FILES})
 
     openmw_add_executable(openmw_test_suite openmw_test_suite.cpp ${UNITTEST_SRC_FILES})
 
-    target_link_libraries(openmw_test_suite ${GMOCK_LIBRARIES} components ${LUA_LIBRARIES})
+    target_link_libraries(openmw_test_suite ${GMOCK_LIBRARIES} components)
     # Fix for not visible pthreads functions for linker with glibc 2.15
     if (UNIX AND NOT APPLE)
         target_link_libraries(openmw_test_suite ${CMAKE_THREAD_LIBS_INIT})

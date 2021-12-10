@@ -289,13 +289,8 @@ namespace MWMechanics
         MWWorld::Ptr ptr = getPlayer();
         MWBase::WindowManager *winMgr = MWBase::Environment::get().getWindowManager();
 
-        // Update the equipped weapon icon
         MWWorld::InventoryStore& inv = ptr.getClass().getInventoryStore(ptr);
         MWWorld::ContainerStoreIterator weapon = inv.getSlot(MWWorld::InventoryStore::Slot_CarriedRight);
-        if (weapon == inv.end())
-            winMgr->unsetSelectedWeapon();
-        else
-            winMgr->setSelectedWeapon(*weapon);
 
         // Update the selected spell icon
         MWWorld::ContainerStoreIterator enchantItem = inv.getSelectedEnchantItem();
@@ -309,6 +304,12 @@ namespace MWMechanics
             else
                 winMgr->unsetSelectedSpell();
         }
+
+        // Update the equipped weapon icon
+        if (weapon == inv.end())
+            winMgr->unsetSelectedWeapon();
+        else
+            winMgr->setSelectedWeapon(*weapon);
 
         if (mUpdatePlayer)
         {
@@ -717,7 +718,7 @@ namespace MWMechanics
         if (currentDisposition + tempChange < 0)
         {
             cappedDispositionChange = -currentDisposition;
-            tempChange = 0;
+            tempChange = cappedDispositionChange;
         }
 
         permChange = floor(cappedDispositionChange / fPerTempMult);
@@ -1605,6 +1606,11 @@ namespace MWMechanics
 
         // Must be done after the target is set up, so that CreatureTargetted dialogue filter works properly
         MWBase::Environment::get().getDialogueManager()->say(ptr, "attack");
+    }
+
+    void MechanicsManager::stopCombat(const MWWorld::Ptr& actor)
+    {
+        mActors.stopCombat(actor);
     }
 
     void MechanicsManager::getObjectsInRange(const osg::Vec3f &position, float radius, std::vector<MWWorld::Ptr> &objects)

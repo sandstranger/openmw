@@ -105,8 +105,8 @@ IF(NOT WIN32 AND NOT APPLE)
     add_definitions(-DGLOBAL_CONFIG_PATH="${GLOBAL_CONFIG_PATH}")
 ENDIF()
 add_component_dir (files
-    linuxpath androidpath windowspath macospath fixedpath multidircollection collections configurationmanager escape
-    lowlevelfile constrainedfilestream memorystream hash
+    linuxpath androidpath windowspath macospath fixedpath multidircollection collections configurationmanager
+    lowlevelfile constrainedfilestream memorystream hash configfileparser
     )
 
 add_component_dir (compiler
@@ -146,7 +146,7 @@ add_component_dir (fontloader
     )
 
 add_component_dir (sdlutil
-    gl4es_init sdlgraphicswindow imagetosurface sdlinputwrapper sdlvideowrapper events sdlcursormanager
+    gl4es_init sdlgraphicswindow imagetosurface sdlinputwrapper sdlvideowrapper events sdlcursormanager sdlmappings
     )
 
 add_component_dir (version
@@ -162,7 +162,8 @@ add_component_dir (queries
     )
     
 add_component_dir (lua_ui
-    widget widgetlist element content text textedit window
+    widget widgetlist element content
+    text textedit window
     )
 
 
@@ -282,6 +283,7 @@ target_link_libraries(components
     ${SDL2_LIBRARIES}
     ${OPENGL_gl_LIBRARY}
     ${MyGUI_LIBRARIES}
+    ${LUA_LIBRARIES}
     LZ4::LZ4
     RecastNavigation::DebugUtils
     RecastNavigation::Detour
@@ -289,6 +291,7 @@ target_link_libraries(components
 
     Base64
     SQLite::SQLite3
+    smhasher
     )
 
 target_link_libraries(components ${BULLET_LIBRARIES})
@@ -369,3 +372,7 @@ endif(OSG_STATIC)
 if(USE_QT)
     set_property(TARGET components_qt PROPERTY AUTOMOC ON)
 endif(USE_QT)
+
+if (MSVC AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.16)
+    target_precompile_headers(components PRIVATE ${SOL_INCLUDE_DIR}/sol/sol.hpp)
+endif ()
