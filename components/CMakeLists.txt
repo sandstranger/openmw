@@ -162,7 +162,7 @@ add_component_dir (queries
     )
     
 add_component_dir (lua_ui
-    widget widgetlist element content
+    widget widgetlist element layers content
     text textedit window
     )
 
@@ -203,6 +203,11 @@ add_component_dir(detournavigator
     preparednavmeshdata
     navmeshcacheitem
     navigatorutils
+    generatenavmeshtile
+    navmeshdb
+    serialization
+    navmeshdbutils
+    recast
     )
 
 add_component_dir(loadinglistener

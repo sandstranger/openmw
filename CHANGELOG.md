@@ -57,6 +57,7 @@
     Bug #6174: Spellmaking and Enchanting sliders differences from vanilla
     Bug #6177: Followers of player follower stop following after waiting for a day
     Bug #6184: Command and Calm and Demoralize and Frenzy and Rally magic effects inconsistencies with vanilla
+    Bug #6191: Encumbrance messagebox timer works incorrectly
     Bug #6197: Infinite Casting Loop
     Bug #6253: Multiple instances of Reflect stack additively
     Bug #6255: Reflect is different from vanilla
@@ -89,6 +90,7 @@
     Bug #6433: Items bound to Quick Keys sometimes do not appear until the Quick Key menu is opened
     Bug #6451: Weapon summoned from Cast When Used item will have the name "None"
     Bug #6473: Strings from NIF should be parsed only to first null terminator
+    Bug #6493: Unlocking owned but not locked or unlocked containers is considered a crime
     Feature #890: OpenMW-CS: Column filtering
     Feature #1465: "Reset" argument for AI functions
     Feature #2554: Modifying an object triggers the instances table to scroll to the corresponding record
@@ -108,6 +110,7 @@
     Feature #6128: Soft Particles
     Feature #6161: Refactor Sky to use shaders and GLES/GL3 friendly
     Feature #6162: Refactor GUI to use shaders and to be GLES and GL3+ friendly
+    Feature #6189: Navigation mesh disk cache
     Feature #6199: Support FBO Rendering
     Feature #6248: Embedded error marker mesh
     Feature #6249: Alpha testing support for Collada

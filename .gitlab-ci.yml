@@ -3,6 +3,14 @@
 stages:
   - build
 
+# https://blog.nimbleways.com/let-s-make-faster-gitlab-ci-cd-pipelines/
+variables:
+  FF_USE_NEW_SHELL_ESCAPE: "true"
+  FF_USE_FASTZIP: "true"
+  # These can be specified per job or per pipeline
+  ARTIFACT_COMPRESSION_LEVEL: "fast"
+  CACHE_COMPRESSION_LEVEL: "fast"
+
 .Ubuntu_Image:
   tags:
     - docker
@@ -122,6 +130,7 @@ Ubuntu_GCC_tests_Debug:
 
 Ubuntu_GCC_Static_Deps:
   extends: Ubuntu_GCC
+  allow_failure: true
   cache:
     key: Ubuntu_GCC_Static_Deps
     paths:
@@ -218,8 +227,16 @@ macOS11_Xcode12:
   variables:
     CCACHE_SIZE: 3G
 
+macOS12_Xcode13:
+  extends: .MacOS
+  image: macos-12-xcode-13
+  cache:
+    key: macOS12_Xcode13.v1
+  variables:
+    CCACHE_SIZE: 3G
+
 variables: &engine-targets
-  targets: "openmw,openmw-iniimporter,openmw-launcher,openmw-wizard"
+  targets: "openmw,openmw-iniimporter,openmw-launcher,openmw-wizard,openmw-navmeshtool"
   package: "Engine"
 
 variables: &cs-targets

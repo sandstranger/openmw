@@ -43,6 +43,7 @@
 
 #include <components/sceneutil/screencapture.hpp>
 #include <components/sceneutil/depth.hpp>
+#include <components/sceneutil/util.hpp>
 
 #include "mwinput/inputmanagerimp.hpp"
 
@@ -239,6 +240,20 @@ namespace
     {
         void operator()(std::string) const {}
     };
+
+    class IdentifyOpenGLOperation : public osg::GraphicsOperation
+    {
+    public:
+        IdentifyOpenGLOperation() : GraphicsOperation("IdentifyOpenGLOperation", false)
+        {}
+
+        void operator()(osg::GraphicsContext* graphicsContext) override
+        {
+            Log(Debug::Info) << "OpenGL Vendor: " << glGetString(GL_VENDOR);
+            Log(Debug::Info) << "OpenGL Renderer: " << glGetString(GL_RENDERER);
+            Log(Debug::Info) << "OpenGL Version: " << glGetString(GL_VERSION);
+        }
+    };
 }
 
 void OMW::Engine::executeLocalScripts()
@@ -296,7 +311,7 @@ bool OMW::Engine::frame(float frametime)
 
         // Should be called after input manager update and before any change to the game world.
         // It applies to the game world queued changes from the previous frame.
-        mLuaManager->synchronizedUpdate(mEnvironment.getWindowManager()->isGuiMode(), frametime);
+        mLuaManager->synchronizedUpdate();
 
         // update game state
         {
@@ -643,8 +658,12 @@ void OMW::Engine::createWindow(Settings::Manager& settings)
     camera->setGraphicsContext(graphicsWindow);
     camera->setViewport(0, 0, graphicsWindow->getTraits()->width, graphicsWindow->getTraits()->height);
 
+    osg::ref_ptr<SceneUtil::OperationSequence> realizeOperations = new SceneUtil::OperationSequence(false);
+    mViewer->setRealizeOperation(realizeOperations);
+    realizeOperations->add(new IdentifyOpenGLOperation());
+
     if (Debug::shouldDebugOpenGL())
-        mViewer->setRealizeOperation(new Debug::EnableGLDebugOperation());
+        realizeOperations->add(new Debug::EnableGLDebugOperation());
 
     mViewer->realize();
 
@@ -878,10 +897,8 @@ public:
             mThread = std::thread([this]{ threadBody(); });
     };
 
-    void allowUpdate(double dt)
+    void allowUpdate()
     {
-        mDt = dt;
-        mIsGuiMode = mEngine->mEnvironment.getWindowManager()->isGuiMode();
         if (!mThread)
             return;
         {
@@ -923,7 +940,7 @@ private:
         const unsigned int frameNumber = viewer->getFrameStamp()->getFrameNumber();
         ScopedProfile<UserStatsType::Lua> profile(frameStart, frameNumber, *osg::Timer::instance(), *viewer->getViewerStats());
 
-        mEngine->mLuaManager->update(mIsGuiMode, mDt);
+        mEngine->mLuaManager->update();
     }
 
     void threadBody()
@@ -948,8 +965,6 @@ private:
     std::condition_variable mCV;
     bool mUpdateRequest = false;
     bool mJoinRequest = false;
-    double mDt = 0;
-    bool mIsGuiMode = false;
     std::optional<std::thread> mThread;
 };
 
@@ -1062,7 +1077,7 @@ void OMW::Engine::go()
 
             mEnvironment.getWorld()->updateWindowManager();
 
-            luaWorker.allowUpdate(dt);  // if there is a separate Lua thread, it starts the update now
+            luaWorker.allowUpdate();  // if there is a separate Lua thread, it starts the update now
 
             mViewer->renderingTraversals();
 
