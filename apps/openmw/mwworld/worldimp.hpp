@@ -81,6 +81,7 @@ namespace MWWorld
 
             std::vector<ESM::ESMReader> mEsm;
             MWWorld::ESMStore mStore;
+            MWWorld::ESMStore mGroundcoverESMStore; //Fix me or remove me
             GroundcoverStore mGroundcoverStore;
             LocalScripts mLocalScripts;
             MWWorld::Globals mGlobalVariables;

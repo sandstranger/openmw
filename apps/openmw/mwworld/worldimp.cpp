@@ -613,8 +613,9 @@ namespace MWWorld
 
     const MWWorld::ESMStore& World::getGroundcoverStore() const
     {
-        return mGroundcoverStore;
+        return mGroundcoverESMStore;
     }
+
     std::vector<ESM::ESMReader>& World::getEsmReader()
     {
         return mEsm;

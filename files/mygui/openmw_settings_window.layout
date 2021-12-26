@@ -831,23 +831,7 @@
                             </Widget>
                        </Widget>
 
-
-                        <Widget type="HBox" skin="" position="30 233 350 24">
-                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="ActorsShadowsButton">
-                                <UserString key="SettingCategory" value="Shadows"/>
-                                <UserString key="SettingName" value="enable shadows"/>
-                                <UserString key="SettingType" value="CheckButton"/>
-                            </Widget>
-                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ActorsShadowsLabel">
-                                <Property key="Caption" value="Actors Shadows"/>
-                                <UserString key="ToolTipType" value="Layout"/>
-                                <UserString key="ToolTipLayout" value="TextToolTip"/>
-                                <UserString key="Caption_Text" value="Enable shadows for actors and creatures \n\nThis setting require restart!\nMay not work on some devices or cause artifacts."/>
-                            </Widget>
-                       </Widget>
-
-
-                        <Widget type="HBox" skin="" position="215 233 350 24">
+                       <Widget type="HBox" skin="" position="215 233 350 24">
                           <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="SoftParticlesButton">
                                 <UserString key="SettingCategory" value="Shaders"/>
                                 <UserString key="SettingName" value="soft particles"/>
