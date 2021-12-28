@@ -47,7 +47,7 @@ namespace MWMechanics
             {
                 MWMechanics::CastSpell cast(attacker, victim, fromProjectile);
                 cast.mHitPosition = hitPosition;
-                cast.cast(object, false);
+                cast.cast(object, 0, false);
                 // Apply magic effects directly instead of waiting a frame to allow soul trap to work on one-hit kills
                 if(!victim.isEmpty() && victim.getClass().isActor())
                     MWBase::Environment::get().getMechanicsManager()->updateMagicEffects(victim);
@@ -113,10 +113,9 @@ namespace MWMechanics
                 + 0.1f * attackerStats.getAttribute(ESM::Attribute::Luck).getModified();
         attackerTerm *= attackerStats.getFatigueTerm();
 
-        int x = int(blockerTerm - attackerTerm);
-        int iBlockMaxChance = gmst.find("iBlockMaxChance")->mValue.getInteger();
-        int iBlockMinChance = gmst.find("iBlockMinChance")->mValue.getInteger();
-        x = std::min(iBlockMaxChance, std::max(iBlockMinChance, x));
+        const int iBlockMaxChance = gmst.find("iBlockMaxChance")->mValue.getInteger();
+        const int iBlockMinChance = gmst.find("iBlockMinChance")->mValue.getInteger();
+        int x = std::clamp<int>(blockerTerm - attackerTerm, iBlockMinChance, iBlockMaxChance);
 
         if (Misc::Rng::roll0to99() < x)
         {

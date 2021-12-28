@@ -1,4 +1,5 @@
 #include "cellstore.hpp"
+#include "magiceffects.hpp"
 
 #include <algorithm>
 
@@ -1206,5 +1207,19 @@ namespace MWWorld
         if (enchantment->mData.mType == ESM::Enchantment::WhenUsed
                 || enchantment->mData.mType == ESM::Enchantment::WhenStrikes)
             mRechargingItems.emplace_back(ptr.getBase(), static_cast<float>(enchantment->mData.mCharge));
+    }
+
+    Ptr MWWorld::CellStore::getMovedActor(int actorId) const
+    {
+        for(const auto& [cellRef, cell] : mMovedToAnotherCell)
+        {
+            if(cellRef->mClass->isActor() && cellRef->mData.getCustomData())
+            {
+                Ptr actor(cellRef, cell);
+                if(actor.getClass().getCreatureStats(actor).getActorId() == actorId)
+                    return actor;
+            }
+        }
+        return {};
     }
 }

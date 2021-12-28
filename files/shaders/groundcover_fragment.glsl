@@ -23,22 +23,28 @@ varying vec3 passNormal;
 varying vec3 passViewPos;
 #endif
 
+#if @grassDebugBatches
+    uniform vec3 debugColor;
+#endif
+
+uniform mat3 grassData;
+
 #if PER_PIXEL_LIGHTING
     #include "lighting.glsl"
 #else
      centroid varying vec3 passLighting;
 #endif
 
-uniform mat3 grassData;
-
 #include "alpha.glsl"
 
 void main()
 {
 
+#if !@grassDebugBatches
 if(grassData[2].y != grassData[2].x)
     if (depth > grassData[2].y)
         discard;
+#endif
 
 #if @normalMap
 vec4 normalTex = texture2D(normalMap, diffuseMapUV);
@@ -55,8 +61,10 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
     gl_FragData[0] = vec4(1.0);
 #endif
 
+#if !@grassDebugBatches
     if (depth > grassData[2].x)
         gl_FragData[0].a *= 1.0-smoothstep(grassData[2].x, grassData[2].y, depth);
+#endif
 
     alphaTest();
 
@@ -70,12 +78,16 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
     clampLightingResult(lighting);
 #endif
 
-gl_FragData[0].xyz *= lighting;
+    gl_FragData[0].xyz *= lighting;
 
     highp float fogValue = clamp((depth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
 
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
+
+#if @grassDebugBatches
+    gl_FragData[0].xyz = debugColor;
+#endif
 
 }

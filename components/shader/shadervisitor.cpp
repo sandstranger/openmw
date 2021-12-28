@@ -11,6 +11,8 @@
 #include <osg/Texture>
 #include <osg/ValueObject>
 
+#include <osgParticle/ParticleSystem>
+
 #include <osgUtil/TangentSpaceGenerator>
 
 #include <osgParticle/ParticleSystem>
@@ -22,6 +24,7 @@
 #include <components/sceneutil/riggeometry.hpp>
 #include <components/sceneutil/morphgeometry.hpp>
 #include <components/settings/settings.hpp>
+#include <components/sceneutil/depth.hpp>
 
 #include "removedalphafunc.hpp"
 #include "shadermanager.hpp"
@@ -442,12 +445,7 @@ namespace Shader
             return;
         }
 
-        bool isParticle = dynamic_cast<osgParticle::ParticleSystem *>(reqs.mNode) ? true : false;
-
-/*        auto lightingMethod = SceneUtil::LightManager::getLightingMethodFromString(Settings::Manager::getString("lighting method", "Shaders"));
-
-        if (isParticle && Settings::Manager::getBool("particle shading", "Shaders") == false && lightingMethod == SceneUtil::LightingMethod::FFP)
-            return;*/
+        auto partsys = dynamic_cast<osgParticle::ParticleSystem*>(reqs.mNode);
 
         osg::Node& node = *reqs.mNode;
         osg::StateSet* writableStateSet = nullptr;
@@ -526,6 +524,14 @@ namespace Shader
             // We could fall back to a texture size uniform if EXT_gpu_shader4 is missing
         }
 
+        bool simpleLighting = false;
+        node.getUserValue("simpleLighting", simpleLighting);
+        if (simpleLighting)
+        {
+            defineMap["forcePPL"] = "1";
+            defineMap["endLight"] = "0";
+        }
+
         if (writableStateSet->getMode(GL_ALPHA_TEST) != osg::StateAttribute::INHERIT && !previousAddedState->hasMode(GL_ALPHA_TEST))
             removedState->setMode(GL_ALPHA_TEST, writableStateSet->getMode(GL_ALPHA_TEST));
         // This disables the deprecated fixed-function alpha test
@@ -556,11 +562,30 @@ namespace Shader
             updateAddedState(*writableUserData, addedState);
         }
 
+        bool softParticles = false;
+
+        if (mOpaqueDepthTex)
+        {
+            if (partsys)
+            {
+                softParticles = true;
+
+                auto depth = new SceneUtil::AutoDepth;
+                depth->setWriteMask(false);
+                writableStateSet->setAttributeAndModes(depth, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
+                writableStateSet->addUniform(new osg::Uniform("particleSize", partsys->getDefaultParticleTemplate().getSizeRange().maximum));
+                writableStateSet->addUniform(new osg::Uniform("opaqueDepthTex", 2));
+                writableStateSet->setTextureAttributeAndModes(2, mOpaqueDepthTex, osg::StateAttribute::ON);
+            }
+        }
+
+        defineMap["softParticles"] = softParticles ? "1" : "0";
+
         std::string shaderPrefix;
         if (!node.getUserValue("shaderPrefix", shaderPrefix))
             shaderPrefix = mDefaultShaderPrefix;
 
-        if(isParticle)
+        if(partsys)
             shaderPrefix = "particles";
 
         osg::ref_ptr<osg::Shader> vertexShader (mShaderManager.getShader(shaderPrefix + "_vertex.glsl", defineMap, osg::Shader::VERTEX));
@@ -772,6 +797,11 @@ namespace Shader
     void ShaderVisitor::setConvertAlphaTestToAlphaToCoverage(bool convert)
     {
         mConvertAlphaTestToAlphaToCoverage = convert;
+    }
+
+    void ShaderVisitor::setOpaqueDepthTex(osg::ref_ptr<osg::Texture2D> texture)
+    {
+        mOpaqueDepthTex = texture;
     }
 
     ReinstateRemovedStateVisitor::ReinstateRemovedStateVisitor(bool allowedToModifyStateSets)

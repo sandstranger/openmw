@@ -404,6 +404,7 @@ namespace MWRender
             stateset->setAttribute(m);
             stateset->addUniform(new osg::Uniform("colorMode", 0));
             stateset->addUniform(new osg::Uniform("emissiveMult", 1.f));
+            stateset->addUniform(new osg::Uniform("specStrength", 1.f));
             node.setStateSet(stateset);
         }
     };
@@ -431,6 +432,7 @@ namespace MWRender
     {
         mActiveGrid = Settings::Manager::getBool("object paging active grid", "Terrain") || groundcover;
         mDebugBatches = Settings::Manager::getBool("debug chunks", "Terrain");
+        mDebugGroundcoverBatches = Settings::Manager::getBool("debug chunks", "Groundcover");
         mMergeFactor = Settings::Manager::getFloat("object paging merge factor", "Terrain");
         mMinSize = Settings::Manager::getFloat("object paging min size", "Terrain");
         mMinSizeMergeFactor = Settings::Manager::getFloat("object paging min size merge factor", "Terrain");
@@ -452,6 +454,10 @@ namespace MWRender
 
         std::map<ESM::RefNum, ESM::CellRef> refs;
         std::vector<ESM::ESMReader> esm;
+
+// groundcoverStore empty???
+//        const MWWorld::ESMStore& store = (mGroundcover) ? MWBase::Environment::get().getWorld()->getGroundcoverStore() : MWBase::Environment::get().getWorld()->getStore();
+
         const MWWorld::ESMStore& store = MWBase::Environment::get().getWorld()->getStore();
 
         Misc::ResourceHelpers::DensityCalculator calculator;
@@ -483,7 +489,6 @@ namespace MWRender
                                 continue;
 
                             if (std::find(cell->mMovedRefs.begin(), cell->mMovedRefs.end(), ref.mRefNum) != cell->mMovedRefs.end()) continue;
-                            Misc::StringUtils::lowerCaseInPlace(ref.mRefID);
                             int type = store.findStatic(ref.mRefID);
                             if (!typeFilter(type,size>=2)) continue;
                             if (deleted) { refs.erase(ref.mRefNum); continue; }
@@ -496,6 +501,7 @@ namespace MWRender
                                     if (!calculator.isInstanceEnabled(groundcoverDensity)) continue;
                                 }
                             }
+
                             refs[ref.mRefNum] = std::move(ref);
                         }
                     }
@@ -507,7 +513,6 @@ namespace MWRender
                 for (auto [ref, deleted] : cell->mLeasedRefs)
                 {
                     if (deleted) { refs.erase(ref.mRefNum); continue; }
-                    Misc::StringUtils::lowerCaseInPlace(ref.mRefID);
                     int type = store.findStatic(ref.mRefID);
                     if (!typeFilter(type,size>=2)) continue;
                     refs[ref.mRefNum] = std::move(ref);
@@ -688,6 +693,10 @@ namespace MWRender
                     pat->setAttitude(nodeAttitude);
                 }
 
+                // DO NOT COPY AND PASTE THIS CODE. Cloning osg::Geometry without also cloning its contained Arrays is generally unsafe.
+                // In this specific case the operation is safe under the following two assumptions:
+                // - When Arrays are removed or replaced in the cloned geometry, the original Arrays in their place must outlive the cloned geometry regardless. (ensured by TemplateMultiRef)
+                // - Arrays that we add or replace in the cloned geometry must be explicitely forbidden from reusing BufferObjects of the original geometry. (ensured by needvbo() in optimizer.cpp)
                 copyop.setCopyFlags(merge ? osg::CopyOp::DEEP_COPY_NODES|osg::CopyOp::DEEP_COPY_DRAWABLES : osg::CopyOp::DEEP_COPY_NODES);
                 copyop.mOptimizeBillboards = (size > 1/4.f);
                 copyop.mNodePath.push_back(trans);
@@ -716,7 +725,8 @@ namespace MWRender
             }
             if (numinstances > 0)
             {
-                // add a ref to the original template, to hint to the cache that it's still being used and should be kept in cache
+                // add a ref to the original template to help verify the safety of shallow cloning operations
+                // in addition, we hint to the cache that it's still being used and should be kept in cache
                 templateRefs->addRef(cnode);
 
                 if (pair.second.mNeedCompile)
@@ -803,6 +813,13 @@ namespace MWRender
             //programTemplate->addBindAttribLocation("aOffset", 6);
             //programTemplate->addBindAttribLocation("aRotation", 7);
 
+            if (mDebugGroundcoverBatches)
+            {
+                osg::Vec3f color(Misc::Rng::rollProbability(), Misc::Rng::rollProbability(), Misc::Rng::rollProbability());
+                color.normalize();
+                stateset->addUniform(new osg::Uniform("debugColor", color));
+            }
+
             mSceneManager->recreateShaders(group, "groundcover", false, programTemplate);
         }
 
@@ -832,12 +849,8 @@ namespace MWRender
         }
         void clampToCell(osg::Vec3f& cellPos)
         {
-            osg::Vec2i min (mCell.x(), mCell.y());
-            osg::Vec2i max (mCell.x()+1, mCell.y()+1);
-            if (cellPos.x() < min.x()) cellPos.x() = min.x();
-            if (cellPos.x() > max.x()) cellPos.x() = max.x();
-            if (cellPos.y() < min.y()) cellPos.y() = min.y();
-            if (cellPos.y() > max.y()) cellPos.y() = max.y();
+            cellPos.x() = std::clamp<float>(cellPos.x(), mCell.x(), mCell.x() + 1);
+            cellPos.y() = std::clamp<float>(cellPos.y(), mCell.y(), mCell.y() + 1);
         }
         osg::Vec3f mPosition;
         osg::Vec2i mCell;
@@ -911,6 +924,11 @@ namespace MWRender
         }
         mCache->clear();
         return true;
+    }
+
+    void ObjectPaging::clearCache()
+    {
+        mCache->clear();
     }
 
     struct GetRefnumsFunctor

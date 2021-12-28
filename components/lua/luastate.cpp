@@ -22,7 +22,7 @@ namespace LuaUtil
         "type", "unpack", "xpcall", "rawequal", "rawget", "rawset", "getmetatable", "setmetatable"};
     static const std::string safePackages[] = {"coroutine", "math", "string", "table"};
 
-    LuaState::LuaState(const VFS::Manager* vfs) : mVFS(vfs)
+    LuaState::LuaState(const VFS::Manager* vfs, const ScriptsConfiguration* conf) : mConf(conf), mVFS(vfs)
     {
         mLua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::math,
                             sol::lib::string, sol::lib::table, sol::lib::debug);
@@ -76,9 +76,8 @@ namespace LuaUtil
 
         lua_State* lua = table.lua_state();
         table[sol::meta_function::index] = table;
-        sol::stack::push(lua, std::move(table));
         lua_newuserdata(lua, 0);
-        lua_pushvalue(lua, -2);
+        sol::stack::push(lua, std::move(table));
         lua_setmetatable(lua, -2);
         return sol::stack::pop<sol::table>(lua);
     }
@@ -95,12 +94,11 @@ namespace LuaUtil
         return res;
     }
 
-    void LuaState::addCommonPackage(const std::string& packageName, const sol::object& package)
+    void LuaState::addCommonPackage(std::string packageName, sol::object package)
     {
-        if (package.is<sol::function>())
-            mCommonPackages[packageName] = package;
-        else
-            mCommonPackages[packageName] = makeReadOnly(package);
+        if (!package.is<sol::function>())
+            package = makeReadOnly(std::move(package));
+        mCommonPackages.emplace(std::move(packageName), std::move(package));
     }
 
     sol::protected_function_result LuaState::runInNewSandbox(
@@ -148,7 +146,7 @@ namespace LuaUtil
             return std::move(res);
     }
 
-    sol::protected_function LuaState::loadScript(const std::string& path)
+    sol::function LuaState::loadScript(const std::string& path)
     {
         auto iter = mCompiledScripts.find(path);
         if (iter != mCompiledScripts.end())

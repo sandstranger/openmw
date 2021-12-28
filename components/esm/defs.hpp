@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include <tuple>
+
 #include <osg/Vec3f>
 
 namespace ESM
@@ -58,6 +60,12 @@ struct Position
     osg::Vec3f asRotationVec3() const
     {
         return osg::Vec3f(rot[0], rot[1], rot[2]);
+    }
+
+    friend inline bool operator<(const Position& l, const Position& r)
+    {
+        const auto tuple = [] (const Position& v) { return std::tuple(v.asVec3(), v.asRotationVec3()); };
+        return tuple(l) < tuple(r);
     }
 };
 #pragma pack(pop)
@@ -165,6 +173,7 @@ enum RecNameInts
     // format 1
     REC_FILT = FourCC<'F','I','L','T'>::value,
     REC_DBGP = FourCC<'D','B','G','P'>::value, ///< only used in project files
+    REC_LUAL = FourCC<'L','U','A','L'>::value,  // LuaScriptsCfg
 
     // format 16 - Lua scripts in saved games
     REC_LUAM = FourCC<'L','U','A','M'>::value,  // LuaManager data

@@ -43,7 +43,7 @@
 
 #include <iterator>
 
-#include <components/sceneutil/util.hpp>
+#include <components/sceneutil/depth.hpp>
 
 using namespace osgUtil;
 
@@ -1139,7 +1139,7 @@ bool isAbleToMerge(const osg::Geometry& g1, const osg::Geometry& g2)
 
 bool Optimizer::MergeGeometryVisitor::pushStateSet(osg::StateSet *stateSet)
 {
-    if (_mergeAlphaBlending || !stateSet || stateSet->getRenderBinMode() & osg::StateSet::INHERIT_RENDERBIN_DETAILS)
+    if (!stateSet || stateSet->getRenderBinMode() & osg::StateSet::INHERIT_RENDERBIN_DETAILS)
         return false;
     _stateSetStack.push_back(stateSet);
     checkAlphaBlendingActive();
@@ -1599,8 +1599,8 @@ bool Optimizer::MergeGeometryVisitor::mergeGroup(osg::Group& group)
                 }
                 if (_alphaBlendingActive && _mergeAlphaBlending && !geom->getStateSet())
                 {
-                    auto d = createDepth();
-                    d->setWriteMask(0);
+                    osg::ref_ptr<osg::Depth> d = new SceneUtil::AutoDepth;
+                    d->setWriteMask(false);
                     geom->getOrCreateStateSet()->setAttribute(d);
                 }
             }

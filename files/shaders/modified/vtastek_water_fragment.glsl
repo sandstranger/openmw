@@ -1,6 +1,8 @@
 #version 120
 precision highp float;
 
+#define WATER
+
 #define REFRACTION @refraction_enabled
 
 // Inspired by Blender GLSL Water by martinsh ( https://devlog-martinsh.blogspot.de/2012/07/waterundewater-shader-wip.html )
@@ -165,8 +167,12 @@ uniform vec3 nodePosition;
 
 uniform float rainIntensity;
 
+uniform bool radialFog;
+uniform float gamma;
+
+#include "helpsettings.glsl"
 #include "lighting_util.glsl"
-#include "shadows_fragment.glsl"
+#include "fog.glsl"
 
 float frustumDepth;
 
@@ -179,6 +185,16 @@ float linearizeDepth(float depth)
 
 void main(void)
 {
+	vec3 cameraPos = ( gl_ModelViewMatrixInverse * vec4(0.0,0.0,0.0,1.0)).xyz;
+
+float radialDepth, fogValue;
+if(radialFog){
+    radialDepth = distance(position.xyz, cameraPos);
+    fogValue = getFogValue(radialDepth);
+}
+else
+    fogValue = getFogValue(linearDepth);
+
     frustumDepth = abs(far - near);
     vec3 worldPos = position.xyz + nodePosition.xyz;
     vec2 UV = worldPos.xy / (8192.0*5.0) * 3.0;
@@ -186,9 +202,7 @@ void main(void)
 	
 	vec2 dir = vec2(1.0,-1.0) * normalize(worldPos.xy + vec2(-20000.0,-69000.0));																						 
 
-	vec3 cameraPos = ( gl_ModelViewMatrixInverse * vec4(0.0,0.0,0.0,1.0)).xyz;
-    
-	float shadow = unshadowedLightRatio(linearDepth);
+	float shadow = 1.0;//unshadowedLightRatio(linearDepth);
 
     vec2 screenCoords = screenCoordsPassthrough.xy / screenCoordsPassthrough.z;
 	
@@ -256,7 +270,7 @@ void main(void)
     float radialise = 1.0;
 
 #if @radialFog
-    float radialDepth = distance(position.xyz, cameraPos);
+    //float radialDepth = distance(position.xyz, cameraPos);
     // TODO: Figure out how to properly radialise refraction depth and thus underwater fog
     // while avoiding oddities when the water plane is close to the clipping plane
     // radialise = radialDepth / linearDepth;
@@ -356,22 +370,15 @@ void main(void)
 	
 	vec2 underwaterfogfix = mix(vec2(-10000.0, 3.0), vec2(0.0, 1.0), fresnelbias);
 	
-	
-    // fog
-#if @radialFog
-    float fogValue = clamp((radialDepth - gl_Fog.start + underwaterfogfix.x) * gl_Fog.scale * underwaterfogfix.y, 0.0, 1.0);
-#else
-    float fogValue = clamp((linearDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
-#endif
 
 	#if REFRACTION
 	smoothshores = mix(1.0, smoothshores, fresnelbias);
     gl_FragData[0].xyz = mix(clamp((shadow + 0.3 +gl_LightModel.ambient.xyz * 0.33) ,0.0, 1.0) * realrefraction * 1.0, gl_FragData[0].xyz, smoothshores);
 	#endif
+
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
+
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz,  gl_Fog.color.xyz, fogValue);
 
-    applyShadowDebugOverlay();
-
-gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
-
+    //gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
 }

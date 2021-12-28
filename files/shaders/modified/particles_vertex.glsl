@@ -11,15 +11,15 @@ varying vec2 diffuseMapUV;
 varying float depth;
 centroid varying vec3 passLighting;
 
+uniform highp mat4 osg_ViewMatrixInverse;
+
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
 #include "lighting_util.glsl"
 
-#ifdef LINEAR_LIGHTING
-  #include "linear_lighting.glsl"
-#else
-  #include "lighting.glsl"
-#endif
+#include "lighting.glsl"
+
+uniform bool radialFog;
 
 void main(void)
 {
@@ -27,28 +27,21 @@ void main(void)
     vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
     gl_ClipVertex = viewPos;
 
-#if @radialFog
+if(radialFog)
     depth = length(viewPos.xyz);
-#else
+else
     depth = gl_Position.z;
-#endif
 
 #if @diffuseMap
     diffuseMapUV = (gl_TextureMatrix[@diffuseMapUV] * gl_MultiTexCoord@diffuseMapUV).xy;
 #endif
 
-passColor = gl_Color;
+    passColor = gl_Color;
 
-vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
-vec3 shadowDiffuseLighting;
-
-#ifdef LINEAR_LIGHTING
-    passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
-#else
-    vec3 diffuseLight, ambientLight;
+    vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
+    vec3 shadowDiffuseLighting, diffuseLight, ambientLight;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
     passLighting = getDiffuseColor().xyz * diffuseLight + getAmbientColor().xyz * ambientLight + getEmissionColor().xyz;
-#endif
     clampLightingResult(passLighting);
     shadowDiffuseLighting *= getDiffuseColor().xyz;
     passLighting += shadowDiffuseLighting;

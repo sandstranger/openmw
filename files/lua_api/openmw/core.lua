@@ -22,7 +22,7 @@
 
 -------------------------------------------------------------------------------
 -- Game time in seconds.
--- The number of seconds in the game world, passed from starting a new game.
+-- The number of seconds passed in the game world since starting a new game.
 -- @function [parent=#core] getGameTimeInSeconds
 -- @return #number
 
@@ -31,6 +31,11 @@
 -- Note that the number of game seconds in a game hour is not guaranteed to be fixed.
 -- @function [parent=#core] getGameTimeInHours
 -- @return #number
+
+-------------------------------------------------------------------------------
+-- Whether the world is paused (onUpdate doesn't work when the world is paused).
+-- @function [parent=#core] isWorldPaused
+-- @return #boolean
 
 
 -------------------------------------------------------------------------------
@@ -192,10 +197,26 @@
 
 -------------------------------------------------------------------------------
 -- Add new local script to the object.
--- Can be called only from a global script.
+-- Can be called only from a global script. Script should be specified in a content
+-- file (omwgame/omwaddon/omwscripts) with a CUSTOM flag.
 -- @function [parent=#GameObject] addScript
 -- @param self
--- @param #string scriptPath Path to the script in OpenMW virtual filesystem
+-- @param #string scriptPath Path to the script in OpenMW virtual filesystem.
+
+-------------------------------------------------------------------------------
+-- Whether a script with given path is attached to this object.
+-- Can be called only from a global script.
+-- @function [parent=#GameObject] hasScript
+-- @param self
+-- @param #string scriptPath Path to the script in OpenMW virtual filesystem.
+-- @return #boolean
+
+-------------------------------------------------------------------------------
+-- Removes script that was attached by `addScript`
+-- Can be called only from a global script.
+-- @function [parent=#GameObject] removeScript
+-- @param self
+-- @param #string scriptPath Path to the script in OpenMW virtual filesystem.
 
 -------------------------------------------------------------------------------
 -- Moves object to given cell and position.

@@ -5,8 +5,10 @@ varying vec2 diffuseMapUV;
 varying float alphaPassthrough;
 
 uniform int colorMode;
-uniform bool useDiffuseMapForShadowAlpha = true;
-uniform bool alphaTestShadows = true;
+uniform bool useDiffuseMapForShadowAlpha;
+uniform bool alphaTestShadows;
+
+varying float z;
 
 void main(void)
 {
@@ -24,4 +26,7 @@ void main(void)
     else
         // This is uniform, so if it's too low, we might be able to put the position/clip vertex outside the view frustum and skip the fragment shader and rasteriser
         alphaPassthrough = gl_FrontMaterial.diffuse.a;
+
+    z = gl_Position.z / gl_Position.w * 0.5;
+    gl_Position.z = 0.0;
 }

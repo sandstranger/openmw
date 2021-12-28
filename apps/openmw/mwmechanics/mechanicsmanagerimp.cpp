@@ -68,6 +68,35 @@ namespace
         }
     }
 
+    bool isOwned(const MWWorld::Ptr& ptr, const MWWorld::Ptr& target, MWWorld::Ptr& victim)
+    {
+        const MWWorld::CellRef& cellref = target.getCellRef();
+
+        const std::string& owner = cellref.getOwner();
+        bool isOwned = !owner.empty() && owner != "player";
+
+        const std::string& faction = cellref.getFaction();
+        bool isFactionOwned = false;
+        if (!faction.empty() && ptr.getClass().isNpc())
+        {
+            const std::map<std::string, int>& factions = ptr.getClass().getNpcStats(ptr).getFactionRanks();
+            auto found = factions.find(Misc::StringUtils::lowerCase(faction));
+            if (found == factions.end() || found->second < cellref.getFactionRank())
+                isFactionOwned = true;
+        }
+
+        const std::string& globalVariable = cellref.getGlobalVariable();
+        if (!globalVariable.empty() && MWBase::Environment::get().getWorld()->getGlobalInt(globalVariable))
+        {
+            isOwned = false;
+            isFactionOwned = false;
+        }
+
+        if (!cellref.getOwner().empty())
+            victim = MWBase::Environment::get().getWorld()->searchPtr(cellref.getOwner(), true, false);
+
+        return isOwned || isFactionOwned;
+    }
 }
 
 namespace MWMechanics
@@ -79,7 +108,7 @@ namespace MWMechanics
         MWMechanics::CreatureStats& creatureStats = ptr.getClass().getCreatureStats (ptr);
         MWMechanics::NpcStats& npcStats = ptr.getClass().getNpcStats (ptr);
 
-        npcStats.setNeedRecalcDynamicStats(true);
+        npcStats.recalculateMagicka();
 
         const ESM::NPC *player = ptr.get<ESM::NPC>()->mBase;
 
@@ -224,7 +253,6 @@ namespace MWMechanics
 
         // forced update and current value adjustments
         mActors.updateActor (ptr, 0);
-        mActors.updateActor (ptr, 0);
 
         for (int i=0; i<3; ++i)
         {
@@ -292,13 +320,8 @@ namespace MWMechanics
         MWWorld::Ptr ptr = getPlayer();
         MWBase::WindowManager *winMgr = MWBase::Environment::get().getWindowManager();
 
-        // Update the equipped weapon icon
         MWWorld::InventoryStore& inv = ptr.getClass().getInventoryStore(ptr);
         MWWorld::ContainerStoreIterator weapon = inv.getSlot(MWWorld::InventoryStore::Slot_CarriedRight);
-        if (weapon == inv.end())
-            winMgr->unsetSelectedWeapon();
-        else
-            winMgr->setSelectedWeapon(*weapon);
 
         // Update the selected spell icon
         MWWorld::ContainerStoreIterator enchantItem = inv.getSelectedEnchantItem();
@@ -312,6 +335,12 @@ namespace MWMechanics
             else
                 winMgr->unsetSelectedSpell();
         }
+
+        // Update the equipped weapon icon
+        if (weapon == inv.end())
+            winMgr->unsetSelectedWeapon();
+        else
+            winMgr->setSelectedWeapon(*weapon);
 
         if (mUpdatePlayer)
         {
@@ -553,9 +582,9 @@ namespace MWMechanics
 
         x += ptr.getClass().getCreatureStats(ptr).getMagicEffects().get(ESM::MagicEffect::Charm).getMagnitude();
 
-        if(clamp)
-            return std::max(0,std::min(int(x),100));//, normally clamped to [0..100] when used
-        return int(x);
+        if (clamp)
+            return std::clamp<int>(x, 0, 100);//, normally clamped to [0..100] when used
+        return static_cast<int>(x);
     }
 
     int MechanicsManager::getBarterOffer(const MWWorld::Ptr& ptr,int basePrice, bool buying)
@@ -657,9 +686,9 @@ namespace MWMechanics
                 int flee = npcStats.getAiSetting(MWMechanics::CreatureStats::AI_Flee).getBase();
                 int fight = npcStats.getAiSetting(MWMechanics::CreatureStats::AI_Fight).getBase();
                 npcStats.setAiSetting (MWMechanics::CreatureStats::AI_Flee,
-                                       std::max(0, std::min(100, flee + int(std::max(iPerMinChange, s)))));
+                                       std::clamp(flee + int(std::max(iPerMinChange, s)), 0, 100));
                 npcStats.setAiSetting (MWMechanics::CreatureStats::AI_Fight,
-                                       std::max(0, std::min(100, fight + int(std::min(-iPerMinChange, -s)))));
+                                       std::clamp(fight + int(std::min(-iPerMinChange, -s)), 0, 100));
             }
 
             float c = -std::abs(floor(r * fPerDieRollMult));
@@ -697,10 +726,10 @@ namespace MWMechanics
                 float s = c * fPerDieRollMult * fPerTempMult;
                 int flee = npcStats.getAiSetting (CreatureStats::AI_Flee).getBase();
                 int fight = npcStats.getAiSetting (CreatureStats::AI_Fight).getBase();
-                npcStats.setAiSetting (CreatureStats::AI_Flee,
-                                       std::max(0, std::min(100, flee + std::min(-int(iPerMinChange), int(-s)))));
-                npcStats.setAiSetting (CreatureStats::AI_Fight,
-                                       std::max(0, std::min(100, fight + std::max(int(iPerMinChange), int(s)))));
+                npcStats.setAiSetting(CreatureStats::AI_Flee,
+                                       std::clamp(flee + std::min(-int(iPerMinChange), int(-s)), 0, 100));
+                npcStats.setAiSetting(CreatureStats::AI_Fight,
+                                       std::clamp(fight + std::max(int(iPerMinChange), int(s)), 0, 100));
             }
             x = floor(-c * fPerDieRollMult);
 
@@ -725,7 +754,7 @@ namespace MWMechanics
         if (currentDisposition + tempChange < 0)
         {
             cappedDispositionChange = -currentDisposition;
-            tempChange = 0;
+            tempChange = cappedDispositionChange;
         }
 
         permChange = floor(cappedDispositionChange / fPerTempMult);
@@ -795,7 +824,7 @@ namespace MWMechanics
         MWBase::World* world = MWBase::Environment::get().getWorld();
         world->getNavigator()->setUpdatesEnabled(mAI);
         if (mAI)
-           world->getNavigator()->update(world->getPlayerPtr().getRefData().getPosition().asVec3());
+            world->getNavigator()->update(world->getPlayerPtr().getRefData().getPosition().asVec3());
 
         return mAI;
     }
@@ -888,35 +917,11 @@ namespace MWMechanics
             return true;
         }
 
-        const std::string& owner = cellref.getOwner();
-        bool isOwned = !owner.empty() && owner != "player";
-
-        const std::string& faction = cellref.getFaction();
-        bool isFactionOwned = false;
-        if (!faction.empty() && ptr.getClass().isNpc())
-        {
-            const std::map<std::string, int>& factions = ptr.getClass().getNpcStats(ptr).getFactionRanks();
-            std::map<std::string, int>::const_iterator found = factions.find(Misc::StringUtils::lowerCase(faction));
-            if (found == factions.end()
-                    || found->second < cellref.getFactionRank())
-                isFactionOwned = true;
-        }
-
-        const std::string& globalVariable = cellref.getGlobalVariable();
-        if (!globalVariable.empty() && MWBase::Environment::get().getWorld()->getGlobalInt(Misc::StringUtils::lowerCase(globalVariable)) == 1)
-        {
-            isOwned = false;
-            isFactionOwned = false;
-        }
-
-        if (!cellref.getOwner().empty())
-            victim = MWBase::Environment::get().getWorld()->searchPtr(cellref.getOwner(), true, false);
-
-        // A special case for evidence chest - we should not allow to take items even if it is technically permitted
-        if (Misc::StringUtils::ciEqual(cellref.getRefId(), "stolen_goods"))
+        if (isOwned(ptr, target, victim))
             return false;
 
-        return (!isOwned && !isFactionOwned);
+        // A special case for evidence chest - we should not allow to take items even if it is technically permitted
+        return !Misc::StringUtils::ciEqual(cellref.getRefId(), "stolen_goods");
     }
 
     bool MechanicsManager::sleepInBed(const MWWorld::Ptr &ptr, const MWWorld::Ptr &bed)
@@ -948,9 +953,14 @@ namespace MWMechanics
     void MechanicsManager::unlockAttempted(const MWWorld::Ptr &ptr, const MWWorld::Ptr &item)
     {
         MWWorld::Ptr victim;
-        if (isAllowedToUse(ptr, item, victim))
-            return;
-        commitCrime(ptr, victim, OT_Trespassing, item.getCellRef().getFaction());
+        if (isOwned(ptr, item, victim))
+        {
+            // Note that attempting to unlock something that has ever been locked (even ESM::UnbreakableLock) is a crime even if it's already unlocked.
+            // Likewise, it's illegal to unlock something that has a trap but isn't otherwise locked.
+            const auto& cellref = item.getCellRef();
+            if(cellref.getLockLevel() || !cellref.getTrap().empty())
+                commitCrime(ptr, victim, OT_Trespassing, item.getCellRef().getFaction());
+        }
     }
 
     std::vector<std::pair<std::string, int> > MechanicsManager::getStolenItemOwners(const std::string& itemid)
@@ -1613,6 +1623,11 @@ namespace MWMechanics
 
         // Must be done after the target is set up, so that CreatureTargetted dialogue filter works properly
         MWBase::Environment::get().getDialogueManager()->say(ptr, "attack");
+    }
+
+    void MechanicsManager::stopCombat(const MWWorld::Ptr& actor)
+    {
+        mActors.stopCombat(actor);
     }
 
     void MechanicsManager::getObjectsInRange(const osg::Vec3f &position, float radius, std::vector<MWWorld::Ptr> &objects)

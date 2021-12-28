@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <MyGUI type="Layout" version="3.2.0">
     <Widget type="Window" skin="MW_Window" position="0 0 400 485" layer="Windows" name="_Main">
-        <Property key="MinSize" value="430 446"/>
+        <Property key="MinSize" value="465 446"/>
         <Widget type="TabControl" skin="TabControl" position="8 8 368 405" align="Stretch" name="SettingsTab">
             <Property key="ButtonAutoWidth" value="true"/>
             <Widget type="TabItem" skin="" position="4 32 360 358">
@@ -305,24 +305,6 @@
                             <Property key="Caption" value="Hint: press F3 to show \nthe current frame rate."/>
                         </Widget>
 
-                        <Widget type="TextBox" skin="SandText" position="182 113 300 32" align="Left Top" name="TonemaperLabel">
-                            <Property key="Caption" value="Tonemaper"/>
-                        </Widget>
-                        <Widget type="HBox" skin="" position="182 150 350 24">
-                            <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 115 24" align="Left Top" name="TonemaperSwitch">
-                                <Property key="AddItem" value="None"/>
-                                <Property key="AddItem" value="Aces"/>
-                                <Property key="AddItem" value="Filmic"/>
-                                <Property key="AddItem" value="Lottes"/>
-                                <Property key="AddItem" value="Reinhard"/>
-                                <Property key="AddItem" value="Reinhard 2"/>
-                                <Property key="AddItem" value="Uchimura"/>
-                                <Property key="AddItem" value="Uncharted2"/>
-                                <Property key="AddItem" value="Unreal"/>
-                                <Property key="AddItem" value="Vtastek"/>
-                            </Widget>
-                        </Widget>
-
                         <Widget type="TextBox" skin="NormalText" position="0 198 352 18" align="Left Top" name="FovText">
                         </Widget>
                         <Widget type="ScrollBar" skin="MW_HScroll" position="0 222 352 18" align="HStretch Top">
@@ -366,27 +348,6 @@
                             <Property key="Caption" value="#{sLight_Gamma}"/>
                             <Property key="TextAlign" value="Right"/>
                         </Widget>
-                        <Widget type="TextBox" skin="NormalText" position="0 268 352 18" align="Left Top" name="ShaderGammaText">
-                            <Property key="Caption" value="#{sGamma_Correction}"/>
-                        </Widget>
-                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 292 352 18" align="HStretch Top" name="ShaderGammaSlider">
-                            <Property key="Range" value="10000"/>
-                            <Property key="Page" value="300"/>
-                            <UserString key="SettingType" value="Slider"/>
-                            <UserString key="SettingCategory" value="Video"/>
-                            <UserString key="SettingName" value="gamma"/>
-                            <UserString key="SettingValueType" value="Float"/>
-                            <UserString key="SettingMin" value="0.1"/>
-                            <UserString key="SettingMax" value="3.0"/>
-                        </Widget>
-                        <Widget type="TextBox" skin="SandText" position="0 316 352 18" align="Left Top" name="ShaderGammaTextDark">
-                            <Property key="Caption" value="#{sDark_Gamma}"/>
-                            <Property key="TextAlign" value="Left"/>
-                        </Widget>
-                        <Widget type="TextBox" skin="SandText" position="0 316 352 18" align="Right Top" name="ShaderGammaTextLight">
-                            <Property key="Caption" value="#{sLight_Gamma}"/>
-                            <Property key="TextAlign" value="Right"/>
-                        </Widget>
                     </Widget>
                     <Widget type="TabItem" skin="" position="0 28 352 268">
                         <Property key="Caption" value="  Detail  "/>
@@ -411,29 +372,6 @@
                                 <UserString key="SettingLabelCaption" value="Anisotropy (%s)"/>
                             </Widget>
                         </Widget>
-
-                        <Widget type="HBox" skin="" position="0 68 350 24">
-                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="ParallaxShadowsButton">
-                                <UserString key="SettingCategory" value="Shaders"/>
-                                <UserString key="SettingName" value="parallax soft shadows"/>
-                                <UserString key="SettingType" value="CheckButton"/>
-                            </Widget>
-                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ParallaxShadowsLabel">
-                                <Property key="Caption" value="Parallax Shadows"/>
-                            </Widget>
-                        </Widget>
-
-                        <Widget type="HBox" skin="" position="185 68 350 24">
-                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="RadialFogButton">
-                                <UserString key="SettingCategory" value="Shaders"/>
-                                <UserString key="SettingName" value="radial fog"/>
-                                <UserString key="SettingType" value="CheckButton"/>
-                            </Widget>
-                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="RadialFogLabel">
-                                <Property key="Caption" value="Radial Fog"/>
-                            </Widget>
-                        </Widget>
-
                         <Widget type="TextBox" skin="NormalText" position="0 130 352 18" align="Left Top" name="RenderDistanceLabel">
                             <Property key="Caption" value="#{sRender_Distance}"/>
                         </Widget>
@@ -563,6 +501,16 @@
                                     <Property key="Caption" value="Reflection shader detail"/>
                                 </Widget>
                             </Widget>
+                            <Widget type="HBox" skin="" position="4 84 350 24">
+                                <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 115 24" align="Left Top" name="WaterRainRippleDetail">
+                                    <Property key="AddItem" value="Simple"/>
+                                    <Property key="AddItem" value="Sparse"/>
+                                    <Property key="AddItem" value="Dense"/>
+                                </Widget>
+                                <Widget type="AutoSizedTextBox" skin="SandText" position="64 4 90 16" align="Left Top">
+                                    <Property key="Caption" value="Rain ripple detail/density"/>
+                                </Widget>
+                            </Widget>
                         </Widget>
                     </Widget>
 
@@ -671,33 +619,6 @@
                         <Widget type="AutoSizedButton" skin="MW_Button" position="0 290 0 0" align="Top Left" name="LightsResetButton">
                             <Property key="Caption" value="Reset To Defaults"/>
                         </Widget>
-
-                        <Widget type="HBox" skin="" position="185 275 350 24">
-                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="PPLLightingButton">
-                                <UserString key="SettingCategory" value="Shaders"/>
-                                <UserString key="SettingName" value="force per pixel lighting"/>
-                                <UserString key="SettingType" value="CheckButton"/>
-                            </Widget>
-                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="PPLLightingLabel">
-                                <Property key="Caption" value="Per Pixel Lighting"/>
-                            </Widget>
-                        </Widget>
-
-
-                        <Widget type="HBox" skin="" position="185 305 350 24">
-                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="ClampLightingButton">
-                                <UserString key="SettingCategory" value="Shaders"/>
-                                <UserString key="SettingName" value="clamp lighting"/>
-                                <UserString key="SettingType" value="CheckButton"/>
-                            </Widget>
-                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ClampLightingLabel">
-                                <Property key="Caption" value="Clamp Lighting"/>
-                            </Widget>
-                        </Widget>
-
-
-
-
                     </Widget>
                     <!--
                     <Widget type="TabItem" skin="" position="0 28 352 268">
@@ -779,6 +700,185 @@
                         </Widget>
                     </Widget>
                     -->
+
+                   <Widget type="TabItem" skin="" position="4 32 360 308" name="ShadersTab">
+                        <Property key="Caption" value="  Shaders  "/>
+
+                        <Widget type="TextBox" skin="SandText" position="30 2 300 40" align="Center Top">
+                            <Property key="Caption" value="MOST SETTINGS HERE REQUIRE \n               RESTART!"/>
+                        </Widget>
+
+
+                        <Widget type="TextBox" skin="SandText" position="30 35 300 25" align="Left Top" name="TonemaperLabel">
+                            <Property key="Caption" value="Tonemapper"/>
+                                <UserString key="ToolTipType" value="Layout"/>
+                                <UserString key="ToolTipLayout" value="TextToolTip"/>
+                                <UserString key="Caption_Text" value="Set tonemapper, no effect if Linear Lighting is disabled"/>
+                        </Widget>
+                        <Widget type="HBox" skin="" position="30 65 350 24">
+                            <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 115 24" align="Left Top" name="TonemaperSwitch">
+                                <Property key="AddItem" value="None"/>
+                                <Property key="AddItem" value="Aces"/>
+                                <Property key="AddItem" value="Filmic"/>
+                                <Property key="AddItem" value="Lottes"/>
+                                <Property key="AddItem" value="Reinhard"/>
+                                <Property key="AddItem" value="Reinhard 2"/>
+                                <Property key="AddItem" value="Uchimura"/>
+                                <Property key="AddItem" value="Uncharted2"/>
+                                <Property key="AddItem" value="Unreal"/>
+                                <Property key="AddItem" value="Vtastek"/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="HBox" skin="" position="180 65 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 44 24" align="Left Top" name="LinearLightingButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="linear lighting"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 64 75 16" align="Left Top" name="LinearLightingLabel">
+                                <Property key="Caption" value="Linear Lighting"/>
+                                <UserString key="ToolTipType" value="Layout"/>
+                                <UserString key="ToolTipLayout" value="TextToolTip"/>
+                                <UserString key="Caption_Text" value="Enable linear lighting and use of tonemappers.\n\nThis setting require restart."/>
+                            </Widget>
+                        </Widget>
+
+
+                        <Widget type="HBox" skin="" position="30 128 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="NormalMapsButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="auto use object normal maps"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="NormalMapsLabel">
+                                <Property key="Caption" value="Normal Maps"/>
+                                <UserString key="ToolTipType" value="Layout"/>
+                                <UserString key="ToolTipLayout" value="TextToolTip"/>
+                                <UserString key="Caption_Text" value="Enable normal/parallax mapping, greatly improve visual quality.\n\nRequire external mods with normal mapped texures (_n or _nh texture suffix).\n\nThis setting require restart."/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="HBox" skin="" position="30 163 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="SpecularMapsButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="auto use object specular maps"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="SpecularMapsLabel">
+                                <Property key="Caption" value="Specular Maps"/>
+                                <UserString key="ToolTipType" value="Layout"/>
+                                <UserString key="ToolTipLayout" value="TextToolTip"/>
+                                <UserString key="Caption_Text" value="Enable specular mapping may improve visual quality adding shiny/reflective surfaces.\n\nRequire external mods with specular mapped texures (_spec texture suffix).\n\nThis setting require restart."/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="HBox" skin="" position="30 198 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="ParallaxShadowsButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="parallax soft shadows"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ParallaxShadowsLabel">
+                                <Property key="Caption" value="Parallax Shadows"/>
+                                <UserString key="ToolTipType" value="Layout"/>
+                                <UserString key="ToolTipLayout" value="TextToolTip"/>
+                                <UserString key="Caption_Text" value="Allow parallax maps to cast shadows on themselves.\nNot properly working without real shadows.\n\nThis setting require restart."/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="HBox" skin="" position="215 128 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="RadialFogButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="radial fog"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="RadialFogLabel">
+                                <Property key="Caption" value="Radial Fog"/>
+                                <UserString key="ToolTipType" value="Layout"/>
+                                <UserString key="ToolTipLayout" value="TextToolTip"/>
+                                <UserString key="Caption_Text" value="Determine fog intensity based on the distance from the eye point.\n\nThis makes fogging independent from the viewing angle."/>
+                            </Widget>
+                        </Widget>
+
+
+                        <Widget type="HBox" skin="" position="215 163 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="PPLLightingButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="force per pixel lighting"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="PPLLightingLabel">
+                                <Property key="Caption" value="Per Pixel Lighting"/>
+                                <UserString key="ToolTipType" value="Layout"/>
+                                <UserString key="ToolTipLayout" value="TextToolTip"/>
+                                <UserString key="Caption_Text" value="Force the use of per pixel lighting. By default, only bump mapped objects use per-pixel lighting.\n\nEnabling per-pixel lighting can result in visual differences to the original MW engine. \n\nThis setting require restart"/>
+                            </Widget>
+                        </Widget>
+
+
+                        <Widget type="HBox" skin="" position="215 198 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="ClampLightingButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="clamp lighting"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ClampLightingLabel">
+                                <Property key="Caption" value="Clamp Lighting"/>
+                                <UserString key="ToolTipType" value="Layout"/>
+                                <UserString key="ToolTipLayout" value="TextToolTip"/>
+                                <UserString key="Caption_Text" value="Restrict the amount of lighting that an object can receive to a maximum of (1,1,1).\n\nEnabling this option results in fixed-function compatible lighting, but the lighting may appear dull and there might be color shifts. \n\nDisabling this option results in more realistic lighting."/>
+                            </Widget>
+                       </Widget>
+
+                       <Widget type="HBox" skin="" position="215 233 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="SoftParticlesButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="soft particles"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="SoftParticlesLabel">
+                                <Property key="Caption" value="Soft Particles"/>
+                                <UserString key="ToolTipType" value="Layout"/>
+                                <UserString key="ToolTipLayout" value="TextToolTip"/>
+                                <UserString key="Caption_Text" value="Soften intersection of blended particle systems with opaque geometry. \n\nThis setting require restart!\nMay not work on some devices."/>
+                            </Widget>
+                       </Widget>
+
+
+
+                          <Widget type="TextBox" skin="NormalText" position="0 268 352 18" align="Left Top" name="ShaderGammaText">
+                            <Property key="Caption" value="#{sGamma_Correction}"/>
+                            <UserString key="ToolTipType" value="Layout"/>
+                            <UserString key="ToolTipLayout" value="TextToolTip"/>
+                            <UserString key="Caption_Text" value="Video gamma setting.\n\nSetting from launcher is added to this setting."/>
+                        </Widget>
+                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 292 352 18" align="HStretch Top" name="ShaderGammaSlider">
+                            <Property key="Range" value="10000"/>
+                            <Property key="Page" value="300"/>
+                            <UserString key="SettingType" value="Slider"/>
+                            <UserString key="SettingCategory" value="Video"/>
+                            <UserString key="SettingName" value="gamma"/>
+                            <UserString key="SettingValueType" value="Float"/>
+                            <UserString key="SettingMin" value="0.1"/>
+                            <UserString key="SettingMax" value="3.0"/>
+                            <UserString key="SettingLabelWidget" value="ShaderGammaText"/>
+                            <UserString key="SettingLabelCaption" value="Gamma (%s)"/>
+                        </Widget>
+                        <Widget type="TextBox" skin="SandText" position="0 316 352 18" align="Left Top" name="ShaderGammaTextDark">
+                            <Property key="Caption" value="#{sDark_Gamma}"/>
+                            <Property key="TextAlign" value="Left"/>
+                        </Widget>
+                        <Widget type="TextBox" skin="SandText" position="0 316 352 18" align="Right Top" name="ShaderGammaTextLight">
+                            <Property key="Caption" value="#{sLight_Gamma}"/>
+                            <Property key="TextAlign" value="Right"/>
+                        </Widget>
+
+
+                </Widget>
+
+
+
                 </Widget>
             </Widget>
 

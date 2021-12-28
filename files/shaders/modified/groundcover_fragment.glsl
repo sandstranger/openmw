@@ -15,64 +15,67 @@ varying vec4 passTangent;
 #endif
 
 #include "helpsettings.glsl"
+#include "tonemap.glsl"
 #include "vertexcolors.glsl"
 #include "lighting_util.glsl"
 
 varying float depth;
-
-#if !@radialFog
 varying float linearDepth;
-#endif
 
-#if @underwaterFog
-uniform mat4 osg_ViewMatrixInverse;
-#endif
+uniform highp mat4 osg_ViewMatrixInverse;
 
 #ifdef ANIMATED_HEIGHT_FOG
 uniform float osg_SimulationTime;
 #endif
 
-#if PER_PIXEL_LIGHTING || @underwaterFog
 varying vec3 passViewPos;
-#endif
 
 #if PER_PIXEL_LIGHTING
 varying vec3 passNormal;
 #endif
 
-#if PER_PIXEL_LIGHTING
-  #ifdef LINEAR_LIGHTING
-    #include "linear_lighting.glsl"
-  #else
-    #include "lighting.glsl"
-  #endif
+#if @grassDebugBatches
+    uniform vec3 debugColor;
+#endif
+
+#include "shadows_fragment.glsl"
+
+#if !PER_PIXEL_LIGHTING
+    centroid varying vec3 passLighting;
+    centroid varying vec3 shadowDiffuseLighting;
 #else
-  centroid varying vec3 passLighting;
+    #include "lighting.glsl"
 #endif
 
 #include "effects.glsl"
 #include "fog.glsl"
 #include "alpha.glsl"
 
+uniform highp mat3 grassData;
+
+uniform bool radialFog;
+uniform bool underwaterFog;
+uniform float gamma;
+
 void main()
 {
 
-#if @underwaterFog
+float fogValue, underwaterFogValue;
+if(underwaterFog) {
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0;
-    float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
-#endif
-    float fogValue = getFogValue(depth);
+    underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
+}
 
-#if @underwaterFog
+    fogValue = getFogValue((radialFog) ? depth : linearDepth);
+
 if(underwaterFogValue != 1.0 && fogValue != 1.0)
-#else
-if(fogValue != 1.0)
-#endif
 {
 
-if(@groundcoverFadeEnd != @groundcoverFadeStart)
-    if (depth > @groundcoverFadeEnd)
+#if !@grassDebugBatches
+if(grassData[2].y != grassData[2].x)
+    if (depth > grassData[2].y)
         discard;
+#endif
 
 #if @normalMap
 vec4 normalTex = texture2D(normalMap, diffuseMapUV);
@@ -85,48 +88,53 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
 
 #if @diffuseMap
     gl_FragData[0] = texture2D(diffuseMap, diffuseMapUV);
+    gl_FragData[0].xyz = texLoad(gl_FragData[0].xyz);
 #else
     gl_FragData[0] = vec4(1.0);
 #endif
 
-    if (depth > @groundcoverFadeStart)
-        gl_FragData[0].a *= 1.0-smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, depth);
+#if !@grassDebugBatches
+    if (depth > grassData[2].x)
+        gl_FragData[0].a *= 1.0-smoothstep(grassData[2].x, grassData[2].y, depth);
+#endif
 
     alphaTest();
 
-//gl_FragData[0].xyz *= vec3(1.0+smoothstep(0.0, @groundcoverFadeEnd, depth));
-
-    gl_FragData[0].xyz = preLight(gl_FragData[0].xyz);
+    float shadowing = unshadowedLightRatio(depth);
 
     vec3 lighting;
 #if !PER_PIXEL_LIGHTING
-    lighting = passLighting;
-#else
-#ifdef LINEAR_LIGHTING
-    lighting = doLighting(passViewPos, normalize(viewNormal), passColor, 1.0);
+    lighting = (passLighting + shadowDiffuseLighting * shadowing) * Fd_Lambert();
 #else
     vec3 diffuseLight, ambientLight;
-    doLighting(passViewPos, normalize(viewNormal), 1.0, diffuseLight, ambientLight);
-    lighting = diffuseLight + ambientLight;
-#endif
+    doLighting(passViewPos, normalize(viewNormal), shadowing, diffuseLight, ambientLight);
+    lighting = diffuseColor.xyz * diffuseLight * Fd_Lambert() + vcolLoad(getAmbientColor().xyz) * ambientLight * Fd_Lambert() + colLoad(getEmissionColor().xyz);
     clampLightingResult(lighting);
 #endif
 
-gl_FragData[0].xyz *= lighting;
+#if @linearLighting
+    gl_FragData[0].xyz *= lighting /* vcolLoad(getAmbientColor().xyz)*/;
+#else
+    gl_FragData[0].xyz *= lighting;
+#endif
 
-   gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz);
-
-#ifdef LINEAR_LIGHTING
-        gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
+#if @linearLighting
+   float exposure = getExposure(length(colLoad(lcalcDiffuse(0).xyz) + colLoad(gl_LightModel.ambient.xyz)) * 0.5);
+   gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz, exposure);
 #endif
 
 }
 
-#if @underwaterFog
+if(underwaterFog)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
-#endif
+
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
+
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
+    //gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
 
+#if @grassDebugBatches
+    gl_FragData[0].xyz = debugColor;
+#endif
 }

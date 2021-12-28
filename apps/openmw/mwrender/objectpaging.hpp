@@ -49,11 +49,14 @@ namespace MWRender
 
         void getPagedRefnums(const osg::Vec4i &activeGrid, std::set<ESM::RefNum> &out);
 
+        void clearCache();
+
     private:
         Resource::SceneManager* mSceneManager;
         bool mActiveGrid;
         bool mGroundcover;
         bool mDebugBatches;
+        bool mDebugGroundcoverBatches;
         float mMergeFactor;
         float mMinSize;
         float mMinSizeMergeFactor;

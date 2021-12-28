@@ -266,10 +266,10 @@ namespace MWClass
 
     const Npc::GMST& Npc::getGmst()
     {
-        static GMST gmst;
-        static bool inited = false;
-        if(!inited)
+        static const GMST staticGmst = []
         {
+            GMST gmst;
+
             const MWBase::World *world = MWBase::Environment::get().getWorld();
             const MWWorld::Store<ESM::GameSetting> &store = world->getStore().get<ESM::GameSetting>();
 
@@ -294,16 +294,20 @@ namespace MWClass
             gmst.iKnockDownOddsBase = store.find("iKnockDownOddsBase");
             gmst.fCombatArmorMinMult = store.find("fCombatArmorMinMult");
 
-            inited = true;
-        }
-        return gmst;
+            return gmst;
+        } ();
+        return staticGmst;
     }
 
     void Npc::ensureCustomData (const MWWorld::Ptr& ptr) const
     {
         if (!ptr.getRefData().getCustomData())
         {
-            std::unique_ptr<NpcCustomData> data(new NpcCustomData);
+            bool recalculate = false;
+            auto tempData = std::make_unique<NpcCustomData>();
+            NpcCustomData* data = tempData.get();
+            MWMechanics::CreatureCustomDataResetter resetter(ptr);
+            ptr.getRefData().setCustomData(std::move(tempData));
 
             MWWorld::LiveCellRef<ESM::NPC> *ref = ptr.get<ESM::NPC>();
 
@@ -334,8 +338,6 @@ namespace MWClass
                 data->mNpcStats.setLevel(ref->mBase->mNpdt.mLevel);
                 data->mNpcStats.setBaseDisposition(ref->mBase->mNpdt.mDisposition);
                 data->mNpcStats.setReputation(ref->mBase->mNpdt.mReputation);
-
-                data->mNpcStats.setNeedRecalcDynamicStats(false);
             }
             else
             {
@@ -351,7 +353,7 @@ namespace MWClass
                 autoCalculateAttributes(ref->mBase, data->mNpcStats);
                 autoCalculateSkills(ref->mBase, data->mNpcStats, ptr, spellsInitialised);
 
-                data->mNpcStats.setNeedRecalcDynamicStats(true);
+                recalculate = true;
             }
 
             // Persistent actors with 0 health do not play death animation
@@ -387,7 +389,9 @@ namespace MWClass
             data->mNpcStats.setGoldPool(gold);
 
             // store
-            ptr.getRefData().setCustomData(std::move(data));
+            resetter.mPtr = {};
+            if(recalculate)
+                data->mNpcStats.recalculateMagicka();
 
             // inventory
             // setting ownership is used to make the NPC auto-equip his initial equipment only, and not bartered items
@@ -1476,7 +1480,6 @@ namespace MWClass
 
     float Npc::getSwimSpeed(const MWWorld::Ptr& ptr) const
     {
-        const GMST& gmst = getGmst();
         const MWBase::World* world = MWBase::Environment::get().getWorld();
         const MWMechanics::CreatureStats& stats = getCreatureStats(ptr);
         const NpcCustomData* npcdata = static_cast<const NpcCustomData*>(ptr.getRefData().getCustomData());
@@ -1486,17 +1489,6 @@ namespace MWClass
         const bool running = stats.getStance(MWMechanics::CreatureStats::Stance_Run)
                 && (inair || MWBase::Environment::get().getMechanicsManager()->isRunning(ptr));
 
-        float swimSpeed;
-
-        if (running)
-            swimSpeed = getRunSpeed(ptr);
-        else
-            swimSpeed = getWalkSpeed(ptr);
-
-        swimSpeed *= 1.0f + 0.01f * mageffects.get(ESM::MagicEffect::SwiftSwim).getMagnitude();
-        swimSpeed *= gmst.fSwimRunBase->mValue.getFloat()
-                + 0.01f * getSkill(ptr, ESM::Skill::Athletics) * gmst.fSwimRunAthleticsMult->mValue.getFloat();
-
-        return swimSpeed;
+        return getSwimSpeedImpl(ptr, getGmst(), mageffects, running ? getRunSpeed(ptr) : getWalkSpeed(ptr));
     }
 }

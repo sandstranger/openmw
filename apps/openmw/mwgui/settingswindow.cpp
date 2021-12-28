@@ -171,7 +171,7 @@ namespace MWGui
                     else
                         valueStr = MyGUI::utility::toString(int(value));
 
-                    value = std::max(min, std::min(value, max));
+                    value = std::clamp(value, min, max);
                     value = (value-min)/(max-min);
 
                     scroll->setScrollPosition(static_cast<size_t>(value * (scroll->getScrollRange() - 1)));
@@ -233,7 +233,8 @@ namespace MWGui
         getWidget(mWaterTextureSize, "WaterTextureSize");
         getWidget(mWaterReflectionDetail, "WaterReflectionDetail");
         getWidget(mTonemaperSwitch, "TonemaperSwitch");
-        getWidget(mShowOwnedSwitch, "ShowOwnedSwitch");
+//        getWidget(mShowOwnedSwitch, "ShowOwnedSwitch");
+        getWidget(mWaterRainRippleDetail, "WaterRainRippleDetail");
         getWidget(mLightingMethodButton, "LightingMethodButton");
         getWidget(mLightsResetButton, "LightsResetButton");
         getWidget(mMaxLights, "MaxLights");
@@ -269,12 +270,16 @@ namespace MWGui
             grassDensitySlider->setVisible(false);
         }
 
-            MyGUI::Button *PPLButton;
-            getWidget(PPLButton, "PPLLightingButton");
-            PPLButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
+        MyGUI::Button *PPLButton;
+        getWidget(PPLButton, "PPLLightingButton");
+        //PPLButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
+
+        MyGUI::Button *linearLightingButton;
+        getWidget(linearLightingButton, "LinearLightingButton");
+        //linearLightingButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
 
 	const char *shaderPreset = getenv("OPENMW_SHADERS");
-        if(!shaderPreset || strcmp(shaderPreset, "experimental") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
+        if(!shaderPreset || strcmp(shaderPreset, "modified") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
 	{
             MyGUI::ScrollBar *gammaSlider;
             MyGUI::TextBox *textBox;
@@ -299,14 +304,14 @@ namespace MWGui
             getWidget(button, "ParallaxShadowsButton");
             button->setVisible(false);
 
-            getWidget(textBox, "ClampLightingLabel");
+            getWidget(textBox, "ActorsShadowsLabel");
             textBox->setVisible(false);
-            getWidget(button, "ClampLightingButton");
+            getWidget(button, "ActorsShadowsButton");
             button->setVisible(false);
 
-            getWidget(textBox, "PPLLightingLabel");
+            getWidget(textBox, "LinearLightingLabel");
             textBox->setVisible(false);
-            PPLButton->setVisible(false);
+            linearLightingButton->setVisible(false);
 
             getWidget(textBox, "UnderwaterFogLabel");
             textBox->setVisible(false);
@@ -327,9 +332,10 @@ namespace MWGui
 
         mWaterTextureSize->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterTextureSizeChanged);
         mWaterReflectionDetail->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterReflectionDetailChanged);
+        mWaterRainRippleDetail->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterRainRippleDetailChanged);
 
         mTonemaperSwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onTonemaperSwitchChanged);
-        mShowOwnedSwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onShowOwnedSwitchChanged);
+ //       mShowOwnedSwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onShowOwnedSwitchChanged);
 
         mLightingMethodButton->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onLightingMethodButtonChanged);
         mLightsResetButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onLightsResetButtonClicked);
@@ -337,6 +343,8 @@ namespace MWGui
 
         mKeyboardSwitch->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onKeyboardSwitchClicked);
         mControllerSwitch->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onControllerSwitchClicked);
+
+        computeMinimumWindowSize();
 
         center();
 
@@ -378,17 +386,19 @@ namespace MWGui
         if (waterTextureSize >= 2048)
             mWaterTextureSize->setIndexSelected(3);
 
-        int waterReflectionDetail = Settings::Manager::getInt("reflection detail", "Water");
-        waterReflectionDetail = std::min(5, std::max(0, waterReflectionDetail));
+        int waterReflectionDetail = std::clamp(Settings::Manager::getInt("reflection detail", "Water"), 0, 5);
         mWaterReflectionDetail->setIndexSelected(waterReflectionDetail);
 
         int tonemaperSwitch = Settings::Manager::getInt("tonemaper", "Shaders");
         tonemaperSwitch = std::min(9, std::max(0, tonemaperSwitch));
         mTonemaperSwitch->setIndexSelected(tonemaperSwitch);
-
+/*
         int showOwnedSwitch = Settings::Manager::getInt("show owned", "Game");
         showOwnedSwitch = std::min(3, std::max(0, showOwnedSwitch));
         mShowOwnedSwitch->setIndexSelected(showOwnedSwitch);
+*/
+        int waterRainRippleDetail = std::clamp(Settings::Manager::getInt("rain ripple detail", "Water"), 0, 2);
+        mWaterRainRippleDetail->setIndexSelected(waterRainRippleDetail);
 
         updateMaxLightsComboBox(mMaxLights);
 
@@ -481,7 +491,7 @@ namespace MWGui
 
     void SettingsWindow::onWaterReflectionDetailChanged(MyGUI::ComboBox* _sender, size_t pos)
     {
-        unsigned int level = std::min((unsigned int)5, (unsigned int)pos);
+        unsigned int level = static_cast<unsigned int>(std::min<size_t>(pos, 5));
         Settings::Manager::setInt("reflection detail", "Water", level);
         apply();
     }
@@ -492,11 +502,19 @@ namespace MWGui
         Settings::Manager::setInt("tonemaper", "Shaders", level);
         apply();
     }
-
+/*
     void SettingsWindow::onShowOwnedSwitchChanged(MyGUI::ComboBox* _sender, size_t pos)
     {
         unsigned int level = std::min((unsigned int)3, (unsigned int)pos);
         Settings::Manager::setInt("show owned", "Game", level);
+        apply();
+    }
+*/
+
+    void SettingsWindow::onWaterRainRippleDetailChanged(MyGUI::ComboBox* _sender, size_t pos)
+    {
+        unsigned int level = static_cast<unsigned int>(std::min<size_t>(pos, 2));
+        Settings::Manager::setInt("rain ripple detail", "Water", level);
         apply();
     }
 
@@ -849,6 +867,32 @@ namespace MWGui
     void SettingsWindow::onWindowResize(MyGUI::Window *_sender)
     {
         layoutControlsBox();
+    }
+
+    void SettingsWindow::computeMinimumWindowSize()
+    {
+        auto* window = mMainWidget->castType<MyGUI::Window>();
+        auto minSize = window->getMinSize();
+
+        // Window should be at minimum wide enough to show all tabs.
+        int tabBarWidth = 0;
+        for (uint32_t i = 0; i < mSettingsTab->getItemCount(); i++)
+        {
+            tabBarWidth += mSettingsTab->getButtonWidthAt(i);
+        }
+
+        // Need to include window margins
+        int margins = mMainWidget->getWidth() - mSettingsTab->getWidth();
+        int minimumWindowWidth = tabBarWidth + margins;
+
+        if (minimumWindowWidth > minSize.width)
+        {
+            minSize.width = minimumWindowWidth;
+            window->setMinSize(minSize);
+
+            // Make a dummy call to setSize so MyGUI can apply any resize resulting from the change in MinSize
+            mMainWidget->setSize(mMainWidget->getSize());
+        }
     }
 
     void SettingsWindow::resetScrollbars()
