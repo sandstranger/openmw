@@ -304,9 +304,12 @@ namespace MWRender
         mAnimation->setFirstPersonRotation(pitch, yaw);
     }
 
-    void Camera::setYaw(float angle)
+    void Camera::setYaw(float angle, bool force)
     {
-        mYaw = Misc::normalizeAngle(angle);
+        if (!mLockYaw || force)
+            mYaw = Misc::normalizeAngle(angle);
+        if (force)
+            mLockPitch = true;
     }
 
     void Camera::setPitch(float angle, bool force)
