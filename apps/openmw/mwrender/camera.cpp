@@ -299,12 +299,14 @@ namespace MWRender
         mAnimation->setFirstPersonOffset(osg::Vec3f(0,0,-offset));
     }
 
-    void Camera::setYaw(float angle, bool force)
+    void Camera::setWeaponRotation(float pitch, float yaw)
     {
-        if (!mLockYaw || force)
-            mYaw = Misc::normalizeAngle(angle);
-        if (force)
-            mLockYaw = true;
+        mAnimation->setFirstPersonRotation(pitch, yaw);
+    }
+
+    void Camera::setYaw(float angle)
+    {
+        mYaw = Misc::normalizeAngle(angle);
     }
 
     void Camera::setPitch(float angle, bool force)
