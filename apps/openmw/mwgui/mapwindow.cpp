@@ -1231,12 +1231,12 @@ namespace MWGui
 
     void MapWindow::onZoomOutButtonClicked(MyGUI::Widget* _sender)
     {
-        onMapZoomed(_sender, 1);
+        onMapZoomed(_sender, -1);
     }
 
     void MapWindow::onZoomInButtonClicked(MyGUI::Widget* _sender)
     {
-        onMapZoomed(_sender, -1);
+        onMapZoomed(_sender, 1);
     }
 
     void MapWindow::onPinToggled()

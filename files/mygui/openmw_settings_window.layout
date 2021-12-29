@@ -704,11 +704,6 @@
                    <Widget type="TabItem" skin="" position="4 32 360 308" name="ShadersTab">
                         <Property key="Caption" value="  Shaders  "/>
 
-                        <Widget type="TextBox" skin="SandText" position="30 2 300 40" align="Center Top">
-                            <Property key="Caption" value="MOST SETTINGS HERE REQUIRE \n               RESTART!"/>
-                        </Widget>
-
-
                         <Widget type="TextBox" skin="SandText" position="30 35 300 25" align="Left Top" name="TonemaperLabel">
                             <Property key="Caption" value="Tonemapper"/>
                                 <UserString key="ToolTipType" value="Layout"/>
@@ -744,35 +739,6 @@
                             </Widget>
                         </Widget>
 
-
-                        <Widget type="HBox" skin="" position="30 128 350 24">
-                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="NormalMapsButton">
-                                <UserString key="SettingCategory" value="Shaders"/>
-                                <UserString key="SettingName" value="auto use object normal maps"/>
-                                <UserString key="SettingType" value="CheckButton"/>
-                            </Widget>
-                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="NormalMapsLabel">
-                                <Property key="Caption" value="Normal Maps"/>
-                                <UserString key="ToolTipType" value="Layout"/>
-                                <UserString key="ToolTipLayout" value="TextToolTip"/>
-                                <UserString key="Caption_Text" value="Enable normal/parallax mapping, greatly improve visual quality.\n\nRequire external mods with normal mapped texures (_n or _nh texture suffix).\n\nThis setting require restart."/>
-                            </Widget>
-                        </Widget>
-
-                        <Widget type="HBox" skin="" position="30 163 350 24">
-                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="SpecularMapsButton">
-                                <UserString key="SettingCategory" value="Shaders"/>
-                                <UserString key="SettingName" value="auto use object specular maps"/>
-                                <UserString key="SettingType" value="CheckButton"/>
-                            </Widget>
-                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="SpecularMapsLabel">
-                                <Property key="Caption" value="Specular Maps"/>
-                                <UserString key="ToolTipType" value="Layout"/>
-                                <UserString key="ToolTipLayout" value="TextToolTip"/>
-                                <UserString key="Caption_Text" value="Enable specular mapping may improve visual quality adding shiny/reflective surfaces.\n\nRequire external mods with specular mapped texures (_spec texture suffix).\n\nThis setting require restart."/>
-                            </Widget>
-                        </Widget>
-
                         <Widget type="HBox" skin="" position="30 198 350 24">
                           <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="ParallaxShadowsButton">
                                 <UserString key="SettingCategory" value="Shaders"/>
@@ -787,7 +753,7 @@
                             </Widget>
                         </Widget>
 
-                        <Widget type="HBox" skin="" position="215 128 350 24">
+                        <Widget type="HBox" skin="" position="30 163 350 24">
                           <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="RadialFogButton">
                                 <UserString key="SettingCategory" value="Shaders"/>
                                 <UserString key="SettingName" value="radial fog"/>
@@ -830,22 +796,6 @@
                                 <UserString key="Caption_Text" value="Restrict the amount of lighting that an object can receive to a maximum of (1,1,1).\n\nEnabling this option results in fixed-function compatible lighting, but the lighting may appear dull and there might be color shifts. \n\nDisabling this option results in more realistic lighting."/>
                             </Widget>
                        </Widget>
-
-                       <Widget type="HBox" skin="" position="215 233 350 24">
-                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="SoftParticlesButton">
-                                <UserString key="SettingCategory" value="Shaders"/>
-                                <UserString key="SettingName" value="soft particles"/>
-                                <UserString key="SettingType" value="CheckButton"/>
-                            </Widget>
-                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="SoftParticlesLabel">
-                                <Property key="Caption" value="Soft Particles"/>
-                                <UserString key="ToolTipType" value="Layout"/>
-                                <UserString key="ToolTipLayout" value="TextToolTip"/>
-                                <UserString key="Caption_Text" value="Soften intersection of blended particle systems with opaque geometry. \n\nThis setting require restart!\nMay not work on some devices."/>
-                            </Widget>
-                       </Widget>
-
-
 
                           <Widget type="TextBox" skin="NormalText" position="0 268 352 18" align="Left Top" name="ShaderGammaText">
                             <Property key="Caption" value="#{sGamma_Correction}"/>

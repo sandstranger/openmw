@@ -272,11 +272,15 @@ namespace MWGui
 
         MyGUI::Button *PPLButton;
         getWidget(PPLButton, "PPLLightingButton");
-        //PPLButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
+        PPLButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onButtonRequiringestartClicked);
 
         MyGUI::Button *linearLightingButton;
         getWidget(linearLightingButton, "LinearLightingButton");
-        //linearLightingButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
+        linearLightingButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onButtonRequiringestartClicked);
+
+        MyGUI::Button *parralaxShadowsButton;
+        getWidget(parralaxShadowsButton, "ParallaxShadowsButton");
+        parralaxShadowsButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onButtonRequiringestartClicked);
 
 	const char *shaderPreset = getenv("OPENMW_SHADERS");
         if(!shaderPreset || strcmp(shaderPreset, "modified") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
@@ -301,13 +305,7 @@ namespace MWGui
 
             getWidget(textBox, "ParallaxShadowsLabel");
             textBox->setVisible(false);
-            getWidget(button, "ParallaxShadowsButton");
-            button->setVisible(false);
-
-            getWidget(textBox, "ActorsShadowsLabel");
-            textBox->setVisible(false);
-            getWidget(button, "ActorsShadowsButton");
-            button->setVisible(false);
+            parralaxShadowsButton->setVisible(false);
 
             getWidget(textBox, "LinearLightingLabel");
             textBox->setVisible(false);
@@ -418,7 +416,7 @@ namespace MWGui
         MWBase::Environment::get().getWindowManager()->removeGuiMode(GM_Settings);
     }
 
-    void SettingsWindow::onPPLButtonClicked(MyGUI::Widget* _sender)
+    void SettingsWindow::onButtonRequiringestartClicked(MyGUI::Widget* _sender)
     {
         std::string message = "This change requires a restart to take effect.";
         MWBase::Environment::get().getWindowManager()->interactiveMessageBox(message, {"#{sOK}"}, true);

@@ -1346,17 +1346,7 @@ namespace MWRender
             {
 		mClampLightingUniform->set(Settings::Manager::getBool("clamp lighting", "Shaders"));
             }
-            else if (it->first == "Shaders" && it->second == "auto use object specular maps")
-            {
-		Settings::Manager::setBool("auto use terrain specular maps", "Shaders", 
-		    Settings::Manager::getBool("auto use object specular maps", "Shaders"));
-            }
-            else if (it->first == "Shaders" && it->second == "auto use object normal maps")
-            {
-		Settings::Manager::setBool("auto use terrain normal maps", "Shaders", 
-		    Settings::Manager::getBool("auto use object normal maps", "Shaders"));
-            }
-            else if (it->first == "Shaders" && it->second == "parallax soft shadows")
+            else if (it->first == "Shaders" && it->second == "parallax soft shadows") //not used
             {
 		mParallaxShadowsUniform->set(Settings::Manager::getBool("parallax soft shadows", "Shaders"));
             }
@@ -1372,7 +1362,7 @@ namespace MWRender
             {
 		mGammaUniform->set(Settings::Manager::getFloat("gamma", "Video"));
             }
-            else if (it->first == "Shaders" && it->second == "exposure")
+            else if (it->first == "Shaders" && it->second == "exposure") // not used
             {
 		mExposureUniform->set(Settings::Manager::getFloat("exposure", "Shaders"));
             }
