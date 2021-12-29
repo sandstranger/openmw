@@ -796,6 +796,13 @@ namespace MWGui
         mButton->eventMouseButtonClick += MyGUI::newDelegate(this, &MapWindow::onWorldButtonClicked);
         mButton->setCaptionWithReplacing( mGlobal ? "#{sLocal}" : "#{sWorld}");
 
+        getWidget(mZoomOutButton, "ZoomOutButton");
+        getWidget(mZoomInButton, "ZoomInButton");
+        mZoomOutButton->eventMouseButtonClick += MyGUI::newDelegate(this, &MapWindow::onZoomOutButtonClicked);
+        mZoomInButton->eventMouseButtonClick += MyGUI::newDelegate(this, &MapWindow::onZoomInButtonClicked);
+        mZoomOutButton->setVisible(Settings::Manager::getBool("allow zooming", "Map"));
+        mZoomInButton->setVisible(Settings::Manager::getBool("allow zooming", "Map"));
+
         getWidget(mEventBoxGlobal, "EventBoxGlobal");
         mEventBoxGlobal->eventMouseDrag += MyGUI::newDelegate(this, &MapWindow::onMouseDrag);
         mEventBoxGlobal->eventMouseButtonPressed += MyGUI::newDelegate(this, &MapWindow::onDragStart);
@@ -956,16 +963,16 @@ namespace MWGui
                 mGlobalMapZoom = 4.f;
                 onWorldButtonClicked(nullptr);
 
-                zoomOnCursor(zoomRatio);
+                zoomOnCenter(zoomRatio);
                 return; //the zoom out is too big, we switch to the global map
             }
 
             if (zoomOut)
                 mNeedDoorMarkersUpdate = true;
         }
-        zoomOnCursor(speedDiff);
+        zoomOnCenter(speedDiff);
     }
-
+/*
     void MapWindow::zoomOnCursor(float speedDiff)
     {
         auto map = mGlobal ? mGlobalMap : mLocalMap;
@@ -977,6 +984,20 @@ namespace MWGui
         map->setViewOffset(MyGUI::IntPoint(
             std::round(centerView.left * speedDiff) + cursor.left,
             std::round(centerView.top * speedDiff) + cursor.top
+        ));
+    }
+*/
+    void MapWindow::zoomOnCenter(float speedDiff)
+    {
+        auto map = mGlobal ? mGlobalMap : mLocalMap;
+        auto mapCenter = MyGUI::IntPoint(map->getWidth() * 0.5, map->getHeight() * 0.5);
+        auto centerView = map->getViewOffset() - mapCenter;
+
+        mGlobal? updateGlobalMap() : updateLocalMap();
+
+        map->setViewOffset(MyGUI::IntPoint(
+            std::round(centerView.left * speedDiff) + mapCenter.left,
+            std::round(centerView.top * speedDiff) + mapCenter.top
         ));
     }
 
@@ -1206,6 +1227,16 @@ namespace MWGui
 
         mButton->setCaptionWithReplacing( mGlobal ? "#{sLocal}" :
                 "#{sWorld}");
+    }
+
+    void MapWindow::onZoomOutButtonClicked(MyGUI::Widget* _sender)
+    {
+        onMapZoomed(_sender, 1);
+    }
+
+    void MapWindow::onZoomInButtonClicked(MyGUI::Widget* _sender)
+    {
+        onMapZoomed(_sender, -1);
     }
 
     void MapWindow::onPinToggled()
