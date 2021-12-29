@@ -55,6 +55,7 @@ set(MYGUI_FILES
     openmw_scroll.layout
     openmw_scroll.skin.xml
     openmw_settings_window.layout
+    openmw_settings_window_shaders.layout
     openmw_settings.xml
     openmw_spell_window.layout
     openmw_stats_window.layout

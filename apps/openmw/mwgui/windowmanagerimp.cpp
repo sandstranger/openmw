@@ -386,7 +386,7 @@ namespace MWGui
         mCountDialog = new CountDialog();
         mWindows.push_back(mCountDialog);
 
-        mSettingsWindow = new SettingsWindow();
+        mSettingsWindow = new SettingsWindow(getenv("OPENMW_SHADERS") ? "openmw_settings_window_shaders.layout" : "openmw_settings_window.layout");
         mWindows.push_back(mSettingsWindow);
         mGuiModeStates[GM_Settings] = GuiModeState(mSettingsWindow);
 

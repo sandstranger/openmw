@@ -8,7 +8,7 @@ namespace MWGui
     class SettingsWindow : public WindowBase
     {
         public:
-            SettingsWindow();
+            SettingsWindow(std::string layout);
 
             void onOpen() override;
 
@@ -32,9 +32,6 @@ namespace MWGui
             MyGUI::ComboBox* mWaterTextureSize;
             MyGUI::ComboBox* mWaterReflectionDetail;
             MyGUI::ComboBox* mWaterRainRippleDetail;
-
-            MyGUI::ComboBox* mTonemaperSwitch;
-            MyGUI::ComboBox* mShowOwnedSwitch;
 
             MyGUI::ComboBox* mMaxLights;
             MyGUI::ComboBox* mLightingMethodButton;

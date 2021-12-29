@@ -205,8 +205,8 @@ namespace MWGui
         }
     }
 
-    SettingsWindow::SettingsWindow() :
-        WindowBase("openmw_settings_window.layout"),
+    SettingsWindow::SettingsWindow(std::string layout) :
+        WindowBase(layout),
         mKeyboardMode(true)
     {
         bool terrain = Settings::Manager::getBool("distant terrain", "Terrain");
@@ -232,8 +232,6 @@ namespace MWGui
         getWidget(mControllerSwitch, "ControllerButton");
         getWidget(mWaterTextureSize, "WaterTextureSize");
         getWidget(mWaterReflectionDetail, "WaterReflectionDetail");
-        getWidget(mTonemaperSwitch, "TonemaperSwitch");
-//        getWidget(mShowOwnedSwitch, "ShowOwnedSwitch");
         getWidget(mWaterRainRippleDetail, "WaterRainRippleDetail");
         getWidget(mLightingMethodButton, "LightingMethodButton");
         getWidget(mLightsResetButton, "LightsResetButton");
@@ -270,55 +268,32 @@ namespace MWGui
             grassDensitySlider->setVisible(false);
         }
 
-        MyGUI::Button *PPLButton;
-        getWidget(PPLButton, "PPLLightingButton");
-        PPLButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onButtonRequiringestartClicked);
-
-        MyGUI::Button *linearLightingButton;
-        getWidget(linearLightingButton, "LinearLightingButton");
-        linearLightingButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onButtonRequiringestartClicked);
-
-        MyGUI::Button *parralaxShadowsButton;
-        getWidget(parralaxShadowsButton, "ParallaxShadowsButton");
-        parralaxShadowsButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onButtonRequiringestartClicked);
-
-	const char *shaderPreset = getenv("OPENMW_SHADERS");
-        if(!shaderPreset || strcmp(shaderPreset, "modified") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
+        if(getenv("OPENMW_SHADERS"))
 	{
-            MyGUI::ScrollBar *gammaSlider;
-            MyGUI::TextBox *textBox;
-            MyGUI::Button *button;
+            MyGUI::Button *PPLButton;
+            getWidget(PPLButton, "PPLLightingButton");
+            PPLButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onButtonRequiringestartClicked);
 
-            getWidget(gammaSlider, "ShaderGammaSlider");
-            gammaSlider->setVisible(false);
-            getWidget(textBox, "ShaderGammaText");
-            textBox->setVisible(false);
-            getWidget(textBox, "ShaderGammaTextDark");
-            textBox->setVisible(false);
-            getWidget(textBox, "ShaderGammaTextLight");
-            textBox->setVisible(false);
+            MyGUI::Button *linearLightingButton;
+            getWidget(linearLightingButton, "LinearLightingButton");
+            linearLightingButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onButtonRequiringestartClicked);
 
-            getWidget(textBox, "RadialFogLabel");
-            textBox->setVisible(false);
-            getWidget(button, "RadialFogButton");
-            button->setVisible(false);
+            MyGUI::Button *parralaxShadowsButton;
+            getWidget(parralaxShadowsButton, "ParallaxShadowsButton");
+            parralaxShadowsButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onButtonRequiringestartClicked);
 
-            getWidget(textBox, "ParallaxShadowsLabel");
-            textBox->setVisible(false);
-            parralaxShadowsButton->setVisible(false);
+            MyGUI::ComboBox* tonemaperSwitch;
+            getWidget(tonemaperSwitch, "TonemaperSwitch");
 
-            getWidget(textBox, "LinearLightingLabel");
-            textBox->setVisible(false);
-            linearLightingButton->setVisible(false);
+            if(!Settings::Manager::getBool("linear lighting", "Shaders")) {
+                MyGUI::TextBox *toneMaperLabel;
+                getWidget(toneMaperLabel, "TonemaperLabel");
+                toneMaperLabel->setVisible(false);
+                tonemaperSwitch->setVisible(false);
+            }
 
-            getWidget(textBox, "UnderwaterFogLabel");
-            textBox->setVisible(false);
-            getWidget(button, "UnderwaterFogButton");
-            button->setVisible(false);
-
-            getWidget(textBox, "TonemaperLabel");
-            textBox->setVisible(false);
-            mTonemaperSwitch->setVisible(false);
+            tonemaperSwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onTonemaperSwitchChanged);
+            tonemaperSwitch->setIndexSelected(std::min(9, std::max(0, Settings::Manager::getInt("tonemaper", "Shaders"))));
 	}
 
         mMainWidget->castType<MyGUI::Window>()->eventWindowChangeCoord += MyGUI::newDelegate(this, &SettingsWindow::onWindowResize);
@@ -331,9 +306,6 @@ namespace MWGui
         mWaterTextureSize->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterTextureSizeChanged);
         mWaterReflectionDetail->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterReflectionDetailChanged);
         mWaterRainRippleDetail->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterRainRippleDetailChanged);
-
-        mTonemaperSwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onTonemaperSwitchChanged);
- //       mShowOwnedSwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onShowOwnedSwitchChanged);
 
         mLightingMethodButton->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onLightingMethodButtonChanged);
         mLightsResetButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onLightsResetButtonClicked);
@@ -387,14 +359,6 @@ namespace MWGui
         int waterReflectionDetail = std::clamp(Settings::Manager::getInt("reflection detail", "Water"), 0, 5);
         mWaterReflectionDetail->setIndexSelected(waterReflectionDetail);
 
-        int tonemaperSwitch = Settings::Manager::getInt("tonemaper", "Shaders");
-        tonemaperSwitch = std::min(9, std::max(0, tonemaperSwitch));
-        mTonemaperSwitch->setIndexSelected(tonemaperSwitch);
-/*
-        int showOwnedSwitch = Settings::Manager::getInt("show owned", "Game");
-        showOwnedSwitch = std::min(3, std::max(0, showOwnedSwitch));
-        mShowOwnedSwitch->setIndexSelected(showOwnedSwitch);
-*/
         int waterRainRippleDetail = std::clamp(Settings::Manager::getInt("rain ripple detail", "Water"), 0, 2);
         mWaterRainRippleDetail->setIndexSelected(waterRainRippleDetail);
 
@@ -500,14 +464,6 @@ namespace MWGui
         Settings::Manager::setInt("tonemaper", "Shaders", level);
         apply();
     }
-/*
-    void SettingsWindow::onShowOwnedSwitchChanged(MyGUI::ComboBox* _sender, size_t pos)
-    {
-        unsigned int level = std::min((unsigned int)3, (unsigned int)pos);
-        Settings::Manager::setInt("show owned", "Game", level);
-        apply();
-    }
-*/
 
     void SettingsWindow::onWaterRainRippleDetailChanged(MyGUI::ComboBox* _sender, size_t pos)
     {
