@@ -58,8 +58,8 @@ namespace MWGui
             void onWaterTextureSizeChanged(MyGUI::ComboBox* _sender, size_t pos);
             void onWaterReflectionDetailChanged(MyGUI::ComboBox* _sender, size_t pos);
 
+            void onTerrainQualitySwitchChanged(MyGUI::ComboBox* _sender, size_t pos);
             void onTonemaperSwitchChanged(MyGUI::ComboBox* _sender, size_t pos);
-            void onShowOwnedSwitchChanged(MyGUI::ComboBox* _sender, size_t pos);
 
             void onWaterRainRippleDetailChanged(MyGUI::ComboBox* _sender, size_t pos);
 

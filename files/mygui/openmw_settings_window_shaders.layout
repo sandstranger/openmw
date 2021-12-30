@@ -358,6 +358,14 @@
                             <Property key="AddItem" value="Bilinear"/>
                             <Property key="AddItem" value="Trilinear"/>
                         </Widget>
+                       <Widget type="TextBox" skin="NormalText" position="8 54 300 24" align="Left Top">
+                            <Property key="Caption" value="Terrain Quality"/>
+                        </Widget>
+                        <Widget type="ComboBox" skin="MW_ComboBox" position="14 78 110 24" align="Left Top" name="TerrainQualityButton">
+                            <Property key="AddItem" value="Low"/>
+                            <Property key="AddItem" value="Medium"/>
+                            <Property key="AddItem" value="High"/>
+                        </Widget>
                         <Widget type="Widget" skin="" position="184 4 300 50" align="Left Top" name="AnisotropyBox">
                             <Widget type="TextBox" skin="NormalText" position="0 0 300 24" align="Left Top" name="AnisotropyLabel">
                                 <Property key="Caption" value="Anisotropy"/>

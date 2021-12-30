@@ -463,9 +463,13 @@ namespace MWRender
             maxCompGeometrySize = std::max(maxCompGeometrySize, 1.f);
 
             bool debugChunks = Settings::Manager::getBool("debug chunks", "Terrain");
-            mTerrain.reset(new Terrain::QuadTreeWorld(
+
+            mTerrainQuadTreeWorld = new Terrain::QuadTreeWorld(
                 sceneRoot, mRootNode, mResourceSystem, mTerrainStorage.get(), Mask_Terrain, Mask_PreCompile, Mask_Debug,
-                compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, debugChunks));
+                compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, debugChunks);
+
+            mTerrain.reset(mTerrainQuadTreeWorld);
+
             if (Settings::Manager::getBool("object paging", "Terrain"))
             {
                 mObjectPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager()));
@@ -1337,6 +1341,20 @@ namespace MWRender
             {
             	mGroundcoverPaging->clearCache();
                 mGroundcoverWorld->rebuildViews();
+            }
+            else if (it->first == "Terrain" && it->second == "overall terrain quality")
+            {
+                int quality = Settings::Manager::getInt("overall terrain quality", "Terrain");
+                mTerrain->clearAssociatedCaches();
+
+                if (quality == 2)
+                    mTerrainQuadTreeWorld->setTerainQuality(512, 0, 4.0, 0, 1.0); //comp res, comp level, com max size, lod mod, lod factor
+                else if (quality == 1)
+                    mTerrainQuadTreeWorld->setTerainQuality(256, -1, 4.0, -1, 0.75);
+                else if (quality == 0)
+                    mTerrainQuadTreeWorld->setTerainQuality(128, -2, 4.0, -2, 0.5);
+
+                mTerrainQuadTreeWorld->rebuildViews();
             }
             else if (it->first == "Shaders" && it->second == "radial fog")
             {

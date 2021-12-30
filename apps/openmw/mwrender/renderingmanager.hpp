@@ -275,6 +275,7 @@ namespace MWRender
         std::unique_ptr<Water> mWater;
         std::unique_ptr<Terrain::World> mTerrain;
         std::unique_ptr<TerrainStorage> mTerrainStorage;
+        Terrain::QuadTreeWorld *mTerrainQuadTreeWorld;
         std::unique_ptr<ObjectPaging> mObjectPaging;
         std::unique_ptr<Terrain::World> mGroundcoverWorld;
         std::unique_ptr<ObjectPaging> mGroundcoverPaging;

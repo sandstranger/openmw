@@ -251,6 +251,11 @@ namespace MWGui
         textBox->setVisible(false);
 #endif
 
+        MyGUI::ComboBox* terrainQualitySwitch;
+        getWidget(terrainQualitySwitch, "TerrainQualityButton");
+        terrainQualitySwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onTerrainQualitySwitchChanged);
+        terrainQualitySwitch->setIndexSelected(std::min(2, std::max(0, Settings::Manager::getInt("overall terrain quality", "Terrain"))));
+
         if (!Settings::Manager::getBool("enabled", "Groundcover"))
         {
             MyGUI::TextBox *grassDistanceLabel;
@@ -269,7 +274,7 @@ namespace MWGui
         }
 
         if(getenv("OPENMW_SHADERS"))
-	{
+        {
             MyGUI::Button *PPLButton;
             getWidget(PPLButton, "PPLLightingButton");
             PPLButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onButtonRequiringestartClicked);
@@ -455,6 +460,13 @@ namespace MWGui
     {
         unsigned int level = static_cast<unsigned int>(std::min<size_t>(pos, 5));
         Settings::Manager::setInt("reflection detail", "Water", level);
+        apply();
+    }
+
+    void SettingsWindow::onTerrainQualitySwitchChanged(MyGUI::ComboBox* _sender, size_t pos)
+    {
+        unsigned int level = std::min((unsigned int)2, (unsigned int)pos);
+        Settings::Manager::setInt("overall terrain quality", "Terrain", level);
         apply();
     }
 

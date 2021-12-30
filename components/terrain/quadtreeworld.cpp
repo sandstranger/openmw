@@ -12,6 +12,7 @@
 #include <components/sceneutil/positionattitudetransform.hpp>
 #include <components/loadinglistener/reporter.hpp>
 #include <components/resource/resourcesystem.hpp>
+#include <components/settings/settings.hpp>
 
 #include "quadtreenode.hpp"
 #include "storage.hpp"
@@ -607,6 +608,21 @@ void QuadTreeWorld::setViewDistance(float viewDistance)
         return;
     mViewDistance = viewDistance;
     mViewDataMap->rebuildViews();
+}
+
+void QuadTreeWorld::setTerainQuality(int compMapResolution, float compMapLevel, float maxCompGeometrySize, int vertexLodMod, float lodFactor)
+{
+    Settings::Manager::setInt("composite map resolution", "Terrain", compMapResolution);
+    Settings::Manager::setFloat("composite map level", "Terrain", compMapLevel);
+    //Settings::Manager::setFloat("max composite geometry size", "Terrain", maxCompGeometrySize);
+    Settings::Manager::setInt("vertex lod mod", "Terrain", vertexLodMod);
+    Settings::Manager::setFloat("lod factor", "Terrain", lodFactor);
+
+    mChunkManager->setCompositeMapSize(compMapResolution);
+    mChunkManager->setCompositeMapLevel(compMapLevel);
+    //mChunkManager->setMaxCompositeGeometrySize(maxCompGeometrySize);
+    mVertexLodMod = vertexLodMod;
+    mLodFactor = lodFactor;
 }
 
 }

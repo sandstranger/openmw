@@ -36,6 +36,7 @@ namespace Terrain
         void enable(bool enabled) override;
 
         void setViewDistance(float distance) override;
+        void setTerainQuality(int compMapResolution, float compMapLevel, float maxCompGeometrySize, int vertexLodMod, float lodFactor);
 
         void cacheCell(View *view, int x, int y) override {}
         /// @note Not thread safe.
