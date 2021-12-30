@@ -725,7 +725,7 @@
                             </Widget>
                         </Widget>
 
-                        <Widget type="HBox" skin="" position="30 65 350 24">
+                        <Widget type="HBox" skin="" position="30 65 185 24">
                           <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 44 24" align="Left Top" name="LinearLightingButton">
                                 <UserString key="SettingCategory" value="Shaders"/>
                                 <UserString key="SettingName" value="linear lighting"/>

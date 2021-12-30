@@ -270,7 +270,7 @@ if(gl_FragData[0].a != 0.0)
     clampLightingResult(lighting);
 #endif
 
-#if @linearLighting
+#if @linearLighting && !defined(FORCE_OPAQUE)
     gl_FragData[0].xyz *= lighting * vcolLoad(getAmbientColor().xyz);
 #else
     gl_FragData[0].xyz *= lighting;
@@ -298,7 +298,7 @@ if(gl_FragData[0].a != 0.0)
     #endif
 #endif
 
-#if @linearLighting
+#if @linearLighting && !defined(FORCE_OPAQUE)
    float exposure = getExposure(length(colLoad(lcalcDiffuse(0).xyz) + colLoad(gl_LightModel.ambient.xyz)) * 0.5) * exposure;
    gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz, exposure);
 #endif
@@ -314,8 +314,10 @@ if(gl_FragData[0].a != 0.0)
 if(underwaterFog)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
 
-gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0 / (@gamma + gamma - 1.0)));
-
+#if !defined(FORCE_OPAQUE)
+// dont apply gamma to character preview, soft particles bug?
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0 / (@gamma + gamma - 1.0)));
+#endif
 
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 

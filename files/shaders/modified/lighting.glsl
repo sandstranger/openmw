@@ -82,7 +82,7 @@ void doLighting(vec3 viewPos, vec3 viewNormal, out vec3 diffuseLight, out vec3 a
   vec3 ambientOut, diffuseOut;
 	perLightSun(ambientOut, diffuseOut, viewPos, viewNormal);
 
-#if @linearLighting
+#if @linearLighting && !defined(FORCE_OPAQUE)
     ambientLight = ambientOut * (1.0 - interiorb);
 	  vec4 skyDir = vec4(0.0, 0.0, 1.0, 0.0);
 	  skyDir = gl_ModelViewMatrix * skyDir;

@@ -23,14 +23,6 @@ const vec2 nmfader = vec2(7455.0, 8196.0);
 
 uniform int tonemaper;
 
-//const int tonemaper = 0;
-
-//const bool linearLighting = false;
-//const bool Aces = false;
-//const bool Filmic = false;
-
-
-
 #define NONE 0
 #define ACES 1
 #define FILMIC 2
@@ -76,7 +68,7 @@ vec3 SRGBToLinear(vec3 rgb) {
 
 vec3 texLoad(vec3 x)
 {
-#if @linearLighting
+#if @linearLighting && !defined(FORCE_OPAQUE)
     return SRGBToLinear(x);
 #else
     return x;
@@ -93,7 +85,7 @@ vec3 colLoad(vec3 x)
 }
 
 vec3 vcolLoad(vec3 x) {
-#if @linearLighting
+#if @linearLighting && !defined(FORCE_OPAQUE)
     return sqrt(x);
 #else
     return x;
@@ -102,7 +94,7 @@ vec3 vcolLoad(vec3 x) {
 
 #define PI 3.141592653589793238462643383279502884197169
 float Fd_Lambert() {
-#if @linearLighting
+#if @linearLighting && !defined(FORCE_OPAQUE)
     return 1.0 / PI;
 #else
     return 1.0;
