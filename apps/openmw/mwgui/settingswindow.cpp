@@ -256,6 +256,12 @@ namespace MWGui
         terrainQualitySwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onTerrainQualitySwitchChanged);
         terrainQualitySwitch->setIndexSelected(std::min(2, std::max(0, Settings::Manager::getInt("overall terrain quality", "Terrain"))));
 
+        //doesnt work properly hide it for now
+        MyGUI::TextBox *terrainQualityLabel;
+        getWidget(terrainQualityLabel, "TerrainQualityLabel");
+        terrainQualityLabel->setVisible(false)
+        terrainQualitySwitch->setVisible(false)
+
         if (!Settings::Manager::getBool("enabled", "Groundcover"))
         {
             MyGUI::TextBox *grassDistanceLabel;

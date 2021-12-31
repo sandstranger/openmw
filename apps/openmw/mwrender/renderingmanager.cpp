@@ -1350,9 +1350,9 @@ namespace MWRender
                 if (quality == 2)
                     mTerrainQuadTreeWorld->setTerainQuality(512, 0, 4.0, 0, 1.0); //comp res, comp level, com max size, lod mod, lod factor
                 else if (quality == 1)
-                    mTerrainQuadTreeWorld->setTerainQuality(256, -1, 4.0, -1, 0.75);
+                    mTerrainQuadTreeWorld->setTerainQuality(256, -1, 4.0, -1, 1.5);
                 else if (quality == 0)
-                    mTerrainQuadTreeWorld->setTerainQuality(128, -2, 4.0, -2, 0.5);
+                    mTerrainQuadTreeWorld->setTerainQuality(128, -2, 4.0, -2, 2.0);
 
                 mTerrainQuadTreeWorld->rebuildViews();
             }
