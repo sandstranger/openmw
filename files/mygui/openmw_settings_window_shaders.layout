@@ -463,7 +463,7 @@
                             </Widget>
                         </Widget>
 
-                        <Widget type="HBox" skin="" position="4 60 350 24">
+                        <Widget type="HBox" skin="" position="180 60 350 24">
                           <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="UnderwaterFogButton">
                                 <UserString key="SettingCategory" value="Water"/>
                                 <UserString key="SettingName" value="underwater fog"/>
@@ -471,6 +471,17 @@
                             </Widget>
                             <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="UnderwaterFogLabel">
                                 <Property key="Caption" value="Underwater fog"/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="HBox" skin="" position="4 60 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="ReflectionDistanceButton">
+                                <UserString key="SettingCategory" value="Water"/>
+                                <UserString key="SettingName" value="limit reflection distance"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ReflectionDistanceLabel">
+                                <Property key="Caption" value="Limit reflection distance"/>
                             </Widget>
                         </Widget>
 

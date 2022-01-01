@@ -385,4 +385,6 @@ if(fogValue != 1.0)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
     //gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
+
+    if(radialDepth > @reflection_distance.0 && radialDepth < @reflection_distance.0 + 500.0) gl_FragData[0].xyz = vec3(0.0, 0.0, 0.0); //need to figure out minimal safe distance to avoid popping
 }

@@ -87,13 +87,22 @@ namespace MWRender
             return nullptr;
 
         ChunkId id = std::make_tuple(center, size, activeGrid);
+        osg::Vec3f worldCenter = osg::Vec3f(center.x(), center.y(), 0)*ESM::Land::REAL_SIZE;
 
         osg::ref_ptr<osg::Object> obj = mCache->getRefFromObjectCache(id);
         if (obj)
-            return static_cast<osg::Node*>(obj.get());
+        {
+            osg::ref_ptr<osg::Node> node = static_cast<osg::Node*>(obj.get());
+            // need to calculate distance properly, based on view height, rendered chunk height, distance and chunk size
+	    if(((viewPoint - worldCenter).length() + size) < Settings::Manager::getFloat("reflection distance", "Water")) node->setNodeMask(Mask_Static|Mask_ReflectedStatic);
+//            else node->setNodeMask(Mask_Static); //why this causes reflection flickering?
+            return node;
+        }
         else
         {
             osg::ref_ptr<osg::Node> node = createChunk(size, center, activeGrid, viewPoint, compile);
+	    if(((viewPoint - worldCenter).length() + size) < Settings::Manager::getFloat("reflection distance", "Water")) node->setNodeMask(Mask_Static|Mask_ReflectedStatic);
+
             mCache->addEntryToObjectCache(id, node.get());
             return node;
         }

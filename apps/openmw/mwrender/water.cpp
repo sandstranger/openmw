@@ -399,11 +399,14 @@ private:
 
     unsigned int calcNodeMask()
     {
+        bool limitedDistance = Settings::Manager::getBool("limit reflection distance", "Water");
+
         int reflectionDetail = Settings::Manager::getInt("reflection detail", "Water");
         reflectionDetail = std::clamp(reflectionDetail, mInterior ? 2 : 0, 5);
         unsigned int extraMask = 0;
-        if(reflectionDetail >= 1) extraMask |= Mask_Terrain;
-        if(reflectionDetail >= 2) extraMask |= Mask_Static;
+        if(reflectionDetail >= 1) extraMask |= Mask_Terrain; //Here it need to reflect only Mask_ReflectedTerrain, but i cant set it properly
+        if(reflectionDetail >= 2 && limitedDistance) extraMask |= Mask_ReflectedStatic;
+            else if(reflectionDetail >= 2) extraMask |= Mask_Static;
         if(reflectionDetail >= 3) extraMask |= Mask_Effect | Mask_ParticleSystem | Mask_Object;
         if(reflectionDetail >= 4) extraMask |= Mask_Player | Mask_Actor;
         if(reflectionDetail >= 5) extraMask |= Mask_Groundcover;
@@ -686,7 +689,7 @@ void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, R
     defineMap["refraction_enabled"] = std::string(mRefraction ? "1" : "0");
     const auto rippleDetail = std::clamp(Settings::Manager::getInt("rain ripple detail", "Water"), 0, 2);
     defineMap["rain_ripple_detail"] = std::to_string(rippleDetail);
-
+    defineMap["reflection_distance"] = std::to_string(Settings::Manager::getInt("reflection distance", "Water"));
 
     Shader::ShaderManager& shaderMgr = mResourceSystem->getSceneManager()->getShaderManager();
     osg::ref_ptr<osg::Shader> vertexShader(shaderMgr.getShader(shaderPrefix + "water_vertex.glsl", defineMap, osg::Shader::VERTEX));

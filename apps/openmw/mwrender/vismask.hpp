@@ -56,6 +56,10 @@ namespace MWRender
         Mask_Lighting = (1<<19),
 
         Mask_Groundcover = (1<<20),
+
+        Mask_ReflectedStatic = (1<<21),
+
+        Mask_ReflectedTerrain = (1<<22), //dont work yet
     };
 
     // Defines masks to remove when using ToggleWorld command

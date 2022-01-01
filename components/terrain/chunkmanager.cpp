@@ -58,7 +58,14 @@ osg::ref_ptr<osg::Node> ChunkManager::getChunk(float size, const osg::Vec2f& cen
     ChunkId id = std::make_tuple(center, lod, lodFlags);
     osg::ref_ptr<osg::Object> obj = mCache->getRefFromObjectCache(id);
     if (obj)
-        return static_cast<osg::Node*>(obj.get());
+    {
+        osg::ref_ptr<osg::Node> node = static_cast<osg::Node*>(obj.get());
+
+        // important why this dont work? its set to only Mask_Terrain somewhere
+//	if(((viewPoint - worldCenter).length() + size) < Settings::Manager::getFloat("reflection distance", "Water")) node->setNodeMask(MWRender::Mask_Terrain|MWRender::Mask_ReflectedTerrain);
+
+        return node;
+    }
     else
     {
         FindChunkTemplate find;
@@ -66,6 +73,10 @@ osg::ref_ptr<osg::Node> ChunkManager::getChunk(float size, const osg::Vec2f& cen
         mCache->call(find);
         TerrainDrawable* templateGeometry = find.mFoundTemplate ? static_cast<TerrainDrawable*>(find.mFoundTemplate.get()) : nullptr;
         osg::ref_ptr<osg::Node> node = createChunk(size, center, lod, lodFlags, compile, templateGeometry);
+
+        // important why this dont work? its set to only Mask_Terrain somewhere
+//	if(((viewPoint - worldCenter).length() + size) < Settings::Manager::getFloat("reflection distance", "Water")) node->setNodeMask(MWRender::Mask_Terrain|MWRender::Mask_ReflectedTerrain);
+
         mCache->addEntryToObjectCache(id, node.get());
         return node;
     }
