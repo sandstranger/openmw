@@ -3,6 +3,7 @@
 
     Bug #1751: Birthsign abilities increase modified attribute values instead of base ones
     Bug #1930: Followers are still fighting if a target stops combat with a leader
+    Bug #2036: SetStat and ModStat instructions aren't implemented the same way as in Morrowind
     Bug #3246: ESSImporter: Most NPCs are dead on save load
     Bug #3488: AI combat aiming is too slow
     Bug #3514: Editing a reference's position after loading an esp file makes the reference disappear
@@ -91,6 +92,9 @@
     Bug #6451: Weapon summoned from Cast When Used item will have the name "None"
     Bug #6473: Strings from NIF should be parsed only to first null terminator
     Bug #6493: Unlocking owned but not locked or unlocked containers is considered a crime
+    Bug #6517: Rotations for KeyframeData in NIFs should be optional
+    Bug #6519: Effects tooltips for ingredients work incorrectly
+    Bug #6523: Disintegrate Weapon is resisted by Resist Magicka instead of Sanctuary
     Feature #890: OpenMW-CS: Column filtering
     Feature #1465: "Reset" argument for AI functions
     Feature #2554: Modifying an object triggers the instances table to scroll to the corresponding record
