@@ -259,8 +259,8 @@ namespace MWGui
         //doesnt work properly hide it for now
         MyGUI::TextBox *terrainQualityLabel;
         getWidget(terrainQualityLabel, "TerrainQualityLabel");
-        terrainQualityLabel->setVisible(false)
-        terrainQualitySwitch->setVisible(false)
+        terrainQualityLabel->setVisible(false);
+        terrainQualitySwitch->setVisible(false);
 
         if (!Settings::Manager::getBool("enabled", "Groundcover"))
         {
