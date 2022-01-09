@@ -5,6 +5,7 @@
 #include <components/debug/debugging.hpp>
 #include <components/misc/rng.hpp>
 
+#include "mwnavmeshtool/navmeshtool.hpp"
 #include "engine.hpp"
 #include "options.hpp"
 
@@ -215,6 +216,16 @@ int runApplication(int argc, char *argv[])
     Files::ConfigurationManager cfgMgr;
     std::unique_ptr<OMW::Engine> engine;
     engine.reset(new OMW::Engine(cfgMgr));
+
+    if (getenv("OPENMW_GENERATE_NAVMESH_CACHE"))
+    {
+        if(NavMeshTool::runNavMeshTool(argc, argv))
+           Log(Debug::Error) << "runNavMeshTool failed";
+        else
+           Log(Debug::Error) << "runNavMeshTool sucess";
+
+        return 0;
+    }
 
     if (parseOptions(argc, argv, *engine, cfgMgr))
     {
