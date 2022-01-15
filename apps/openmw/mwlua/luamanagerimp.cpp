@@ -6,6 +6,8 @@
 #include <components/esm/esmwriter.hpp>
 #include <components/esm/luascripts.hpp>
 
+#include <components/settings/settings.hpp>
+
 #include <components/lua/utilpackage.hpp>
 
 #include "../mwbase/windowmanager.hpp"
@@ -20,9 +22,10 @@
 namespace MWLua
 {
 
-    LuaManager::LuaManager(const VFS::Manager* vfs) : mLua(vfs, &mConfiguration)
+    LuaManager::LuaManager(const VFS::Manager* vfs, const std::string& libsDir) : mLua(vfs, &mConfiguration), mI18n(vfs, &mLua)
     {
         Log(Debug::Info) << "Lua version: " << LuaUtil::getLuaVersion();
+        mLua.addInternalLibSearchPath(libsDir);
 
         mGlobalSerializer = createUserdataSerializer(false, mWorldView.getObjectRegistry());
         mLocalSerializer = createUserdataSerializer(true, mWorldView.getObjectRegistry());
@@ -46,6 +49,7 @@ namespace MWLua
         context.mIsGlobal = true;
         context.mLuaManager = this;
         context.mLua = &mLua;
+        context.mI18n = &mI18n;
         context.mWorldView = &mWorldView;
         context.mLocalEventQueue = &mLocalEvents;
         context.mGlobalEventQueue = &mGlobalEvents;
@@ -54,6 +58,11 @@ namespace MWLua
         Context localContext = context;
         localContext.mIsGlobal = false;
         localContext.mSerializer = mLocalSerializer.get();
+
+        mI18n.init();
+        std::vector<std::string> preferredLanguages;
+        Misc::StringUtils::split(Settings::Manager::getString("i18n preferred languages", "Lua"), preferredLanguages, ", ");
+        mI18n.setPreferredLanguages(preferredLanguages);
 
         initObjectBindingsForGlobalScripts(context);
         initCellBindingsForGlobalScripts(context);
@@ -104,13 +113,13 @@ namespace MWLua
 
         if (!mWorldView.isPaused())
         {  // Update time and process timers
-            double seconds = mWorldView.getGameTimeInSeconds() + frameDuration;
-            mWorldView.setGameTimeInSeconds(seconds);
-            double hours = mWorldView.getGameTimeInHours();
+            double simulationTime = mWorldView.getSimulationTime() + frameDuration;
+            mWorldView.setSimulationTime(simulationTime);
+            double gameTime = mWorldView.getGameTime();
 
-            mGlobalScripts.processTimers(seconds, hours);
+            mGlobalScripts.processTimers(simulationTime, gameTime);
             for (LocalScripts* scripts : mActiveLocalScripts)
-                scripts->processTimers(seconds, hours);
+                scripts->processTimers(simulationTime, gameTime);
         }
 
         // Receive events
@@ -235,7 +244,10 @@ namespace MWLua
         mPlayer = ptr;
         LocalScripts* localScripts = ptr.getRefData().getLuaScripts();
         if (!localScripts)
+        {
             localScripts = createLocalScripts(ptr, ESM::LuaScriptCfg::sPlayer);
+            localScripts->addAutoStartedScripts();
+        }
         mActiveLocalScripts.insert(localScripts);
         mLocalEngineEvents.push_back({getId(ptr), LocalScripts::OnActive{}});
         mPlayerChanged = true;
@@ -265,7 +277,10 @@ namespace MWLua
         {
             ESM::LuaScriptCfg::Flags flag = getLuaScriptFlag(ptr);
             if (!mConfiguration.getListByFlag(flag).empty())
-                localScripts = createLocalScripts(ptr, flag);  // TODO: put to a queue and apply on next `update()`
+            {
+                localScripts = createLocalScripts(ptr, flag);
+                localScripts->addAutoStartedScripts();  // TODO: put to a queue and apply on next `update()`
+            }
         }
         if (localScripts)
         {
@@ -318,6 +333,7 @@ namespace MWLua
         if (!localScripts)
         {
             localScripts = createLocalScripts(ptr, getLuaScriptFlag(ptr));
+            localScripts->addAutoStartedScripts();
             if (ptr.isInCell() && MWBase::Environment::get().getWorld()->isCellActive(ptr.getCell()))
                 mActiveLocalScripts.insert(localScripts);
         }
@@ -345,7 +361,6 @@ namespace MWLua
         }
         scripts->addPackage("openmw.nearby", mNearbyPackage);
         scripts->setSerializer(mLocalSerializer.get());
-        scripts->addAutoStartedScripts();
 
         MWWorld::RefData& refData = ptr.getRefData();
         refData.setLuaScripts(std::move(scripts));

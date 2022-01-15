@@ -1,6 +1,7 @@
 #include "luabindings.hpp"
 
 #include <components/lua/luastate.hpp>
+#include <components/lua/i18n.hpp>
 #include <components/queries/luabindings.hpp>
 
 #include "../mwbase/environment.hpp"
@@ -21,11 +22,32 @@ namespace MWLua
         return LuaUtil::makeReadOnly(res);
     }
 
+    static void addTimeBindings(sol::table& api, const Context& context, bool global)
+    {
+        api["getSimulationTime"] = [world=context.mWorldView]() { return world->getSimulationTime(); };
+        api["getSimulationTimeScale"] = [world=context.mWorldView]() { return world->getSimulationTimeScale(); };
+        api["getGameTime"] = [world=context.mWorldView]() { return world->getGameTime(); };
+        api["getGameTimeScale"] = [world=context.mWorldView]() { return world->getGameTimeScale(); };
+        api["isWorldPaused"] = [world=context.mWorldView]() { return world->isPaused(); };
+
+        if (!global)
+            return;
+
+        api["setGameTimeScale"] = [world=context.mWorldView](double scale) { world->setGameTimeScale(scale); };
+
+        // TODO: Ability to make game time slower or faster than real time (needed for example for mechanics like VATS)
+        // api["setSimulationTimeScale"] = [](double scale) {};
+
+        // TODO: Ability to pause/resume world from Lua (needed for UI dehardcoding)
+        // api["pause"] = []() {};
+        // api["resume"] = []() {};
+    }
+
     sol::table initCorePackage(const Context& context)
     {
         auto* lua = context.mLua;
         sol::table api(lua->sol(), sol::create);
-        api["API_REVISION"] = 11;
+        api["API_REVISION"] = 13;
         api["quit"] = [lua]()
         {
             Log(Debug::Warning) << "Quit requested by a Lua script.\n" << lua->debugTraceback();
@@ -35,9 +57,7 @@ namespace MWLua
         {
             context.mGlobalEventQueue->push_back({std::move(eventName), LuaUtil::serialize(eventData, context.mSerializer)});
         };
-        api["getGameTimeInSeconds"] = [world=context.mWorldView]() { return world->getGameTimeInSeconds(); };
-        api["getGameTimeInHours"] = [world=context.mWorldView]() { return world->getGameTimeInHours(); };
-        api["isWorldPaused"] = [world=context.mWorldView]() { return world->isPaused(); };
+        addTimeBindings(api, context, false);
         api["OBJECT_TYPE"] = definitionList(*lua,
         {
             "Activator", "Armor", "Book", "Clothing", "Creature", "Door", "Ingredient",
@@ -64,6 +84,7 @@ namespace MWLua
             {"CarriedLeft", MWWorld::InventoryStore::Slot_CarriedLeft},
             {"Ammunition", MWWorld::InventoryStore::Slot_Ammunition}
         }));
+        api["i18n"] = [i18n=context.mI18n](const std::string& context) { return i18n->getContext(context); };
         return LuaUtil::makeReadOnly(api);
     }
 
@@ -71,6 +92,7 @@ namespace MWLua
     {
         sol::table api(context.mLua->sol(), sol::create);
         WorldView* worldView = context.mWorldView;
+        addTimeBindings(api, context, true);
         api["getCellByName"] = [worldView=context.mWorldView](const std::string& name) -> sol::optional<GCell>
         {
             MWWorld::CellStore* cell = worldView->findNamedCell(name);

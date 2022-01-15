@@ -1,6 +1,7 @@
 #include "advancedpage.hpp"
 
 #include <array>
+#include <string>
 
 #include <components/config/gamesettings.hpp>
 #include <QFileDialog>
@@ -20,13 +21,13 @@ Launcher::AdvancedPage::AdvancedPage(Config::GameSettings &gameSettings, QWidget
     setObjectName ("AdvancedPage");
     setupUi(this);
 
-    for(const char * name : Launcher::enumerateOpenALDevices())
+    for(const std::string& name : Launcher::enumerateOpenALDevices())
     {
-        audioDeviceSelectorComboBox->addItem(QString::fromUtf8(name), QString::fromUtf8(name));
+        audioDeviceSelectorComboBox->addItem(QString::fromStdString(name), QString::fromStdString(name));
     }
-    for(const char * name : Launcher::enumerateOpenALDevicesHrtf())
+    for(const std::string& name : Launcher::enumerateOpenALDevicesHrtf())
     {
-        hrtfProfileSelectorComboBox->addItem(QString::fromUtf8(name), QString::fromUtf8(name));
+        hrtfProfileSelectorComboBox->addItem(QString::fromStdString(name), QString::fromStdString(name));
     }
 
     loadSettings();
@@ -142,6 +143,8 @@ bool Launcher::AdvancedPage::loadSettings()
         loadSettingBool(activeGridObjectPagingCheckBox, "object paging active grid", "Terrain");
         viewingDistanceComboBox->setValue(convertToCells(Settings::Manager::getInt("viewing distance", "Camera")));
         objectPagingMinSizeComboBox->setValue(Settings::Manager::getDouble("object paging min size", "Terrain"));
+
+        loadSettingBool(nightDaySwitchesCheckBox, "day night switches", "Game");
     }
 
     // Audio
@@ -297,6 +300,8 @@ void Launcher::AdvancedPage::saveSettings()
         double objectPagingMinSize = objectPagingMinSizeComboBox->value();
         if (objectPagingMinSize != Settings::Manager::getDouble("object paging min size", "Terrain"))
             Settings::Manager::setDouble("object paging min size", "Terrain", objectPagingMinSize);
+
+        saveSettingBool(nightDaySwitchesCheckBox, "day night switches", "Game");
     }
     
     // Audio
