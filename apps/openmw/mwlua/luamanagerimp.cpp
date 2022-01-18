@@ -1,5 +1,7 @@
 #include "luamanagerimp.hpp"
 
+#include <filesystem>
+
 #include <components/debug/debuglog.hpp>
 
 #include <components/esm/esmreader.hpp>
@@ -9,6 +11,8 @@
 #include <components/settings/settings.hpp>
 
 #include <components/lua/utilpackage.hpp>
+
+#include <components/lua_ui/util.hpp>
 
 #include "../mwbase/windowmanager.hpp"
 
@@ -69,6 +73,7 @@ namespace MWLua
         initObjectBindingsForLocalScripts(localContext);
         initCellBindingsForLocalScripts(localContext);
         LocalScripts::initializeSelfPackage(localContext);
+        LuaUtil::LuaStorage::initLuaBindings(mLua.sol());
 
         mLua.addCommonPackage("openmw.async", getAsyncPackageInitializer(context));
         mLua.addCommonPackage("openmw.util", LuaUtil::initUtilPackage(mLua.sol()));
@@ -76,15 +81,35 @@ namespace MWLua
         mLua.addCommonPackage("openmw.query", initQueryPackage(context));
         mGlobalScripts.addPackage("openmw.world", initWorldPackage(context));
         mGlobalScripts.addPackage("openmw.settings", initGlobalSettingsPackage(context));
+        mGlobalScripts.addPackage("openmw.storage", initGlobalStoragePackage(context, &mGlobalStorage));
         mCameraPackage = initCameraPackage(localContext);
         mUserInterfacePackage = initUserInterfacePackage(localContext);
         mInputPackage = initInputPackage(localContext);
         mNearbyPackage = initNearbyPackage(localContext);
-        mLocalSettingsPackage = initLocalSettingsPackage(localContext);
+        mLocalSettingsPackage = initGlobalSettingsPackage(localContext);
         mPlayerSettingsPackage = initPlayerSettingsPackage(localContext);
+        mLocalStoragePackage = initLocalStoragePackage(localContext, &mGlobalStorage);
+        mPlayerStoragePackage = initPlayerStoragePackage(localContext, &mGlobalStorage, &mPlayerStorage);
 
         initConfiguration();
         mInitialized = true;
+    }
+
+    void LuaManager::loadPermanentStorage(const std::string& userConfigPath)
+    {
+        auto globalPath = std::filesystem::path(userConfigPath) / "global_storage.bin";
+        auto playerPath = std::filesystem::path(userConfigPath) / "player_storage.bin";
+        if (std::filesystem::exists(globalPath))
+            mGlobalStorage.load(globalPath.string());
+        if (std::filesystem::exists(playerPath))
+            mPlayerStorage.load(playerPath.string());
+    }
+
+    void LuaManager::savePermanentStorage(const std::string& userConfigPath)
+    {
+        std::filesystem::path confDir(userConfigPath);
+        mGlobalStorage.save((confDir / "global_storage.bin").string());
+        mPlayerStorage.save((confDir / "player_storage.bin").string());
     }
 
     void LuaManager::update()
@@ -214,6 +239,7 @@ namespace MWLua
 
     void LuaManager::clear()
     {
+        LuaUi::clearUserInterface();
         mActiveLocalScripts.clear();
         mLocalEvents.clear();
         mGlobalEvents.clear();
@@ -231,7 +257,8 @@ namespace MWLua
             mPlayer.getRefData().setLuaScripts(nullptr);
             mPlayer = MWWorld::Ptr();
         }
-        clearUserInterface();
+        mGlobalStorage.clearTemporary();
+        mPlayerStorage.clearTemporary();
     }
 
     void LuaManager::setupPlayer(const MWWorld::Ptr& ptr)
@@ -353,11 +380,13 @@ namespace MWLua
             scripts->addPackage("openmw.camera", mCameraPackage);
             scripts->addPackage("openmw.input", mInputPackage);
             scripts->addPackage("openmw.settings", mPlayerSettingsPackage);
+            scripts->addPackage("openmw.storage", mPlayerStoragePackage);
         }
         else
         {
             scripts = std::make_shared<LocalScripts>(&mLua, LObject(getId(ptr), mWorldView.getObjectRegistry()), flag);
             scripts->addPackage("openmw.settings", mLocalSettingsPackage);
+            scripts->addPackage("openmw.storage", mLocalStoragePackage);
         }
         scripts->addPackage("openmw.nearby", mNearbyPackage);
         scripts->setSerializer(mLocalSerializer.get());
@@ -427,6 +456,8 @@ namespace MWLua
     void LuaManager::reloadAllScripts()
     {
         Log(Debug::Info) << "Reload Lua";
+
+        LuaUi::clearUserInterface(); 
         mLua.dropScriptCache();
         initConfiguration();
 
@@ -443,7 +474,6 @@ namespace MWLua
                 continue;
             ESM::LuaScripts data;
             scripts->save(data);
-            clearUserInterface();
             scripts->load(data);
         }
         for (LocalScripts* scripts : mActiveLocalScripts)

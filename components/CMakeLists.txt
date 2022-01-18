@@ -29,7 +29,7 @@ endif (GIT_CHECKOUT)
 # source files
 
 add_component_dir (lua
-    luastate scriptscontainer utilpackage serialization configuration i18n
+    luastate scriptscontainer utilpackage serialization configuration i18n storage
     )
 
 add_component_dir (settings
@@ -93,7 +93,7 @@ add_component_dir (esmterrain
 
 add_component_dir (misc
     constants utf8stream stringops resourcehelpers rng messageformatparser weakcache thread
-    compression osguservalues errorMarker
+    compression osguservalues errorMarker color
     )
 
 add_component_dir (debug
@@ -160,9 +160,9 @@ add_component_dir (fallback
 add_component_dir (queries
     query luabindings
     )
-
+    
 add_component_dir (lua_ui
-    widget widgetlist element layers content
+    widget element util layers content
     text textedit window
     )
 

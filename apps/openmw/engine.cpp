@@ -886,6 +886,7 @@ void OMW::Engine::prepareEngine (Settings::Manager & settings)
     }
 
     mLuaManager->init();
+    mLuaManager->loadPermanentStorage(mCfgMgr.getUserConfigPath().string());
 }
 
 class OMW::Engine::LuaWorker
@@ -1108,6 +1109,7 @@ void OMW::Engine::go()
 
     // Save user settings
     settings.saveUser(settingspath);
+    mLuaManager->savePermanentStorage(mCfgMgr.getUserConfigPath().string());
 
     Log(Debug::Info) << "Quitting peacefully.";
 }
