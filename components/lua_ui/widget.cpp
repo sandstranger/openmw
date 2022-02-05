@@ -14,24 +14,18 @@ namespace LuaUi
         , mAbsoluteCoord()
         , mRelativeCoord()
         , mAnchor()
-        , mLua{ nullptr }
-        , mWidget{ nullptr }
-        , mLayout{ sol::nil }
+        , mLua(nullptr)
+        , mWidget(nullptr)
+        , mSlot(this)
+        , mLayout(sol::nil)
+        , mParent(nullptr)
     {}
-
-    void WidgetExtension::triggerEvent(std::string_view name, const sol::object& argument = sol::nil) const
-    {
-        auto it = mCallbacks.find(name);
-        if (it != mCallbacks.end())
-            it->second(argument, mLayout);
-    }
 
     void WidgetExtension::initialize(lua_State* lua, MyGUI::Widget* self)
     {
         mLua = lua;
         mWidget = self;
-
-        mWidget->eventChangeCoord += MyGUI::newDelegate(this, &WidgetExtension::updateChildrenCoord);
+        updateTemplate();
 
         initialize();
     }
@@ -71,8 +65,59 @@ namespace LuaUi
         mWidget->eventKeySetFocus.clear();
         mWidget->eventKeyLostFocus.clear();
 
-        for (WidgetExtension* child : mContent)
-            child->deinitialize();
+        mOnCoordChange.reset();
+
+        for (WidgetExtension* w : mChildren)
+            w->deinitialize();
+        for (WidgetExtension* w : mTemplateChildren)
+            w->deinitialize();
+    }
+
+    void WidgetExtension::attach(WidgetExtension* ext)
+    {
+        ext->mParent = this;
+        ext->widget()->attachToWidget(mSlot->widget());
+        ext->updateCoord();
+    }
+
+    WidgetExtension* WidgetExtension::findFirst(std::string_view flagName)
+    {
+        if (externalValue(flagName, false))
+            return this;
+        for (WidgetExtension* w : mChildren)
+        {
+            WidgetExtension* result = w->findFirst(flagName);
+            if (result != nullptr)
+                return result;
+        }
+        return nullptr;
+    }
+
+    void WidgetExtension::findAll(std::string_view flagName, std::vector<WidgetExtension*>& result)
+    {
+        if (externalValue(flagName, false))
+            result.push_back(this);
+        for (WidgetExtension* w : mChildren)
+            w->findAll(flagName, result);
+    }
+
+    WidgetExtension* WidgetExtension::findFirstInTemplates(std::string_view flagName)
+    {
+        for (WidgetExtension* w : mTemplateChildren)
+        {
+            WidgetExtension* result = w->findFirst(flagName);
+            if (result != nullptr)
+                return result;
+        }
+        return nullptr;
+    }
+
+    std::vector<WidgetExtension*> WidgetExtension::findAllInTemplates(std::string_view flagName)
+    {
+        std::vector<WidgetExtension*> result;
+        for (WidgetExtension* w : mTemplateChildren)
+            w->findAll(flagName, result);
+        return result;
     }
 
     sol::table WidgetExtension::makeTable() const
@@ -91,9 +136,9 @@ namespace LuaUi
 
     sol::object WidgetExtension::mouseEvent(int left, int top, MyGUI::MouseButton button = MyGUI::MouseButton::None) const
     {
-        auto position = osg::Vec2f(left, top);
-        auto absolutePosition = mWidget->getAbsolutePosition();
-        auto offset = position - osg::Vec2f(absolutePosition.left, absolutePosition.top);
+        osg::Vec2f position(left, top);
+        MyGUI::IntPoint absolutePosition = mWidget->getAbsolutePosition();
+        osg::Vec2f offset = position - osg::Vec2f(absolutePosition.left, absolutePosition.top);
         sol::table table = makeTable();
         table["position"] = position;
         table["offset"] = offset;
@@ -101,31 +146,37 @@ namespace LuaUi
         return table;
     }
 
-    void WidgetExtension::addChild(WidgetExtension* ext)
+    void WidgetExtension::setChildren(const std::vector<WidgetExtension*>& children)
     {
-        mContent.push_back(ext);
+        mChildren.resize(children.size());
+        for (size_t i = 0; i < children.size(); ++i)
+        {
+            mChildren[i] = children[i];
+            attach(mChildren[i]);
+        }
+        updateChildren();
     }
 
-    WidgetExtension* WidgetExtension::childAt(size_t index) const
+    void WidgetExtension::setTemplateChildren(const std::vector<WidgetExtension*>& children)
     {
-        return mContent.at(index);
+        mTemplateChildren.resize(children.size());
+        for (size_t i = 0; i < children.size(); ++i)
+        {
+            mTemplateChildren[i] = children[i];
+            mTemplateChildren[i]->widget()->attachToWidget(mWidget);
+        }
+        updateTemplate();
     }
 
-    void WidgetExtension::assignChild(size_t index, WidgetExtension* ext)
+    void WidgetExtension::updateTemplate()
     {
-        if (mContent.size() <= index)
-            throw std::logic_error("Invalid widget child index");
-        mContent[index] = ext;
-    }
-
-    WidgetExtension* WidgetExtension::eraseChild(size_t index)
-    {
-        if (mContent.size() <= index)
-            throw std::logic_error("Invalid widget child index");
-        auto it = mContent.begin() + index;
-        WidgetExtension* ext = *it;
-        mContent.erase(it);
-        return ext;
+        WidgetExtension* oldSlot = mSlot;
+        mSlot = findFirstInTemplates("slot");
+        if (mSlot == nullptr)
+            mSlot = this;
+        if (mSlot != oldSlot)
+            for (WidgetExtension* w : mChildren)
+                attach(w);
     }
 
     void WidgetExtension::setCallback(const std::string& name, const LuaUtil::Callback& callback)
@@ -148,46 +199,75 @@ namespace LuaUi
         mForcedCoord = offset;
     }
 
+    void WidgetExtension::setForcedSize(const MyGUI::IntSize& size)
+    {
+        mForcedCoord = size;
+    }
+
     void WidgetExtension::updateCoord()
     {
-        mWidget->setCoord(calculateCoord());
+        MyGUI::IntCoord oldCoord = mWidget->getCoord();
+        MyGUI::IntCoord newCoord = calculateCoord();
+
+        if (oldCoord != newCoord)
+            mWidget->setCoord(newCoord);
+        if (oldCoord.size() != newCoord.size())
+            updateChildrenCoord();
+        if (oldCoord != newCoord && mOnCoordChange.has_value())
+            mOnCoordChange.value()(this, newCoord);
     }
 
     void WidgetExtension::setProperties(sol::object props)
     {
-        mAbsoluteCoord = parseProperty(props, "position", MyGUI::IntPoint());
-        mAbsoluteCoord = parseProperty(props, "size", MyGUI::IntSize());
-        mRelativeCoord = parseProperty(props, "relativePosition", MyGUI::FloatPoint());
-        mRelativeCoord = parseProperty(props, "relativeSize", MyGUI::FloatSize());
-        mAnchor = parseProperty(props, "anchor", MyGUI::FloatSize());
-        mWidget->setVisible(parseProperty(props, "visible", true));
-
+        mProperties = props;
+        updateProperties();
         updateCoord();
     }
 
-    void WidgetExtension::updateChildrenCoord(MyGUI::Widget* _widget)
+    void WidgetExtension::updateProperties()
     {
-        for (auto& child : mContent)
-            child->updateCoord();
+        mAbsoluteCoord = propertyValue("position", MyGUI::IntPoint());
+        mAbsoluteCoord = propertyValue("size", MyGUI::IntSize());
+        mRelativeCoord = propertyValue("relativePosition", MyGUI::FloatPoint());
+        mRelativeCoord = propertyValue("relativeSize", MyGUI::FloatSize());
+        mAnchor = propertyValue("anchor", MyGUI::FloatSize());
+        mWidget->setVisible(propertyValue("visible", true));
+        mWidget->setPointer(propertyValue("pointer", std::string("arrow")));
+    }
+
+    void WidgetExtension::updateChildrenCoord()
+    {
+        for (WidgetExtension* w : mTemplateChildren)
+            w->updateCoord();
+        for (WidgetExtension* w : mChildren)
+            w->updateCoord();
+    }
+
+    MyGUI::IntSize WidgetExtension::parentSize()
+    {
+        if (mParent)
+            return mParent->childScalingSize();
+        else
+            return widget()->getParentSize();
     }
 
     MyGUI::IntSize WidgetExtension::calculateSize()
     {
-        const MyGUI::IntSize& parentSize = mWidget->getParentSize();
+        MyGUI::IntSize pSize = parentSize();
         MyGUI::IntSize newSize;
         newSize = mAbsoluteCoord.size() + mForcedCoord.size();
-        newSize.width += mRelativeCoord.width * parentSize.width;
-        newSize.height += mRelativeCoord.height * parentSize.height;
+        newSize.width += mRelativeCoord.width * pSize.width;
+        newSize.height += mRelativeCoord.height * pSize.height;
         return newSize;
     }
 
     MyGUI::IntPoint WidgetExtension::calculatePosition(const MyGUI::IntSize& size)
     {
-        const MyGUI::IntSize& parentSize = mWidget->getParentSize();
+        MyGUI::IntSize pSize = parentSize();
         MyGUI::IntPoint newPosition;
         newPosition = mAbsoluteCoord.point() + mForcedCoord.point();
-        newPosition.left += mRelativeCoord.left * parentSize.width - mAnchor.width * size.width;
-        newPosition.top += mRelativeCoord.top * parentSize.height - mAnchor.height * size.height;
+        newPosition.left += mRelativeCoord.left * pSize.width - mAnchor.width * size.width;
+        newPosition.top += mRelativeCoord.top * pSize.height - mAnchor.height * size.height;
         return newPosition;
     }
 
@@ -197,6 +277,18 @@ namespace LuaUi
         newCoord = calculateSize();
         newCoord = calculatePosition(newCoord.size());
         return newCoord;
+    }
+
+    MyGUI::IntSize WidgetExtension::childScalingSize()
+    {
+        return widget()->getSize();
+    }
+
+    void WidgetExtension::triggerEvent(std::string_view name, const sol::object& argument = sol::nil) const
+    {
+        auto it = mCallbacks.find(name);
+        if (it != mCallbacks.end())
+            it->second(argument, mLayout);
     }
 
     void WidgetExtension::keyPress(MyGUI::Widget*, MyGUI::KeyCode code, MyGUI::Char ch)

@@ -3,8 +3,8 @@
 #include <boost/filesystem/fstream.hpp>
 
 #include <components/files/configurationmanager.hpp>
-#include <components/esm/esmreader.hpp>
-#include <components/esm/esmwriter.hpp>
+#include <components/esm3/esmreader.hpp>
+#include <components/esm3/esmwriter.hpp>
 #include <components/loadinglistener/loadinglistener.hpp>
 #include <components/misc/stringops.hpp>
 
@@ -58,6 +58,7 @@ struct ContentFileTest : public ::testing::Test
         ("content", boost::program_options::value<std::vector<std::string>>()->default_value(std::vector<std::string>(), "")
             ->multitoken()->composing(), "content file(s): esm/esp, or omwgame/omwaddon")
         ("data-local", boost::program_options::value<Files::MaybeQuotedPathContainer::value_type>()->default_value(Files::MaybeQuotedPathContainer::value_type(), ""));
+        Files::ConfigurationManager::addCommonOptions(desc);
 
         boost::program_options::notify(variables);
 

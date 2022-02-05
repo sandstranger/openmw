@@ -4,8 +4,8 @@
 
 #include <components/debug/debuglog.hpp>
 
-#include <components/esm/esmreader.hpp>
-#include <components/esm/esmwriter.hpp>
+#include <components/esm3/esmreader.hpp>
+#include <components/esm3/esmwriter.hpp>
 #include <components/esm/luascripts.hpp>
 
 #include <components/settings/settings.hpp>
@@ -200,7 +200,13 @@ namespace MWLua
         }
 
         for (ObjectId id : mActorAddedEvents)
-            mGlobalScripts.actorActive(GObject(id, objectRegistry));
+        {
+            GObject obj(id, objectRegistry);
+            if (obj.isValid())
+                mGlobalScripts.actorActive(obj);
+            else
+                Log(Debug::Verbose) << "Can not call onActorActive engine handler: object" << idToString(id) << " is already removed";
+        }
         mActorAddedEvents.clear();
 
         if (!mWorldView.isPaused())
@@ -346,6 +352,11 @@ namespace MWLua
         mLocalEngineEvents.push_back({getId(toPtr), LocalScripts::OnConsume{std::string(recordId)}});
     }
 
+    void LuaManager::objectActivated(const MWWorld::Ptr& object, const MWWorld::Ptr& actor)
+    {
+        mLocalEngineEvents.push_back({getId(object), LocalScripts::OnActivated{LObject(getId(actor), mWorldView.getObjectRegistry())}});
+    }
+
     MWBase::LuaManager::ActorControls* LuaManager::getActorControls(const MWWorld::Ptr& ptr) const
     {
         LocalScripts* localScripts = ptr.getRefData().getLuaScripts();
@@ -374,7 +385,7 @@ namespace MWLua
         std::shared_ptr<LocalScripts> scripts;
         if (flag == ESM::LuaScriptCfg::sPlayer)
         {
-            assert(ptr.getCellRef().getRefIdRef() == "player");
+            assert(ptr.getCellRef().getRefId() == "player");
             scripts = std::make_shared<PlayerScripts>(&mLua, LObject(getId(ptr), mWorldView.getObjectRegistry()));
             scripts->addPackage("openmw.ui", mUserInterfacePackage);
             scripts->addPackage("openmw.camera", mCameraPackage);

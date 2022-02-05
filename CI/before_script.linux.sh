@@ -52,6 +52,18 @@ if [[ "${CMAKE_BUILD_TYPE}" ]]; then
     )
 fi
 
+if [[ "${CMAKE_CXX_FLAGS_DEBUG}" ]]; then
+    CMAKE_CONF_OPTS+=(
+        -DCMAKE_CXX_FLAGS_DEBUG="${CMAKE_CXX_FLAGS_DEBUG}"
+    )
+fi
+
+if [[ "${CMAKE_EXE_LINKER_FLAGS}" ]]; then
+    CMAKE_CONF_OPTS+=(
+        -DCMAKE_EXE_LINKER_FLAGS="${CMAKE_EXE_LINKER_FLAGS}"
+    )
+fi
+
 mkdir -p build
 cd build
 

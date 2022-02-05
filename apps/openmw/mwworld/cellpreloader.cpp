@@ -13,7 +13,7 @@
 #include <components/misc/stringops.hpp>
 #include <components/terrain/world.hpp>
 #include <components/settings/settings.hpp>
-#include <components/esm/loadcell.hpp>
+#include <components/esm3/loadcell.hpp>
 #include <components/loadinglistener/reporter.hpp>
 
 #include "../mwrender/landmanager.hpp"

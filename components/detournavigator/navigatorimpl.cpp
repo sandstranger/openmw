@@ -3,8 +3,9 @@
 #include "settingsutils.hpp"
 
 #include <components/debug/debuglog.hpp>
-#include <components/esm/loadpgrd.hpp>
+#include <components/esm3/loadpgrd.hpp>
 #include <components/misc/coordinateconverter.hpp>
+#include <components/misc/convert.hpp>
 
 namespace DetourNavigator
 {
@@ -35,6 +36,11 @@ namespace DetourNavigator
     void NavigatorImpl::setWorldspace(std::string_view worldspace)
     {
         mNavMeshManager.setWorldspace(worldspace);
+    }
+
+    void NavigatorImpl::updateBounds(const osg::Vec3f& playerPosition)
+    {
+        mNavMeshManager.updateBounds(playerPosition);
     }
 
     bool NavigatorImpl::addObject(const ObjectId id, const ObjectShapes& shapes, const btTransform& transform)
@@ -157,6 +163,7 @@ namespace DetourNavigator
         const TilePosition tilePosition = getTilePosition(mSettings.mRecast, toNavMeshCoordinates(mSettings.mRecast, playerPosition));
         if (mLastPlayerPosition.has_value() && *mLastPlayerPosition == tilePosition)
             return;
+        mNavMeshManager.updateBounds(playerPosition);
         update(playerPosition);
         mLastPlayerPosition = tilePosition;
     }

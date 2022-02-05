@@ -4,11 +4,11 @@
 
 #include <components/debug/debuglog.hpp>
 
-#include <components/esm/esmreader.hpp>
-#include <components/esm/esmwriter.hpp>
-#include <components/esm/player.hpp>
+#include <components/esm3/esmreader.hpp>
+#include <components/esm3/esmwriter.hpp>
+#include <components/esm3/player.hpp>
 #include <components/esm/defs.hpp>
-#include <components/esm/loadbsgn.hpp>
+#include <components/esm3/loadbsgn.hpp>
 
 #include "../mwworld/esmstore.hpp"
 #include "../mwworld/inventorystore.hpp"
@@ -25,7 +25,6 @@
 
 #include "cellstore.hpp"
 #include "class.hpp"
-#include "esmloader.hpp"
 #include "ptr.hpp"
 
 namespace MWWorld
@@ -40,7 +39,6 @@ namespace MWWorld
         mTeleported(false),
         mCurrentCrimeId(-1),
         mPaidCrimeId(-1),
-        mAttackingOrSpell(false),
         mJumping(false)
     {
         ESM::CellRef cellRef;
@@ -267,12 +265,7 @@ namespace MWWorld
 
     void Player::setAttackingOrSpell(bool attackingOrSpell)
     {
-        mAttackingOrSpell = attackingOrSpell;
-    }
-
-    bool Player::getAttackingOrSpell() const
-    {
-        return mAttackingOrSpell;
+        getPlayer().getClass().getCreatureStats(getPlayer()).setAttackingOrSpell(attackingOrSpell);
     }
 
     void Player::setJumping(bool jumping)
@@ -315,7 +308,6 @@ namespace MWWorld
         mAutoMove = false;
         mForwardBackward = 0;
         mTeleported = false;
-        mAttackingOrSpell = false;
         mJumping = false;
         mCurrentCrimeId = -1;
         mPaidCrimeId = -1;

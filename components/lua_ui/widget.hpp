@@ -2,6 +2,7 @@
 #define OPENMW_LUAUI_WIDGET
 
 #include <map>
+#include <functional>
 
 #include <MyGUI_Widget.h>
 #include <sol/sol.hpp>
@@ -26,34 +27,65 @@ namespace LuaUi
         // must be called after before destroying the underlying MyGUI::Widget
         virtual void deinitialize();
 
-        void addChild(WidgetExtension* ext);
-        WidgetExtension* childAt(size_t index) const;
-        void assignChild(size_t index, WidgetExtension* ext);
-        WidgetExtension* eraseChild(size_t index);
-        size_t childCount() const { return mContent.size(); }
-
         MyGUI::Widget* widget() const { return mWidget; }
+
+        const std::vector<WidgetExtension*>& children() { return mChildren; }
+        void setChildren(const std::vector<WidgetExtension*>&);
+
+        const std::vector<WidgetExtension*>& templateChildren() { return mTemplateChildren; }
+        void setTemplateChildren(const std::vector<WidgetExtension*>&);
 
         void setCallback(const std::string&, const LuaUtil::Callback&);
         void clearCallbacks();
 
-        virtual void setProperties(sol::object);
+        void setProperties(sol::object);
+        void setTemplateProperties(sol::object props) { mTemplateProperties = props; }
+
+        void setExternal(sol::object external) { mExternal = external; }
 
         MyGUI::IntCoord forcedCoord();
         void setForcedCoord(const MyGUI::IntCoord& offset);
+        void setForcedSize(const MyGUI::IntSize& size);
         void updateCoord();
 
+        const sol::table& getLayout() { return mLayout; }
         void setLayout(const sol::table& layout) { mLayout = layout; }
+
+        template <typename T>
+        T externalValue(std::string_view name, const T& defaultValue)
+        {
+            return parseExternal(mExternal, name, defaultValue);
+        }
+
+        void onCoordChange(const std::optional<std::function<void(WidgetExtension*, MyGUI::IntCoord)>>& callback)
+        {
+            mOnCoordChange = callback;
+        }
 
     protected:
         virtual void initialize();
         sol::table makeTable() const;
         sol::object keyEvent(MyGUI::KeyCode) const;
         sol::object mouseEvent(int left, int top, MyGUI::MouseButton button) const;
-        
+
+        MyGUI::IntSize parentSize();
         virtual MyGUI::IntSize calculateSize();
         virtual MyGUI::IntPoint calculatePosition(const MyGUI::IntSize& size);
         MyGUI::IntCoord calculateCoord();
+        virtual MyGUI::IntSize childScalingSize();
+
+        template<typename T>
+        T propertyValue(std::string_view name, const T& defaultValue)
+        {
+            return parseProperty(mProperties, mTemplateProperties, name, defaultValue);
+        }
+
+        WidgetExtension* findFirstInTemplates(std::string_view flagName);
+        std::vector<WidgetExtension*> findAllInTemplates(std::string_view flagName);
+
+        virtual void updateTemplate();
+        virtual void updateProperties();
+        virtual void updateChildren() {};
 
         void triggerEvent(std::string_view name, const sol::object& argument) const;
 
@@ -71,12 +103,22 @@ namespace LuaUi
         // use lua_State* instead of sol::state_view because MyGUI requires a default constructor
         lua_State* mLua;
         MyGUI::Widget* mWidget;
-
-        std::vector<WidgetExtension*> mContent;
+        std::vector<WidgetExtension*> mChildren;
+        std::vector<WidgetExtension*> mTemplateChildren;
+        WidgetExtension* mSlot;
         std::map<std::string, LuaUtil::Callback, std::less<>> mCallbacks;
         sol::table mLayout;
+        sol::object mProperties;
+        sol::object mTemplateProperties;
+        sol::object mExternal;
+        WidgetExtension* mParent;
 
-        void updateChildrenCoord(MyGUI::Widget*);
+        void attach(WidgetExtension* ext);
+
+        WidgetExtension* findFirst(std::string_view name);
+        void findAll(std::string_view flagName, std::vector<WidgetExtension*>& result);
+
+        void updateChildrenCoord();
 
         void keyPress(MyGUI::Widget*, MyGUI::KeyCode, MyGUI::Char);
         void keyRelease(MyGUI::Widget*, MyGUI::KeyCode);
@@ -88,6 +130,8 @@ namespace LuaUi
         void mouseRelease(MyGUI::Widget*, int, int, MyGUI::MouseButton);
         void focusGain(MyGUI::Widget*, MyGUI::Widget*);
         void focusLoss(MyGUI::Widget*, MyGUI::Widget*);
+
+        std::optional<std::function<void(WidgetExtension*, MyGUI::IntCoord)>> mOnCoordChange;
     };
 
     class LuaWidget : public MyGUI::Widget, public WidgetExtension

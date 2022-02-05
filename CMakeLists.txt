@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(GNUInstallDirs)
+
 # for link time optimization, remove if cmake version is >= 3.9
 if(POLICY CMP0069) # LTO
   cmake_policy(SET CMP0069 NEW)
@@ -152,6 +154,8 @@ option(RECASTNAVIGATION_STATIC "Build recastnavigation static libraries" ${_reca
 
 option(OPENMW_USE_SYSTEM_SQLITE3 "Use system provided SQLite3 library" ON)
 
+option(OPENMW_USE_SYSTEM_BENCHMARK "Use system Google Benchmark library." OFF)
+
 option(OPENMW_UNITY_BUILD "Use fewer compilation units to speed up compile time" FALSE)
 option(OPENMW_LTO_BUILD "Build OpenMW with Link-Time Optimization (Needs ~2GB of RAM)" OFF)
 
@@ -181,14 +185,13 @@ endif()
 
 # Set up common paths
 if (APPLE)
-    set(MORROWIND_DATA_FILES "./data" CACHE PATH "location of Morrowind data files")
     set(OPENMW_RESOURCE_FILES "../Resources/resources" CACHE PATH "location of OpenMW resources files")
 elseif(UNIX)
     # Paths
     SET(BINDIR "${CMAKE_INSTALL_PREFIX}/bin" CACHE PATH "Where to install binaries")
     SET(LIBDIR "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}" CACHE PATH "Where to install libraries")
-    SET(DATAROOTDIR "${CMAKE_INSTALL_PREFIX}/share" CACHE PATH "Sets the root of data directories to a non-default location")
-    SET(GLOBAL_DATA_PATH "${DATAROOTDIR}/games/" CACHE PATH "Set data path prefix")
+    SET(DATAROOTDIR "${CMAKE_INSTALL_DATAROOTDIR}" CACHE PATH "Sets the root of data directories to a non-default location")
+    SET(GLOBAL_DATA_PATH "${CMAKE_INSTALL_PREFIX}/share/games/" CACHE PATH "Set data path prefix")
     SET(DATADIR "${GLOBAL_DATA_PATH}/openmw" CACHE PATH "Sets the openmw data directories to a non-default location")
     SET(ICONDIR "${DATAROOTDIR}/pixmaps" CACHE PATH "Set icon dir")
     SET(LICDIR "${DATAROOTDIR}/licenses/openmw" CACHE PATH "Sets the openmw license directory to a non-default location.")
@@ -199,10 +202,8 @@ elseif(UNIX)
     ENDIF()
     SET(SYSCONFDIR "${GLOBAL_CONFIG_PATH}/openmw" CACHE PATH "Set config dir")
 
-    set(MORROWIND_DATA_FILES "${DATADIR}/data" CACHE PATH "location of Morrowind data files")
     set(OPENMW_RESOURCE_FILES "${DATADIR}/resources" CACHE PATH "location of OpenMW resources files")
 else()
-    set(MORROWIND_DATA_FILES "data" CACHE PATH "location of Morrowind data files")
     set(OPENMW_RESOURCE_FILES "resources" CACHE PATH "location of OpenMW resources files")
 endif(APPLE)
 

@@ -11,7 +11,6 @@
 #include <osg/Group>
 #include <osg/UserDataContainer>
 #include <osg/ComputeBoundsVisitor>
-#include <osg/Depth>
 #include <osg/ClipControl>
 
 #include <osgUtil/LineSegmentIntersector>
@@ -24,7 +23,6 @@
 
 #include <components/resource/resourcesystem.hpp>
 #include <components/resource/imagemanager.hpp>
-#include <components/resource/scenemanager.hpp>
 #include <components/resource/keyframemanager.hpp>
 
 #include <components/shader/removedalphafunc.hpp>
@@ -43,7 +41,7 @@
 #include <components/terrain/terraingrid.hpp>
 #include <components/terrain/quadtreeworld.hpp>
 
-#include <components/esm/loadcell.hpp>
+#include <components/esm3/loadcell.hpp>
 
 #include <components/detournavigator/navigator.hpp>
 
@@ -51,7 +49,6 @@
 #include "../mwworld/class.hpp"
 #include "../mwworld/groundcoverstore.hpp"
 #include "../mwgui/loadingscreen.hpp"
-#include "../mwbase/windowmanager.hpp"
 #include "../mwmechanics/actorutil.hpp"
 
 #include "sky.hpp"
@@ -739,11 +736,10 @@ namespace MWRender
             if (relativeLuminance < mMinimumAmbientLuminance)
             {
                 // brighten ambient so it reaches the minimum threshold but no more, we want to mess with content data as least we can
-                float targetBrightnessIncreaseFactor = mMinimumAmbientLuminance / relativeLuminance;
                 if (ambient.r() == 0.f && ambient.g() == 0.f && ambient.b() == 0.f)
                     ambient = osg::Vec4(mMinimumAmbientLuminance, mMinimumAmbientLuminance, mMinimumAmbientLuminance, ambient.a());
                 else
-                    ambient *= targetBrightnessIncreaseFactor;
+                    ambient *= mMinimumAmbientLuminance / relativeLuminance;
             }
         }
 

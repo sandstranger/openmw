@@ -1,73 +1,60 @@
 #ifndef OPENMW_COMPONENTS_DETOURNAVIGATOR_GETTILESPOSITIONS_H
 #define OPENMW_COMPONENTS_DETOURNAVIGATOR_GETTILESPOSITIONS_H
 
-#include "settings.hpp"
-#include "settingsutils.hpp"
+#include "tilebounds.hpp"
 #include "tileposition.hpp"
 
-#include <components/misc/convert.hpp>
+class btVector3;
+class btTransform;
+class btCollisionShape;
 
-#include <BulletCollision/CollisionShapes/btCollisionShape.h>
-
-#include <osg/Vec3f>
+namespace osg
+{
+    class Vec2f;
+}
 
 namespace DetourNavigator
 {
-    template <class Callback>
-    void getTilesPositions(const osg::Vec3f& aabbMin, const osg::Vec3f& aabbMax,
-        const RecastSettings& settings, Callback&& callback)
+    struct RecastSettings;
+
+    struct TilesPositionsRange
     {
-        auto min = toNavMeshCoordinates(settings, aabbMin);
-        auto max = toNavMeshCoordinates(settings, aabbMax);
+        TilePosition mBegin;
+        TilePosition mEnd;
+    };
 
-        const auto border = getBorderSize(settings);
-        min -= osg::Vec3f(border, border, border);
-        max += osg::Vec3f(border, border, border);
+    TilesPositionsRange makeTilesPositionsRange(const osg::Vec2f& aabbMin,
+        const osg::Vec2f& aabbMax, const RecastSettings& settings);
 
-        auto minTile = getTilePosition(settings, min);
-        auto maxTile = getTilePosition(settings, max);
+    TilesPositionsRange makeTilesPositionsRange(const btCollisionShape& shape,
+        const btTransform& transform, const RecastSettings& settings);
 
-        if (minTile.x() > maxTile.x())
-            std::swap(minTile.x(), maxTile.x());
+    TilesPositionsRange makeTilesPositionsRange(const btCollisionShape& shape,
+        const btTransform& transform, const TileBounds& bounds, const RecastSettings& settings);
 
-        if (minTile.y() > maxTile.y())
-            std::swap(minTile.y(), maxTile.y());
+    TilesPositionsRange makeTilesPositionsRange(const int cellSize, const btVector3& shift,
+        const RecastSettings& settings);
 
-        for (int tileX = minTile.x(); tileX <= maxTile.x(); ++tileX)
-            for (int tileY = minTile.y(); tileY <= maxTile.y(); ++tileY)
+    template <class Callback>
+    inline void getTilesPositions(const TilesPositionsRange& range, Callback&& callback)
+    {
+        for (int tileX = range.mBegin.x(); tileX < range.mEnd.x(); ++tileX)
+            for (int tileY = range.mBegin.y(); tileY < range.mEnd.y(); ++tileY)
                 callback(TilePosition {tileX, tileY});
     }
 
-    template <class Callback>
-    void getTilesPositions(const btCollisionShape& shape, const btTransform& transform,
-        const RecastSettings& settings, Callback&& callback)
+    inline bool isInTilesPositionsRange(int begin, int end, int coordinate)
     {
-        btVector3 aabbMin;
-        btVector3 aabbMax;
-        shape.getAabb(transform, aabbMin, aabbMax);
-
-        getTilesPositions(Misc::Convert::toOsg(aabbMin), Misc::Convert::toOsg(aabbMax), settings, std::forward<Callback>(callback));
+        return begin <= coordinate && coordinate < end;
     }
 
-    template <class Callback>
-    void getTilesPositions(const int cellSize, const btVector3& shift,
-        const RecastSettings& settings, Callback&& callback)
+    inline bool isInTilesPositionsRange(const TilesPositionsRange& range, const TilePosition& position)
     {
-        using Misc::Convert::toOsg;
-
-        const auto halfCellSize = cellSize / 2;
-        const btTransform transform(btMatrix3x3::getIdentity(), shift);
-        auto aabbMin = transform(btVector3(-halfCellSize, -halfCellSize, 0));
-        auto aabbMax = transform(btVector3(halfCellSize, halfCellSize, 0));
-
-        aabbMin.setX(std::min(aabbMin.x(), aabbMax.x()));
-        aabbMin.setY(std::min(aabbMin.y(), aabbMax.y()));
-
-        aabbMax.setX(std::max(aabbMin.x(), aabbMax.x()));
-        aabbMax.setY(std::max(aabbMin.y(), aabbMax.y()));
-
-        getTilesPositions(toOsg(aabbMin), toOsg(aabbMax), settings, std::forward<Callback>(callback));
+        return isInTilesPositionsRange(range.mBegin.x(), range.mEnd.x(), position.x())
+            && isInTilesPositionsRange(range.mBegin.y(), range.mEnd.y(), position.y());
     }
+
+    TilesPositionsRange getIntersection(const TilesPositionsRange& a, const TilesPositionsRange& b) noexcept;
 }
 
 #endif

@@ -1,6 +1,6 @@
 #include "localmap.hpp"
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <osg/Fog>
 #include <osg/LightModel>
@@ -12,8 +12,8 @@
 #include <osgDB/ReadFile>
 
 #include <components/debug/debuglog.hpp>
-#include <components/esm/fogstate.hpp>
-#include <components/esm/loadcell.hpp>
+#include <components/esm3/fogstate.hpp>
+#include <components/esm3/loadcell.hpp>
 #include <components/misc/constants.hpp>
 #include <components/settings/settings.hpp>
 #include <components/sceneutil/visitor.hpp>
@@ -31,7 +31,6 @@
 #include "../mwworld/cellstore.hpp"
 
 #include "vismask.hpp"
-#include "util.hpp"
 
 namespace
 {
@@ -462,8 +461,10 @@ void LocalMap::requestInteriorMap(const MWWorld::CellStore* cell)
                 yOffset++;
                 mBounds.yMin() = fog->mBounds.mMinY - yOffset * mMapWorldSize;
             }
-            mBounds.xMax() = std::max(mBounds.xMax(), fog->mBounds.mMaxX);
-            mBounds.yMax() = std::max(mBounds.yMax(), fog->mBounds.mMaxY);
+            if (fog->mBounds.mMaxX > mBounds.xMax())
+                mBounds.xMax() = fog->mBounds.mMaxX;
+            if (fog->mBounds.mMaxY > mBounds.yMax())
+                mBounds.yMax() = fog->mBounds.mMaxY;
 
             if(xOffset != 0 || yOffset != 0)
                 Log(Debug::Warning) << "Warning: expanding fog by " << xOffset << ", " << yOffset;

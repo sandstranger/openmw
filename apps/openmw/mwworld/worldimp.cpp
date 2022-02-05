@@ -11,10 +11,10 @@
 
 #include <components/debug/debuglog.hpp>
 
-#include <components/esm/esmreader.hpp>
-#include <components/esm/esmwriter.hpp>
-#include <components/esm/cellid.hpp>
-#include <components/esm/cellref.hpp>
+#include <components/esm3/esmreader.hpp>
+#include <components/esm3/esmwriter.hpp>
+#include <components/esm3/cellid.hpp>
+#include <components/esm3/cellref.hpp>
 
 #include <components/misc/constants.hpp>
 #include <components/misc/mathutil.hpp>
@@ -1531,7 +1531,12 @@ namespace MWWorld
 
     void World::updateNavigator()
     {
-        mPhysics->forEachAnimatedObject([&] (const MWPhysics::Object* object) { updateNavigatorObject(*object); });
+        mPhysics->forEachAnimatedObject([&] (const auto& pair)
+        {
+            const auto [object, changed] = pair;
+            if (changed)
+                updateNavigatorObject(*object);
+        });
 
         for (const auto& door : mDoorStates)
             if (const auto object = mPhysics->getObject(door.first))
@@ -3857,7 +3862,8 @@ namespace MWWorld
 
         if (object.getRefData().activate())
         {
-            std::shared_ptr<MWWorld::Action> action = (object.getClass().activate(object, actor));
+            MWBase::Environment::get().getLuaManager()->objectActivated(object, actor);
+            std::shared_ptr<MWWorld::Action> action = object.getClass().activate(object, actor);
             action->execute (actor);
         }
     }

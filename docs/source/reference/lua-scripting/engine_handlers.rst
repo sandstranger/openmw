@@ -19,6 +19,9 @@ Engine handler is a function defined by a script, that can be called by the engi
 | onLoad(savedData, initData)      | | Called on loading with the data previosly returned by              |
 |                                  | | onSave. During loading the object is always inactive. initData is  |
 |                                  | | the same as in onInit.                                             |
+|                                  | | Note that onLoad means loading a script rather than loading a game.|
+|                                  | | If a script did not exist when a game was saved onLoad will not be |
+|                                  | | called, but onInit will.                                           |
 +----------------------------------+----------------------------------------------------------------------+
 | onInterfaceOverride(base)        | | Called if the current script has an interface and overrides an     |
 |                                  | | interface (``base``) of another script.                            |
@@ -39,6 +42,12 @@ Engine handler is a function defined by a script, that can be called by the engi
 | onInactive()                     | | Object became inactive. Since it is inactive the handler           |
 |                                  | | can not access anything nearby, but it is possible to send         |
 |                                  | | an event to global scripts.                                        |
++----------------------------------+----------------------------------------------------------------------+
+| onActivated(actor)               | | Called on an object when an actor activates it. Note that picking  |
+|                                  | | up an item is also an activation and works this way: (1) a copy of |
+|                                  | | the item is placed to the actor's inventory, (2) count of          |
+|                                  | | the original item is set to zero, (3) and only then onActivated is |
+|                                  | | called on the original item, so self.count is already zero.        |
 +----------------------------------+----------------------------------------------------------------------+
 | onConsume(recordId)              | | Called if `recordId` (e.g. a potion) is consumed.                  |
 +----------------------------------+----------------------------------------------------------------------+

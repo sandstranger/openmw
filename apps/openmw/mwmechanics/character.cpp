@@ -859,7 +859,6 @@ CharacterController::CharacterController(const MWWorld::Ptr &ptr, MWRender::Anim
     , mSecondsOfSwimming(0)
     , mSecondsOfRunning(0)
     , mTurnAnimationThreshold(0)
-    , mAttackingOrSpell(false)
     , mCastingManualSpell(false)
     , mTimeUntilWake(0.f)
     , mIsMovingBackward(false)
@@ -1145,7 +1144,7 @@ bool CharacterController::updateCreatureState()
             mAnimation->disable(mCurrentWeapon);
     }
 
-    if(mAttackingOrSpell)
+    if(getAttackingOrSpell())
     {
         if(mUpperBodyState == UpperCharState_Nothing && mHitState == CharState_None)
         {
@@ -1209,7 +1208,7 @@ bool CharacterController::updateCreatureState()
             }
         }
 
-        mAttackingOrSpell = false;
+        setAttackingOrSpell(false);
     }
 
     bool animPlaying = mAnimation->getInfo(mCurrentWeapon);
@@ -1284,11 +1283,10 @@ bool CharacterController::updateWeaponState(CharacterState& idle)
     {
         forcestateupdate = true;
         mUpperBodyState = UpperCharState_WeapEquiped;
-        mAttackingOrSpell = false;
+        setAttackingOrSpell(false);
         mAnimation->disable(mCurrentWeapon);
         mAnimation->showWeapons(true);
-        if (mPtr == getPlayer())
-            MWBase::Environment::get().getWorld()->getPlayer().setAttackingOrSpell(false);
+        stats.setAttackingOrSpell(false);
     }
 
     if(!isKnockedOut() && !isKnockedDown() && !isRecovery())
@@ -1463,7 +1461,7 @@ bool CharacterController::updateWeaponState(CharacterState& idle)
     float complete;
     bool animPlaying;
     ESM::WeaponType::Class weapclass = getWeaponType(mWeaponType)->mWeaponClass;
-    if(mAttackingOrSpell)
+    if(getAttackingOrSpell())
     {
         MWWorld::Ptr player = getPlayer();
 
@@ -1485,11 +1483,9 @@ bool CharacterController::updateWeaponState(CharacterState& idle)
             {
                 // Unset casting flag, otherwise pressing the mouse button down would
                 // continue casting every frame if there is no animation
-                mAttackingOrSpell = false;
+                setAttackingOrSpell(false);
                 if (mPtr == player)
                 {
-                    MWBase::Environment::get().getWorld()->getPlayer().setAttackingOrSpell(false);
-
                     // For the player, set the spell we want to cast
                     // This has to be done at the start of the casting animation,
                     // *not* when selecting a spell in the GUI (otherwise you could change the spell mid-animation)
@@ -1798,7 +1794,7 @@ bool CharacterController::updateWeaponState(CharacterState& idle)
                     // Note: if the "min attack"->"max attack" is a stub, "play" it anyway. Attack strength will be random.
                     float minAttackTime = mAnimation->getTextKeyTime(mCurrentWeapon+": "+mAttackType+" "+"min attack");
                     float maxAttackTime = mAnimation->getTextKeyTime(mCurrentWeapon+": "+mAttackType+" "+"max attack");
-                    if (mAttackingOrSpell || minAttackTime == maxAttackTime)
+                    if (getAttackingOrSpell() || minAttackTime == maxAttackTime)
                     {
                         start = mAttackType+" min attack";
                         stop = mAttackType+" max attack";
@@ -2713,7 +2709,7 @@ void CharacterController::forceStateUpdate()
     // Make sure we canceled the current attack or spellcasting,
     // because we disabled attack animations anyway.
     mCastingManualSpell = false;
-    mAttackingOrSpell = false;
+    setAttackingOrSpell(false);
     if (mUpperBodyState != UpperCharState_Nothing)
         mUpperBodyState = UpperCharState_WeapEquiped;
 
@@ -2916,12 +2912,12 @@ MWRender::BobbingInfo& CharacterController::getBobbingInfo()
 
 void CharacterController::setAttackingOrSpell(bool attackingOrSpell)
 {
-    mAttackingOrSpell = attackingOrSpell;
+    mPtr.getClass().getCreatureStats(mPtr).setAttackingOrSpell(attackingOrSpell);
 }
 
 void CharacterController::castSpell(const std::string& spellId, bool manualSpell)
 {
-    mAttackingOrSpell = true;
+    setAttackingOrSpell(true);
     mCastingManualSpell = manualSpell;
     ActionSpell action = ActionSpell(spellId);
     action.prepare(mPtr);
@@ -2963,6 +2959,11 @@ bool CharacterController::readyToStartAttack() const
 float CharacterController::getAttackStrength() const
 {
     return mAttackStrength;
+}
+
+bool CharacterController::getAttackingOrSpell()
+{
+    return mPtr.getClass().getCreatureStats(mPtr).getAttackingOrSpell();
 }
 
 void CharacterController::setActive(int active)
