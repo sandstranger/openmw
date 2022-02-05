@@ -34,7 +34,7 @@ namespace Settings
         std::string load(const Files::ConfigurationManager& cfgMgr);
         ///< load settings from all active config dirs. Returns the path of the last loaded file.
 
-        void saveUser (const std::string& file);
+        static void saveUser (const std::string& file);
         ///< save user settings to file
 
         static void resetPendingChange(const std::string &setting, const std::string &category);

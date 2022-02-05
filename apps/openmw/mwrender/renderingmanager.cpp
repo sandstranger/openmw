@@ -32,6 +32,7 @@
 
 #include <components/sceneutil/depth.hpp>
 #include <components/sceneutil/lightmanager.hpp>
+#include <components/sceneutil/scenemanager.hpp>
 #include <components/sceneutil/statesetupdater.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
 #include <components/sceneutil/workqueue.hpp>
@@ -589,19 +590,15 @@ namespace MWRender
 
 	mRadialFogUniform = new osg::Uniform("radialFog", Settings::Manager::getBool("radial fog", "Shaders"));
 	mClampLightingUniform = new osg::Uniform("clampLighting", Settings::Manager::getBool("clamp lighting", "Shaders"));
-	mParallaxShadowsUniform = new osg::Uniform("parallaxShadows", Settings::Manager::getBool("parallax soft shadows", "Shaders"));
 	mUnderwaterFogUniform = new osg::Uniform("underwaterFog", Settings::Manager::getBool("underwater fog", "Water"));
 	mTonemaperUniform = new osg::Uniform("tonemaper", Settings::Manager::getInt("tonemaper", "Shaders"));
 	mGammaUniform = new osg::Uniform("gamma", Settings::Manager::getFloat("gamma", "Video"));
-	mExposureUniform = new osg::Uniform("exposure", Settings::Manager::getFloat("exposure", "Shaders"));
 
 	mRootNode->getOrCreateStateSet()->addUniform(mRadialFogUniform);
 	mRootNode->getOrCreateStateSet()->addUniform(mClampLightingUniform);
-	mRootNode->getOrCreateStateSet()->addUniform(mParallaxShadowsUniform);
 	mRootNode->getOrCreateStateSet()->addUniform(mUnderwaterFogUniform);
 	mRootNode->getOrCreateStateSet()->addUniform(mTonemaperUniform);
 	mRootNode->getOrCreateStateSet()->addUniform(mGammaUniform);
-	mRootNode->getOrCreateStateSet()->addUniform(mExposureUniform);
 
         // Hopefully, anything genuinely requiring the default alpha func of GL_ALWAYS explicitly sets it
         mRootNode->getOrCreateStateSet()->setAttribute(Shader::RemovedAlphaFunc::getInstance(GL_ALWAYS));
@@ -1364,10 +1361,6 @@ namespace MWRender
             {
 		mClampLightingUniform->set(Settings::Manager::getBool("clamp lighting", "Shaders"));
             }
-            else if (it->first == "Shaders" && it->second == "parallax soft shadows") //not used
-            {
-		mParallaxShadowsUniform->set(Settings::Manager::getBool("parallax soft shadows", "Shaders"));
-            }
             else if (it->first == "Water" && it->second == "underwater fog")
             {
 		mUnderwaterFogUniform->set(Settings::Manager::getBool("underwater fog", "Water"));
@@ -1379,10 +1372,6 @@ namespace MWRender
             else if (it->first == "Video" && it->second == "gamma")
             {
 		mGammaUniform->set(Settings::Manager::getFloat("gamma", "Video"));
-            }
-            else if (it->first == "Shaders" && it->second == "exposure") // not used
-            {
-		mExposureUniform->set(Settings::Manager::getFloat("exposure", "Shaders"));
             }
             else if (it->first == "General" && (it->second == "texture filter" ||
                                                 it->second == "texture mipmap" ||

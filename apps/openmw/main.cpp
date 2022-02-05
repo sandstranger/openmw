@@ -205,6 +205,8 @@ namespace
     };
 }
 
+Files::ConfigurationManager *g_cfgMgr;
+
 int runApplication(int argc, char *argv[])
 {
 #ifdef __APPLE__
@@ -215,6 +217,7 @@ int runApplication(int argc, char *argv[])
 
     osg::setNotifyHandler(new OSGLogHandler());
     Files::ConfigurationManager cfgMgr;
+    g_cfgMgr = &cfgMgr;
     std::unique_ptr<OMW::Engine> engine;
     engine.reset(new OMW::Engine(cfgMgr));
 

@@ -23,6 +23,7 @@
 #include <components/resource/resourcesystem.hpp>
 #include <components/resource/scenemanager.hpp>
 #include <components/sceneutil/lightmanager.hpp>
+#include <components/files/configurationmanager.hpp>
 #include <components/lua_ui/scriptsettings.hpp>
 
 #include "../mwbase/environment.hpp"
@@ -126,6 +127,8 @@ namespace
             box->setIndexSelected(MyGUI::ITEM_NONE);
     }
 }
+
+extern Files::ConfigurationManager *g_cfgMgr;
 
 namespace MWGui
 {
@@ -400,6 +403,8 @@ namespace MWGui
 
     void SettingsWindow::onOkButtonClicked(MyGUI::Widget* _sender)
     {
+        const std::string settingspath = (g_cfgMgr->getUserConfigPath() / "settings.cfg").string();
+        Settings::Manager::saveUser(settingspath);
         MWBase::Environment::get().getWindowManager()->removeGuiMode(GM_Settings);
     }
 
