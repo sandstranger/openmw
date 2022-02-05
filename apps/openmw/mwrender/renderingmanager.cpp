@@ -23,6 +23,7 @@
 
 #include <components/resource/resourcesystem.hpp>
 #include <components/resource/imagemanager.hpp>
+#include <components/resource/scenemanager.hpp>
 #include <components/resource/keyframemanager.hpp>
 
 #include <components/shader/removedalphafunc.hpp>
@@ -32,7 +33,6 @@
 
 #include <components/sceneutil/depth.hpp>
 #include <components/sceneutil/lightmanager.hpp>
-#include <components/sceneutil/scenemanager.hpp>
 #include <components/sceneutil/statesetupdater.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
 #include <components/sceneutil/workqueue.hpp>
