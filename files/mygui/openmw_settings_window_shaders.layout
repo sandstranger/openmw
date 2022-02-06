@@ -831,99 +831,29 @@
                             <Property key="Caption" value="#{sLight_Gamma}"/>
                             <Property key="TextAlign" value="Right"/>
                         </Widget>
-
-
                 </Widget>
-
-
-
                 </Widget>
             </Widget>
-
-
-<!--
-            <Widget type="TabItem" skin="" position="4 32 360 358">
-                <Property key="Caption" value=" Game "/>
-
-                    <Widget type="AutoSizedTextBox" skin="SandText" position="70 8 75 16" align="Left Top">
-                        <Property key="Caption" value="Those settings require restart!"/>
+            <Widget type="TabItem" skin="" position="4 32 360 308">
+                <Property key="Caption" value="  Scripts  "/>
+                <Widget name="ScriptFilter" type="EditBox" skin="MW_TextEdit" position="0 0 150 40"/>
+                <Widget name="ScriptList" type="ListBox" skin="MW_List" position="0 40 150 268"/>
+                <Widget name="ScriptBox" type="Widget" skin="MW_Box" position="150 0 250 250" name="ScriptBox">
+                    <Widget name="ScriptView" type="ScrollView" skin="MW_ScrollViewVH" position="2 2 246 246" align="Stretch">
+                        <Property key="CanvasAlign" value="Left Top"/>
+                        <Property key="CanvasSize" value="246 246"/>
+                        <Widget name="ScriptAdapter" type="LuaAdapter" position="0 0 246 246"/>
                     </Widget>
-
-                    <Widget type="HBox" skin="" position="4 30 350 24">
-                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
-                            <UserString key="SettingCategory" value="Camera"/>
-                            <UserString key="SettingName" value="head bobbing"/>
-                            <UserString key="SettingType" value="CheckButton"/>
-                        </Widget>
-                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
-                            <Property key="Caption" value="Head Bobbing"/>
-                        </Widget>
-                    </Widget>
-
-                    <Widget type="HBox" skin="" position="170 30 350 24">
-                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
-                            <UserString key="SettingCategory" value="Camera"/>
-                            <UserString key="SettingName" value="view over shoulder"/>
-                            <UserString key="SettingType" value="CheckButton"/>
-                        </Widget>
-                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
-                            <Property key="Caption" value="View Over Shoulder"/>
-                        </Widget>
-                    </Widget>
-
-
-                        <Widget type="TextBox" skin="SandText" position="4 60 350 24" align="Left Top" name="ShowOwnedLabel">
-                            <Property key="Caption" value="Show Owned"/>
-                        </Widget>
-                        <Widget type="HBox" skin="" position="4 90 350 24">
-                            <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 115 24" align="Left Top" name="ShowOwnedSwitch">
-                                <Property key="AddItem" value="Tooltip"/>
-                                <Property key="AddItem" value="Crosshair"/>
-                                <Property key="AddItem" value="Both"/>
-                            </Widget>
-                        </Widget>
-
-
-
-                    <Widget type="HBox" skin="" position="170 90 350 24">
-                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
-                            <UserString key="SettingCategory" value="Game"/>
-                            <UserString key="SettingName" value="show projectile damage"/>
-                            <UserString key="SettingType" value="CheckButton"/>
-                        </Widget>
-                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
-                            <Property key="Caption" value="Show Projectile Damage"/>
-                        </Widget>
-                    </Widget>
-
-                    <Widget type="HBox" skin="" position="4 120 350 24">
-                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
-                            <UserString key="SettingCategory" value="Game"/>
-                            <UserString key="SettingName" value="show melee info"/>
-                            <UserString key="SettingType" value="CheckButton"/>
-                        </Widget>
-                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
-                            <Property key="Caption" value="Show Melee Info"/>
-                        </Widget>
-                    </Widget>
-
-                    <Widget type="HBox" skin="" position="170 120 350 24">
-                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
-                            <UserString key="SettingCategory" value="Game"/>
-                            <UserString key="SettingName" value="show enchant chance"/>
-                            <UserString key="SettingType" value="CheckButton"/>
-                        </Widget>
-                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
-                            <Property key="Caption" value="Show Enchant Chance"/>
-                        </Widget>
-                    </Widget>
-
-
-
-             </Widget>
--->
-
-
+                </Widget>
+                <Widget name="ScriptDisabled" type="EditBox" skin="SandText" position="0 0 360 308" align="Center">
+                    <Property key="Visible" value="false"/>
+                    <Property key="Caption" value="Scripts settings are only available when a game is loaded."/>
+                    <Property key="TextAlign" value="Center" />
+                    <Property key="MultiLine" value="true" />
+                    <Property key="WordWrap" value="true" />
+                    <Property key="Static" value="true"/>
+                </Widget>
+            </Widget>
         </Widget>
         <Widget type="AutoSizedButton" skin="MW_Button" position="320 420 56 24" align="Right Bottom" name="OkButton">
             <Property key="ExpandDirection" value="Left"/>
