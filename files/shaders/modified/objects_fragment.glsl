@@ -58,11 +58,8 @@ varying highp float depth;
 uniform bool isInterior;
 
 uniform bool radialFog;
-uniform bool parallaxShadows;
 uniform bool underwaterFog;
 uniform float gamma;
-
-uniform float exposure;
 
 #ifdef ANIMATED_HEIGHT_FOG
 uniform float osg_SimulationTime;
@@ -299,7 +296,7 @@ if(gl_FragData[0].a != 0.0)
 #endif
 
 #if @linearLighting && !defined(FORCE_OPAQUE)
-   float exposure = getExposure(length(colLoad(lcalcDiffuse(0).xyz) + colLoad(gl_LightModel.ambient.xyz)) * 0.5) * exposure;
+   float exposure = getExposure(length(colLoad(lcalcDiffuse(0).xyz) + colLoad(gl_LightModel.ambient.xyz)) * 0.5);
    gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz, exposure);
 #endif
 }
