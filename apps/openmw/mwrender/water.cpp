@@ -638,8 +638,7 @@ public:
         if (mRefraction)
         {
             stateset->addUniform(new osg::Uniform("refractionMap", 2));
-            if (Settings::Manager::getBool("refraction depth map", "Water"))
-                stateset->addUniform(new osg::Uniform("refractionDepthMap", 3));
+            stateset->addUniform(new osg::Uniform("refractionDepthMap", 3));
             stateset->setRenderBinDetails(MWRender::RenderBin_Default, "RenderBin");
         }
         else
@@ -661,8 +660,7 @@ public:
         if (mRefraction)
         {
             stateset->setTextureAttributeAndModes(2, mRefraction->getColorTexture(cv), osg::StateAttribute::ON);
-            if (Settings::Manager::getBool("refraction depth map", "Water"))
-                stateset->setTextureAttributeAndModes(3, mRefraction->getDepthTexture(cv), osg::StateAttribute::ON);
+            stateset->setTextureAttributeAndModes(3, mRefraction->getDepthTexture(cv), osg::StateAttribute::ON);
         }
         stateset->getUniform("nodePosition")->set(osg::Vec3f(mWater->getPosition()));
     }
