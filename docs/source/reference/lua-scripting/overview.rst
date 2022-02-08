@@ -4,7 +4,7 @@ Overview of Lua scripting
 Language and sandboxing
 =======================
 
-OpenMW supports scripts written in Lua 5.1.
+OpenMW supports scripts written in Lua 5.1 with some extensions (see below) from Lua 5.2.
 There are no plans to switch to any newer version of the language, because newer versions are not supported by LuaJIT.
 
 Here are starting points for learning Lua:
@@ -24,11 +24,22 @@ These libraries are loaded automatically and are always available.
 Allowed `basic functions <https://www.lua.org/manual/5.1/manual.html#5.1>`__:
 ``assert``, ``error``, ``ipairs``, ``next``, ``pairs``, ``pcall``, ``print``, ``select``, ``tonumber``, ``tostring``, ``type``, ``unpack``, ``xpcall``, ``rawequal``, ``rawget``, ``rawset``, ``getmetatable``, ``setmetatable``.
 
+Supported Lua 5.2 features:
+
+- ``goto`` and ``::labels::``;
+- hex escapes ``\x3F`` and ``\*`` escape in strings;
+- ``math.log(x [,base])``;
+- ``string.rep(s, n [,sep])``;
+- in ``string.format()``: ``%q`` is reversible, ``%s`` uses ``__tostring``, ``%a`` and ``%A`` are added;
+- String matching pattern ``%g``;
+- ``__pairs`` and ``__ipairs`` metamethods;
+- Function ``table.unpack`` (alias to Lua 5.1 ``unpack``).
+
 Loading libraries with ``require('library_name')`` is allowed, but limited. It works this way:
 
 1. If `library_name` is one of the standard libraries, then return the library.
 2. If `library_name` is one of the built-in `API packages`_, then return the package.
-3. Otherwise search for a Lua source file with such name in :ref:`data folders <Multiple data folders>`. For example ``require('my_lua_library.something')`` will try to open the file ``my_lua_library/something.lua``.
+3. Otherwise search for a Lua source file with such name in :ref:`data folders <Multiple data folders>`. For example ``require('my_lua_library.something')`` will try to open one of the files ``my_lua_library/something.lua`` or ``my_lua_library/something/init.lua``.
 
 Loading DLLs and precompiled Lua files is intentionally prohibited for compatibility and security reasons.
 
@@ -452,6 +463,8 @@ The order in which the scripts are started is important. So if one mod should ov
 +---------------------------------------------------------+--------------------+---------------------------------------------------------------+
 | Interface                                               | Can be used        | Description                                                   |
 +=========================================================+====================+===============================================================+
+|:ref:`AI <Interface AI>`                                 | by local scripts   | | Control basic AI of NPCs and creatures.                     |
++---------------------------------------------------------+--------------------+---------------------------------------------------------------+
 |:ref:`Camera <Interface Camera>`                         | by player scripts  | | Allows to alter behavior of the built-in camera script      |
 |                                                         |                    | | without overriding the script completely.                   |
 +---------------------------------------------------------+--------------------+---------------------------------------------------------------+
@@ -484,7 +497,7 @@ At some moment it will send the 'DamagedByDarkPower' event to all nearby actors:
     local self = require('openmw.self')
     local nearby = require('openmw.nearby')
 
-    local function onActivate()
+    local function onActivated()
         for i, actor in nearby.actors:ipairs() do
             local dist = (self.position - actor.position):length()
             if dist < 500 then
@@ -494,7 +507,7 @@ At some moment it will send the 'DamagedByDarkPower' event to all nearby actors:
         end
     end
 
-    return { engineHandlers = { ... } }
+    return { engineHandlers = { onActivated = onActivated } }
 
 And every actor should have a local script that processes this event:
 
@@ -525,6 +538,8 @@ The protection mod attaches an additional local script to every actor. The scrip
     }
 
 In order to be able to intercept the event, the protection script should be placed in the load order below the original script.
+
+See :ref:`the list of events <Built-in events>` that are used by built-in scripts.
 
 
 Timers

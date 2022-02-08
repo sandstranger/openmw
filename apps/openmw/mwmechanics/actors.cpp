@@ -2027,7 +2027,7 @@ namespace MWMechanics
     std::list<MWWorld::Ptr> Actors::getActorsFollowing(const MWWorld::Ptr& actor)
     {
         std::list<MWWorld::Ptr> list;
-        forEachFollowingPackage(mActors, actor, getPlayer(), [&] (auto& iter, const std::unique_ptr<AiPackage>& package)
+        forEachFollowingPackage(mActors, actor, getPlayer(), [&] (auto& iter, const std::shared_ptr<AiPackage>& package)
         {
             if (package->followTargetThroughDoors() && package->getTarget() == actor)
                 list.push_back(iter.first);
@@ -2078,7 +2078,7 @@ namespace MWMechanics
     std::list<int> Actors::getActorsFollowingIndices(const MWWorld::Ptr &actor)
     {
         std::list<int> list;
-        forEachFollowingPackage(mActors, actor, getPlayer(), [&] (auto& iter, const std::unique_ptr<AiPackage>& package)
+        forEachFollowingPackage(mActors, actor, getPlayer(), [&] (auto& iter, const std::shared_ptr<AiPackage>& package)
         {
             if (package->followTargetThroughDoors() && package->getTarget() == actor)
             {
@@ -2095,7 +2095,7 @@ namespace MWMechanics
     std::map<int, MWWorld::Ptr> Actors::getActorsFollowingByIndex(const MWWorld::Ptr &actor)
     {
         std::map<int, MWWorld::Ptr> map;
-        forEachFollowingPackage(mActors, actor, getPlayer(), [&] (auto& iter, const std::unique_ptr<AiPackage>& package)
+        forEachFollowingPackage(mActors, actor, getPlayer(), [&] (auto& iter, const std::shared_ptr<AiPackage>& package)
         {
             if (package->followTargetThroughDoors() && package->getTarget() == actor)
             {
