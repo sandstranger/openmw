@@ -49,6 +49,11 @@ uniform vec2 envMapLumaBias;
 uniform mat2 bumpMapMatrix;
 #endif
 
+#if @glossMap
+uniform sampler2D glossMap;
+varying vec2 glossMapUV;
+#endif
+
 uniform bool simpleWater;
 uniform bool skip;
 uniform highp mat4 osg_ViewMatrixInverse;
@@ -239,11 +244,17 @@ if(gl_FragData[0].a != 0.0)
     envLuma = clamp(bumpTex.b * envMapLumaBias.x + envMapLumaBias.y, 0.0, 1.0);
 #endif
 
+
+    vec3 envEffect = texture2D(envMap, envTexCoordGen).xyz * envMapColor.xyz * envLuma;
+#if @glossMap
+    envEffect *= texture2D(glossMap, glossMapUV).xyz;
+#endif
+
     #ifdef NORMAL_MAP_FADING
-        if(nmFade != 0.0) gl_FragData[0].xyz += mix(texLoad(texture2D(envMap, envTexCoordGen).xyz) * envMapColor.xyz * envLuma, vec3( 0.0, 0.0, 0.0), nmFade);
+        if(nmFade != 0.0) gl_FragData[0].xyz += mix(envEffect, vec3( 0.0, 0.0, 0.0), nmFade);
             else
     #endif
-        gl_FragData[0].xyz += texLoad(texture2D(envMap, envTexCoordGen).xyz) * envMapColor.xyz * envLuma;
+        gl_FragData[0].xyz += envEffect;
 
     #ifdef NORMAL_MAP_FADING
         }

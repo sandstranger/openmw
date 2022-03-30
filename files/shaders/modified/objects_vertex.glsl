@@ -27,6 +27,10 @@ varying vec4 passTangent;
 varying vec2 envMapUV;
 #endif
 
+#if @glossMap
+varying vec2 glossMapUV;
+#endif
+
 #if PER_PIXEL_LIGHTING || @specularMap
 varying vec3 passNormal;
 #endif
@@ -89,6 +93,10 @@ else
 
 #if @decalMap
     decalMapUV = (gl_TextureMatrix[@decalMapUV] * gl_MultiTexCoord@decalMapUV).xy;;
+#endif
+
+#if @glossMap
+    glossMapUV = (gl_TextureMatrix[@glossMapUV] * gl_MultiTexCoord@glossMapUV).xy;
 #endif
 
 #if @normalMap
