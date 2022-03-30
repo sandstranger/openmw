@@ -28,13 +28,13 @@
 
 #include <cstddef>
 #include <stdexcept>
-#include <string>
 #include <thread>
 #include <vector>
 
 namespace NavMeshTool
 {
-
+//    namespace
+//    {
         namespace bpo = boost::program_options;
 
         using StringsVector = std::vector<std::string>;
@@ -83,6 +83,9 @@ namespace NavMeshTool
 
                 ("process-interior-cells", bpo::value<bool>()->implicit_value(true)
                     ->default_value(false), "build navmesh for interior cells")
+
+                ("remove-unused-tiles", bpo::value<bool>()->implicit_value(true)
+                    ->default_value(false), "remove tiles from cache that will not be used with current content profile")
             ;
             Files::ConfigurationManager::addCommonOptions(result);
 
@@ -110,7 +113,6 @@ namespace NavMeshTool
 
             bpo::variables_map composingVariables = Files::separateComposingVariables(variables, desc);
             config.readConfiguration(variables, desc);
-            setupLogging(config.getLogPath().string(), "NavMeshTool");
             Files::mergeComposingVariables(variables, composingVariables, desc);
 
             const std::string encoding(variables["encoding"].as<std::string>());
@@ -142,6 +144,7 @@ namespace NavMeshTool
             }
 
             const bool processInteriorCells = variables["process-interior-cells"].as<bool>();
+            const bool removeUnusedTiles = variables["remove-unused-tiles"].as<bool>();
 
             Fallback::Map::init(variables["fallback"].as<Fallback::FallbackMap>().mMap);
 
@@ -153,8 +156,9 @@ namespace NavMeshTool
             settings.load(config);
 
             const osg::Vec3f agentHalfExtents = Settings::Manager::getVector3("default actor pathfind half extents", "Game");
+            const std::uint64_t maxDbFileSize = static_cast<std::uint64_t>(Settings::Manager::getInt64("max navmeshdb file size", "Navigator"));
 
-            DetourNavigator::NavMeshDb db((config.getUserDataPath() / "navmesh.db").string());
+            DetourNavigator::NavMeshDb db((config.getUserDataPath() / "navmesh.db").string(), maxDbFileSize);
 
             std::vector<ESM::ESMReader> readers(contentFiles.size());
             EsmLoader::Query query;
@@ -178,10 +182,13 @@ namespace NavMeshTool
             WorldspaceData cellsData = gatherWorldspaceData(navigatorSettings, readers, vfs, bulletShapeManager,
                                                             esmData, processInteriorCells);
 
-            generateAllNavMeshTiles(agentHalfExtents, navigatorSettings, threadsNumber, cellsData, std::move(db));
+            generateAllNavMeshTiles(agentHalfExtents, navigatorSettings, threadsNumber, removeUnusedTiles,
+                                    cellsData, std::move(db));
 
             Log(Debug::Info) << "Done";
 
             return 0;
         }
+//    }
 }
+
