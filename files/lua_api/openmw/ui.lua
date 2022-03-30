@@ -39,6 +39,11 @@
 -- @param #string msg
 
 ---
+-- Returns the size of the OpenMW window in pixels as a 2D vector.
+-- @function [parent=#ui] screenSize
+-- @return openmw.util#Vector2
+
+---
 -- Converts a given table of tables into an @{openmw.ui#Content}
 -- @function [parent=#ui] content
 -- @param #table table
@@ -53,7 +58,15 @@
 ---
 -- Adds a settings page to main menu setting's Scripts tab.
 -- @function [parent=#ui] registerSettingsPage
--- @param #SettingsPage page
+-- @param #SettingsPageOptions page
+
+---
+-- Table with settings page options, passed as an argument to ui.registerSettingsPage
+-- @type SettingsPageOptions
+-- @field #string name Name of the page, displayed in the list, used for search
+-- @field #string searchHints Additional keywords used in search, not displayed anywhere
+-- @field #Element element The page's UI, which will be attached to the settings tab. The root widget has to have a fixed size. Set the `size` field in `props`, `relativeSize` is ignored.
+
 
 ---
 -- Layout
@@ -64,12 +77,21 @@
 -- @field #Content content Optional @{openmw.ui#Content} of children layouts
 
 ---
--- Layers
+-- @type Layer
+-- @field #string name Name of the layer
+-- @field openmw.util#vector2 size Size of the layer in pixels
+
+---
+-- Layers. Implements [iterables#List](iterables.html#List) of #Layer.
 -- @type Layers
+-- @list <#Layer>
 -- @usage
 -- ui.layers.insertAfter('HUD', 'NewLayer', { interactive = true })
--- local fourthLayerName = ui.layers[4]
+-- local fourthLayer = ui.layers[4]
 -- local windowsIndex = ui.layers.indexOf('Windows')
+-- for i, layer in ipairs(ui.layers) do
+--   print('layer', i, layer.name, layer.size)
+-- end
 
 ---
 -- Index of the layer with the givent name. Returns nil if the layer doesn't exist
@@ -85,7 +107,15 @@
 -- @param #table options Table with a boolean `interactive` field (default is true). Layers with interactive = false will ignore all mouse interactions.
 
 ---
--- Content. An array-like container, which allows to reference elements by their name
+-- Creates a layer and inserts it before another layer (shifts indexes of some other layers).
+-- @function [parent=#Layers] insertBefore
+-- @param #string beforeName Name of the layer before which the new layer will be inserted
+-- @param #string name Name of the new layer
+-- @param #table options Table with a boolean `interactive` field (default is true). Layers with interactive = false will ignore all mouse interactions.
+
+---
+-- Content. An array-like container, which allows to reference elements by their name.
+-- Implements [iterables#List](iterables.html#List) of #Layout and [iterables#Map](iterables.html#Map) of #string to #Layout.
 -- @type Content
 -- @list <#Layout>
 -- @usage
@@ -157,10 +187,33 @@
 -- @field #number button Mouse button which triggered the event (could be nil)
 
 ---
--- Settings page parameters, passed as an argument to ui.registerSettingsPage
--- @type SettingsPage
--- @field #string name Name of the page, displayed in the list, used for search
--- @field #string searchHints Additional keywords used in search, not displayed anywhere
--- @field #Element element The page's UI, which will be attached to the settings tab. The root widget has to have a fixed size (set `size` field in `props`, see Widget documentation, `relativeSize` is ignored)
+-- Register a new texture resource. Can be used to manually atlas UI textures.
+-- @function [parent=#ui] texture #TextureResource
+-- @param #TextureResourceOptions options
+-- @usage
+-- local ui = require('openmw.ui')
+-- local vector2 = require('openmw.util').vector2
+-- local myAtlas = 'textures/my_atlas.dds' -- a 128x128 atlas
+-- local texture1 = ui.texture { -- texture in the top left corner of the atlas
+--     path = myAtlas,
+--     offset = vector2(0, 0),
+--     size = vector2(64, 64),
+-- }
+-- local texture2 = ui.texture { -- texture in the top right corner of the atlas
+--     path = myAtlas,
+--     offset = vector2(64, 0),
+--     size = vector2(64, 64),
+-- }
+
+---
+-- A texture ready to be used by UI widgets
+-- @type TextureResource
+
+---
+-- Table with arguments passed to ui.texture.
+-- @type TextureResourceOptions
+-- @field #string path Path to the texture file. Required
+-- @field openmw.util#Vector2 offset Offset of this resource in the texture. (0, 0) by default
+-- @field openmw.util#Vector2 size Size of the resource in the texture. (0, 0) by default. 0 means the whole texture size is used.
 
 return nil

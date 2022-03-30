@@ -165,7 +165,7 @@ bool Actor::setPosition(const osg::Vec3f& position)
 {
     std::scoped_lock lock(mPositionMutex);
     applyOffsetChange();
-    bool hasChanged = (mPosition != position && !mSkipSimulation) || mWorldPositionChanged;
+    bool hasChanged = (mPosition.operator!=(position) && !mSkipSimulation) || mWorldPositionChanged;
     if (!mSkipSimulation)
     {
         mPreviousPosition = mPosition;

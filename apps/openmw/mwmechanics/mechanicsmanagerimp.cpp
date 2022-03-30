@@ -658,7 +658,8 @@ namespace MWMechanics
         float x = 0;
         float y = 0;
 
-        int roll = Misc::Rng::roll0to99();
+        auto& prng = MWBase::Environment::get().getWorld()->getPrng();
+        int roll = Misc::Rng::roll0to99(prng);
 
         if (type == PT_Admire)
         {
@@ -1577,8 +1578,8 @@ namespace MWMechanics
         }
 
         float target = x - y;
-
-        return (Misc::Rng::roll0to99() >= target);
+        auto& prng = MWBase::Environment::get().getWorld()->getPrng();
+        return (Misc::Rng::roll0to99(prng) >= target);
     }
 
     void MechanicsManager::startCombat(const MWWorld::Ptr &ptr, const MWWorld::Ptr &target)
@@ -1646,17 +1647,17 @@ namespace MWMechanics
         return mActors.isAnyObjectInRange(position, radius);
     }
 
-    std::list<MWWorld::Ptr> MechanicsManager::getActorsSidingWith(const MWWorld::Ptr& actor)
+    std::vector<MWWorld::Ptr> MechanicsManager::getActorsSidingWith(const MWWorld::Ptr& actor)
     {
         return mActors.getActorsSidingWith(actor);
     }
 
-    std::list<MWWorld::Ptr> MechanicsManager::getActorsFollowing(const MWWorld::Ptr& actor)
+    std::vector<MWWorld::Ptr> MechanicsManager::getActorsFollowing(const MWWorld::Ptr& actor)
     {
         return mActors.getActorsFollowing(actor);
     }
 
-    std::list<int> MechanicsManager::getActorsFollowingIndices(const MWWorld::Ptr& actor)
+    std::vector<int> MechanicsManager::getActorsFollowingIndices(const MWWorld::Ptr& actor)
     {
         return mActors.getActorsFollowingIndices(actor);
     }
@@ -1666,11 +1667,11 @@ namespace MWMechanics
         return mActors.getActorsFollowingByIndex(actor);
     }
 
-    std::list<MWWorld::Ptr> MechanicsManager::getActorsFighting(const MWWorld::Ptr& actor) {
+    std::vector<MWWorld::Ptr> MechanicsManager::getActorsFighting(const MWWorld::Ptr& actor) {
         return mActors.getActorsFighting(actor);
     }
 
-    std::list<MWWorld::Ptr> MechanicsManager::getEnemiesNearby(const MWWorld::Ptr& actor) {
+    std::vector<MWWorld::Ptr> MechanicsManager::getEnemiesNearby(const MWWorld::Ptr& actor) {
         return mActors.getEnemiesNearby(actor);
     }
 

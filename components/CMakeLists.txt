@@ -46,7 +46,7 @@ add_component_dir (vfs
 
 add_component_dir (resource
     scenemanager keyframemanager imagemanager bulletshapemanager bulletshape niffilemanager objectcache multiobjectcache resourcesystem
-    resourcemanager stats animation
+    resourcemanager stats animation foreachbulletobject
     )
 
 add_component_dir (shader
@@ -253,13 +253,9 @@ add_component_dir (fallback
     fallback validate
     )
 
-add_component_dir (queries
-    query luabindings
-    )
-    
 add_component_dir (lua_ui
     registerscriptsettings scriptsettings
-    properties widget element util layers content alignment
+    properties widget element util layers content alignment resources
     adapter text textedit window image container
     )
 

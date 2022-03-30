@@ -284,6 +284,9 @@ namespace MWWorld
 
         MWBase::Environment::get().getWindowManager()->updatePlayer();
         mCurrentDate->setup(mGlobalVariables);
+
+        // Initial seed.
+        mPrng.seed(mRandomSeed);
     }
 
     void World::clear()
@@ -339,6 +342,10 @@ namespace MWWorld
 
     void World::write (ESM::ESMWriter& writer, Loading::Listener& progress) const
     {
+        writer.startRecord(ESM::REC_RAND);
+        writer.writeHNOString("RAND", Misc::Rng::serialize(mPrng));
+        writer.endRecord(ESM::REC_RAND);
+
         // Active cells could have a dirty fog of war, sync it to the CellStore first
         for (CellStore* cellstore : mWorldScene->getActiveCells())
         {
@@ -377,6 +384,12 @@ namespace MWWorld
                 reader.getHNT(mTeleportEnabled, "TELE");
                 reader.getHNT(mLevitationEnabled, "LEVT");
                 return;
+            case ESM::REC_RAND:
+                {
+                    auto data = reader.getHNOString("RAND");
+                    Misc::Rng::deserialize(data, mPrng);
+                }
+                break;
             case ESM::REC_PLAY:
                 mStore.checkPlayer();
                 mPlayer->readRecord(reader, type);
@@ -545,7 +558,12 @@ namespace MWWorld
         mProjectileManager->clear();
     }
 
-    const ESM::Cell *World::getExterior (const std::string& cellName) const
+    void World::setRandomSeed(uint32_t seed)
+    {
+        mRandomSeed = seed;
+    }
+
+    const ESM::Cell* World::getExterior(const std::string& cellName) const
     {
         // first try named cells
         const ESM::Cell *cell = mStore.get<ESM::Cell>().searchExtByName (cellName);
@@ -3739,9 +3757,10 @@ namespace MWWorld
         static int iNumberCreatures = mStore.get<ESM::GameSetting>().find("iNumberCreatures")->mValue.getInteger();
         int numCreatures = 1 + Misc::Rng::rollDice(iNumberCreatures); // [1, iNumberCreatures]
 
+        auto& prng = MWBase::Environment::get().getWorld()->getPrng();
         for (int i=0; i<numCreatures; ++i)
         {
-            std::string selectedCreature = MWMechanics::getLevelledItem(list, true);
+            std::string selectedCreature = MWMechanics::getLevelledItem(list, true, prng);
             if (selectedCreature.empty())
                 continue;
 
@@ -4029,4 +4048,10 @@ namespace MWWorld
     {
         return mCells.getAll(id);
     }
+
+    Misc::Rng::Generator& World::getPrng()
+    {
+        return mPrng;
+    }
+
 }

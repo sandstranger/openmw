@@ -125,7 +125,7 @@ namespace MWWorld
         return (dit != mDynamic.end());
     }
     template<typename T>
-    const T *Store<T>::searchRandom(const std::string &id) const
+    const T *Store<T>::searchRandom(const std::string &id, Misc::Rng::Generator& prng) const
     {
         std::vector<const T*> results;
         std::copy_if(mShared.begin(), mShared.end(), std::back_inserter(results),
@@ -134,7 +134,7 @@ namespace MWWorld
                     return Misc::StringUtils::ciCompareLen(id, item->mId, id.size()) == 0;
                 });
         if(!results.empty())
-            return results[Misc::Rng::rollDice(results.size())];
+            return results[Misc::Rng::rollDice(results.size(), prng)];
         return nullptr;
     }
     template<typename T>
@@ -1070,6 +1070,13 @@ namespace MWWorld
             mKeywordSearchModFlag = true;
 
         return true;
+    }
+
+    void Store<ESM::Dialogue>::listIdentifier(std::vector<std::string>& list) const
+    {
+        list.reserve(list.size() + getSize());
+        for (const auto& dialogue : mShared)
+            list.push_back(dialogue->mId);
     }
 
     const MWDialogue::KeywordSearch<std::string, int>& Store<ESM::Dialogue>::getDialogIdKeywordSearch() const

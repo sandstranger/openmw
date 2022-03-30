@@ -23,6 +23,7 @@
     Bug #5088: Sky abruptly changes direction during certain weather transitions
     Bug #5100: Persuasion doesn't always clamp the resulting disposition
     Bug #5120: Scripted object spawning updates physics system
+    Bug #5192: Actor turn rate is too slow
     Bug #5207: Loose summons can be present in scene
     Bug #5377: console does not appear after using menutest in inventory
     Bug #5379: Wandering NPCs falling through cantons
@@ -101,7 +102,13 @@
     Bug #6519: Effects tooltips for ingredients work incorrectly
     Bug #6523: Disintegrate Weapon is resisted by Resist Magicka instead of Sanctuary
     Bug #6544: Far from world origin objects jitter when camera is still
+    Bug #6559: Weapon condition inconsistency between melee and ranged critical / sneak / KO attacks
     Bug #6579: OpenMW compilation error when using OSG doubles for BoundingSphere
+    Bug #6606: Quests with multiple IDs cannot always be restarted
+    Bug #6655: Constant effect absorb attribute causes the game to break
+    Bug #6670: Dialogue order is incorrect
+    Bug #6680: object.cpp handles nodetree unsafely, memory access with dangling pointer
+    Bug #6682: HitOnMe doesn't fire as intended
     Feature #890: OpenMW-CS: Column filtering
     Feature #1465: "Reset" argument for AI functions
     Feature #2491: Ability to make OpenMW "portable"
@@ -132,6 +139,7 @@
     Feature #6419: Topics shouldn't be greyed out if they can produce another topic reference
     Feature #6443: NiStencilProperty is not fully supported
     Feature #6534: Shader-based object texture blending
+    Feature #6541: Gloss-mapping
     Feature #6592: Missing support for NiTriShape particle emitters
     Feature #6600: Support NiSortAdjustNode
     Task #6201: Remove the "Note: No relevant classes found. No output generated" warnings
@@ -278,7 +286,6 @@
     Bug #6142: Groundcover plugins change cells flags
     Bug #6276: Deleted groundcover instances are not deleted in game
     Bug #6294: Game crashes with empty pathgrid
-    Bug #6606: Quests with multiple IDs cannot always be restarted
     Feature #390: 3rd person look "over the shoulder"
     Feature #832: OpenMW-CS: Handle deleted references
     Feature #1536: Show more information about level on menu

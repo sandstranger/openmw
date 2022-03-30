@@ -22,11 +22,15 @@
 
 #include "luabindings.hpp"
 #include "userdataserializer.hpp"
+#include "types/types.hpp"
 
 namespace MWLua
 {
 
-    LuaManager::LuaManager(const VFS::Manager* vfs, const std::string& libsDir) : mLua(vfs, &mConfiguration), mI18n(vfs, &mLua)
+    LuaManager::LuaManager(const VFS::Manager* vfs, const std::string& libsDir)
+        : mLua(vfs, &mConfiguration)
+        , mUiResourceManager(vfs)
+        , mI18n(vfs, &mLua)
     {
         Log(Debug::Info) << "Lua version: " << LuaUtil::getLuaVersion();
         mLua.addInternalLibSearchPath(libsDir);
@@ -78,10 +82,11 @@ namespace MWLua
         mLua.addCommonPackage("openmw.async", getAsyncPackageInitializer(context));
         mLua.addCommonPackage("openmw.util", LuaUtil::initUtilPackage(mLua.sol()));
         mLua.addCommonPackage("openmw.core", initCorePackage(context));
-        mLua.addCommonPackage("openmw.query", initQueryPackage(context));
+        mLua.addCommonPackage("openmw.types", initTypesPackage(context));
         mGlobalScripts.addPackage("openmw.world", initWorldPackage(context));
         mGlobalScripts.addPackage("openmw.settings", initGlobalSettingsPackage(context));
         mGlobalScripts.addPackage("openmw.storage", initGlobalStoragePackage(context, &mGlobalStorage));
+
         mCameraPackage = initCameraPackage(localContext);
         mUserInterfacePackage = initUserInterfacePackage(localContext);
         mInputPackage = initInputPackage(localContext);
@@ -248,6 +253,7 @@ namespace MWLua
     void LuaManager::clear()
     {
         LuaUi::clearUserInterface();
+        mUiResourceManager.clear();
         mActiveLocalScripts.clear();
         mLocalEvents.clear();
         mGlobalEvents.clear();
@@ -384,6 +390,7 @@ namespace MWLua
     {
         assert(mInitialized);
         assert(flag != ESM::LuaScriptCfg::sGlobal);
+        assert(ptr.getType() != ESM::REC_STAT);
         std::shared_ptr<LocalScripts> scripts;
         if (flag == ESM::LuaScriptCfg::sPlayer)
         {
@@ -470,7 +477,8 @@ namespace MWLua
     {
         Log(Debug::Info) << "Reload Lua";
 
-        LuaUi::clearUserInterface(); 
+        LuaUi::clearUserInterface();
+        mUiResourceManager.clear();
         mLua.dropScriptCache();
         initConfiguration();
 

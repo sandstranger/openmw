@@ -4,6 +4,10 @@
 #include <components/lua_ui/content.hpp>
 #include <components/lua_ui/registerscriptsettings.hpp>
 #include <components/lua_ui/alignment.hpp>
+#include <components/lua_ui/resources.hpp>
+
+#include <components/settings/settings.hpp>
+#include <components/misc/stringops.hpp>
 
 #include "context.hpp"
 #include "actions.hpp"
@@ -77,45 +81,42 @@ namespace MWLua
                 std::shared_ptr<LuaUi::Element> mElement;
         };
 
+        class InsertLayerAction final : public Action
+        {
+            public:
+                InsertLayerAction(std::string_view name, size_t index,
+                    LuaUi::Layer::Options options, LuaUtil::LuaState* state)
+                    : Action(state)
+                    , mName(name)
+                    , mIndex(index)
+                    , mOptions(options)
+                {}
+
+                void apply(WorldView&) const override
+                {
+                    LuaUi::Layer::insert(mIndex, mName, mOptions);
+                }
+
+                std::string toString() const override
+                {
+                    std::string result("Insert UI layer \"");
+                    result += mName;
+                    result += "\" at \"";
+                    result += mIndex;
+                    result += "\"";
+                    return result;
+                }
+
+            private:
+                std::string mName;
+                size_t mIndex;
+                LuaUi::Layer::Options mOptions;
+        };
+
         // Lua arrays index from 1
         inline size_t fromLuaIndex(size_t i) { return i - 1; }
         inline size_t toLuaIndex(size_t i) { return i + 1; }
     }
-
-    class LayerAction final : public Action
-    {
-        public:
-            LayerAction(std::string_view name, std::string_view afterName,
-                LuaUi::Layers::Options options, LuaUtil::LuaState* state)
-                : Action(state)
-                , mName(name)
-                , mAfterName(afterName)
-                , mOptions(options)
-            {}
-
-            void apply(WorldView&) const override
-            {
-                size_t index = LuaUi::Layers::indexOf(mAfterName);
-                if (index == LuaUi::Layers::size())
-                    throw std::logic_error(std::string("Layer not found"));
-                LuaUi::Layers::insert(index, mName, mOptions);
-            }
-
-            std::string toString() const override
-            {
-                std::string result("Insert UI layer \"");
-                result += mName;
-                result += "\" after \"";
-                result += mAfterName;
-                result += "\"";
-                return result;
-            }
-
-        private:
-            std::string mName;
-            std::string mAfterName;
-            LuaUi::Layers::Options mOptions;
-    };
 
     sol::table initUserInterfacePackage(const Context& context)
     {
@@ -166,6 +167,21 @@ namespace MWLua
             else
                 return sol::nullopt;
         };
+        {
+            auto pairs = [](LuaUi::Content& content)
+            {
+                auto next = [](LuaUi::Content& content, size_t i) -> sol::optional<std::tuple<size_t, sol::table>>
+                {
+                    if (i < content.size())
+                        return std::make_tuple(i + 1, content.at(i));
+                    else
+                        return sol::nullopt;
+                };
+                return std::make_tuple(next, content, 0);
+            };
+            uiContent[sol::meta_function::ipairs] = pairs;
+            uiContent[sol::meta_function::pairs] = pairs;
+        }
 
         auto element = context.mLua->sol().new_usertype<LuaUi::Element>("Element");
         element["layout"] = sol::property(
@@ -209,30 +225,66 @@ namespace MWLua
             return element;
         };
 
+        auto uiLayer = context.mLua->sol().new_usertype<LuaUi::Layer>("UiLayer");
+        uiLayer["name"] = sol::property([](LuaUi::Layer& self) { return self.name(); });
+        uiLayer["size"] = sol::property([](LuaUi::Layer& self) { return self.size(); });
+        uiLayer[sol::meta_function::to_string] = [](LuaUi::Layer& self)
+        {
+            return Misc::StringUtils::format("UiLayer(%s)", self.name());
+        };
+
         sol::table layers = context.mLua->newTable();
         layers[sol::meta_function::length] = []()
         {
-            return LuaUi::Layers::size();
+            return LuaUi::Layer::count();
         };
         layers[sol::meta_function::index] = [](size_t index)
         {
             index = fromLuaIndex(index);
-            return LuaUi::Layers::at(index);
+            return LuaUi::Layer(index);
         };
         layers["indexOf"] = [](std::string_view name) -> sol::optional<size_t>
         {
-            size_t index = LuaUi::Layers::indexOf(name);
-            if (index == LuaUi::Layers::size())
+            size_t index = LuaUi::Layer::indexOf(name);
+            if (index == LuaUi::Layer::count())
                 return sol::nullopt;
             else
                 return toLuaIndex(index);
         };
         layers["insertAfter"] = [context](std::string_view afterName, std::string_view name, const sol::object& opt)
         {
-            LuaUi::Layers::Options options;
+            LuaUi::Layer::Options options;
             options.mInteractive = LuaUtil::getValueOrDefault(LuaUtil::getFieldOrNil(opt, "interactive"), true);
-            context.mLuaManager->addAction(std::make_unique<LayerAction>(name, afterName, options, context.mLua));
+            size_t index = LuaUi::Layer::indexOf(afterName);
+            if (index == LuaUi::Layer::count())
+                throw std::logic_error(std::string("Layer not found"));
+            index++;
+            context.mLuaManager->addAction(std::make_unique<InsertLayerAction>(name, index, options, context.mLua));
         };
+        layers["insertBefore"] = [context](std::string_view beforename, std::string_view name, const sol::object& opt)
+        {
+            LuaUi::Layer::Options options;
+            options.mInteractive = LuaUtil::getValueOrDefault(LuaUtil::getFieldOrNil(opt, "interactive"), true);
+            size_t index = LuaUi::Layer::indexOf(beforename);
+            if (index == LuaUi::Layer::count())
+                throw std::logic_error(std::string("Layer not found"));
+            context.mLuaManager->addAction(std::make_unique<InsertLayerAction>(name, index, options, context.mLua));
+        };
+        {
+            auto pairs = [layers](const sol::object&)
+            {
+                auto next = [](const sol::table& l, size_t i) -> sol::optional<std::tuple<size_t, LuaUi::Layer>>
+                {
+                    if (i < LuaUi::Layer::count())
+                        return std::make_tuple(i + 1, LuaUi::Layer(i));
+                    else
+                        return sol::nullopt;
+                };
+                return std::make_tuple(next, layers, 0);
+            };
+            layers[sol::meta_function::pairs] = pairs;
+            layers[sol::meta_function::ipairs] = pairs;
+        }
         api["layers"] = LuaUtil::makeReadOnly(layers);
 
         sol::table typeTable = context.mLua->newTable();
@@ -247,6 +299,31 @@ namespace MWLua
         }));
 
         api["registerSettingsPage"] = &LuaUi::registerSettingsPage;
+
+        api["texture"] = [luaManager=context.mLuaManager](const sol::table& options)
+        {
+            LuaUi::TextureData data;
+            sol::object path = LuaUtil::getFieldOrNil(options, "path");
+            if (path.is<std::string>())
+                data.mPath = path.as<std::string>();
+            if (data.mPath.empty())
+                throw std::logic_error("Invalid texture path");
+            sol::object offset = LuaUtil::getFieldOrNil(options, "offset");
+            if (offset.is<osg::Vec2f>())
+                data.mOffset = offset.as<osg::Vec2f>();
+            sol::object size = LuaUtil::getFieldOrNil(options, "size");
+            if (size.is<osg::Vec2f>())
+                data.mSize = size.as<osg::Vec2f>();
+            return luaManager->uiResourceManager()->registerTexture(data);
+        };
+
+        api["screenSize"] = []()
+        {
+            return osg::Vec2f(
+                Settings::Manager::getInt("resolution x", "Video"),
+                Settings::Manager::getInt("resolution y", "Video")
+            );
+        };
 
         return LuaUtil::makeReadOnly(api);
     }

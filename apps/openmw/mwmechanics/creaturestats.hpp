@@ -255,15 +255,12 @@ namespace MWMechanics
         bool getStance (Stance flag) const;
 
         void setLastHitObject(const std::string &objectid);
+        void clearLastHitObject();
         const std::string &getLastHitObject() const;
         void setLastHitAttemptObject(const std::string &objectid);
         const std::string &getLastHitAttemptObject() const;
         void setHitAttemptActorId(const int actorId);
         int getHitAttemptActorId() const;
-
-        // Note, this is just a cache to avoid checking the whole container store every frame. We don't need to store it in saves.
-        // TODO: Put it somewhere else?
-        std::set<int> mBoundItems;
 
         void writeState (ESM::CreatureStats& state) const;
 

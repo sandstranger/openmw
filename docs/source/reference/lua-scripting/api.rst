@@ -12,8 +12,8 @@ Lua API reference
     openmw_util
     openmw_storage
     openmw_core
+    openmw_types
     openmw_async
-    openmw_query
     openmw_world
     openmw_self
     openmw_nearby
@@ -25,6 +25,7 @@ Lua API reference
     openmw_aux_time
     interface_ai
     interface_camera
+    iterables
 
 
 - :ref:`Engine handlers reference`
@@ -55,9 +56,9 @@ Player scripts are local scripts that are attached to a player.
 +---------------------------------------------------------+--------------------+---------------------------------------------------------------+
 |:ref:`openmw.core <Package openmw.core>`                 | everywhere         | | Functions that are common for both global and local scripts |
 +---------------------------------------------------------+--------------------+---------------------------------------------------------------+
-|:ref:`openmw.async <Package openmw.async>`               | everywhere         | | Timers (implemented) and coroutine utils (not implemented)  |
+|:ref:`openmw.types <Package openmw.types>`               | everywhere         | | Functions for specific types of game objects.               |
 +---------------------------------------------------------+--------------------+---------------------------------------------------------------+
-|:ref:`openmw.query <Package openmw.query>`               | everywhere         | | Tools for constructing queries: base queries and fields.    |
+|:ref:`openmw.async <Package openmw.async>`               | everywhere         | | Timers (implemented) and coroutine utils (not implemented)  |
 +---------------------------------------------------------+--------------------+---------------------------------------------------------------+
 |:ref:`openmw.world <Package openmw.world>`               | by global scripts  | | Read-write access to the game world.                        |
 +---------------------------------------------------------+--------------------+---------------------------------------------------------------+
