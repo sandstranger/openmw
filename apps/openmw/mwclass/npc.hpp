@@ -1,6 +1,8 @@
 #ifndef GAME_MWCLASS_NPC_H
 #define GAME_MWCLASS_NPC_H
 
+#include "../mwworld/registeredclass.hpp"
+
 #include "actor.hpp"
 
 namespace ESM
@@ -10,8 +12,12 @@ namespace ESM
 
 namespace MWClass
 {
-    class Npc : public Actor
+    class Npc : public MWWorld::RegisteredClass<Npc, Actor>
     {
+            friend MWWorld::RegisteredClass<Npc, Actor>;
+
+            Npc();
+
             void ensureCustomData (const MWWorld::Ptr& ptr) const;
 
             MWWorld::Ptr copyToCellImpl(const MWWorld::ConstPtr &ptr, MWWorld::CellStore &cell) const override;
@@ -77,7 +83,7 @@ namespace MWClass
             void getModelsToPreload(const MWWorld::Ptr& ptr, std::vector<std::string>& models) const override;
             ///< Get a list of models to preload that this object may use (directly or indirectly). default implementation: list getModel().
 
-            std::shared_ptr<MWWorld::Action> activate (const MWWorld::Ptr& ptr,
+            std::unique_ptr<MWWorld::Action> activate (const MWWorld::Ptr& ptr,
                 const MWWorld::Ptr& actor) const override;
             ///< Generate action for activation
 
@@ -124,8 +130,6 @@ namespace MWClass
             bool isPersistent (const MWWorld::ConstPtr& ptr) const override;
 
             std::string getSoundIdFromSndGen(const MWWorld::Ptr &ptr, const std::string &name) const override;
-
-            static void registerSelf();
 
             std::string getModel(const MWWorld::ConstPtr &ptr) const override;
 

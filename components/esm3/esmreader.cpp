@@ -4,6 +4,7 @@
 #include <components/misc/stringops.hpp>
 
 #include <stdexcept>
+#include <sstream>
 
 namespace ESM
 {
@@ -93,7 +94,7 @@ void ESMReader::openRaw(Files::IStreamPtr _esm, const std::string& name)
 
 void ESMReader::openRaw(const std::string& filename)
 {
-    openRaw(Files::openConstrainedFileStream(filename.c_str()), filename);
+    openRaw(Files::openConstrainedFileStream(filename), filename);
 }
 
 void ESMReader::open(Files::IStreamPtr _esm, const std::string &name, bool isGroundcover)
@@ -112,7 +113,7 @@ void ESMReader::open(Files::IStreamPtr _esm, const std::string &name, bool isGro
 
 void ESMReader::open(const std::string &file, bool isGroundcover)
 {
-    open (Files::openConstrainedFileStream (file.c_str ()), file, isGroundcover);
+    open (Files::openConstrainedFileStream(file), file);
 }
 
 std::string ESMReader::getHNOString(NAME name)
@@ -120,6 +121,12 @@ std::string ESMReader::getHNOString(NAME name)
     if (isNextSub(name))
         return getHString();
     return "";
+}
+
+void ESMReader::skipHNOString(NAME name)
+{
+    if (isNextSub(name))
+        skipHString();
 }
 
 std::string ESMReader::getHNString(NAME name)
@@ -147,6 +154,26 @@ std::string ESMReader::getHString()
     }
 
     return getString(mCtx.leftSub);
+}
+
+void ESMReader::skipHString()
+{
+    getSubHeader();
+
+    // Hack to make MultiMark.esp load. Zero-length strings do not
+    // occur in any of the official mods, but MultiMark makes use of
+    // them. For some reason, they break the rules, and contain a byte
+    // (value 0) even if the header says there is no data. If
+    // Morrowind accepts it, so should we.
+    if (mCtx.leftSub == 0 && hasMoreSubs() && !mEsm->peek())
+    {
+        // Skip the following zero byte
+        mCtx.leftRec--;
+        skipT<char>();
+        return;
+    }
+
+    skip(mCtx.leftSub);
 }
 
 void ESMReader::getHExact(void*p, int size)

@@ -164,6 +164,7 @@ Programmers
     Nialsy
     Nick Crawford (nighthawk469)
     Nikolay Kasyanov (corristo)
+    Noah Gooder
     nobrakal
     Nolan Poe (nopoe)
     Nurivan Gomez (Nuri-G)
@@ -226,16 +227,17 @@ Programmers
     unelsson
     uramer
     viadanna
+    Vidi_Aquam
     Vincent Heuken
     Vladimir Panteleev (CyberShadow)
+    vocollapse
     Wang Ryu (bzzt)
     Will Herrmann (Thunderforge)
-    vocollapse
+    Wolfgang Lieff
     xyzz
     Yohaulticetl
     Yuri Krupenin
     zelurker
-    Noah Gooder
 
 Documentation
 -------------

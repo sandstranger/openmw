@@ -1248,8 +1248,8 @@ namespace MWMechanics
         const float maxTimeToCheck = 2.0f;
         static const bool giveWayWhenIdle = Settings::Manager::getBool("NPCs give way", "Game");
 
-        MWWorld::Ptr player = getPlayer();
-        MWBase::World* world = MWBase::Environment::get().getWorld();
+        const MWWorld::Ptr player = getPlayer();
+        const MWBase::World* world = MWBase::Environment::get().getWorld();
         for(PtrActorMap::iterator iter(mActors.begin()); iter != mActors.end(); ++iter)
         {
             const MWWorld::Ptr& ptr = iter->first;
@@ -1274,23 +1274,26 @@ namespace MWMechanics
             bool shouldTurnToApproachingActor = !isMoving;
             MWWorld::Ptr currentTarget; // Combat or pursue target (NPCs should not avoid collision with their targets).
             const auto& aiSequence = ptr.getClass().getCreatureStats(ptr).getAiSequence();
-            for (const auto& package : aiSequence)
+            if (!aiSequence.isEmpty())
             {
-                if (package->getTypeId() == AiPackageTypeId::Follow)
-                    shouldAvoidCollision = true;
-                else if (package->getTypeId() == AiPackageTypeId::Wander && giveWayWhenIdle)
+                const auto& package = aiSequence.getActivePackage();
+                if (package.getTypeId() == AiPackageTypeId::Follow)
                 {
-                    if (!static_cast<const AiWander*>(package.get())->isStationary())
+                    shouldAvoidCollision = true;
+                }
+                else if (package.getTypeId() == AiPackageTypeId::Wander && giveWayWhenIdle)
+                {
+                    if (!static_cast<const AiWander&>(package).isStationary())
                         shouldGiveWay = true;
                 }
-                else if (package->getTypeId() == AiPackageTypeId::Combat || package->getTypeId() == AiPackageTypeId::Pursue)
+                else if (package.getTypeId() == AiPackageTypeId::Combat || package.getTypeId() == AiPackageTypeId::Pursue)
                 {
-                    currentTarget = package->getTarget();
+                    currentTarget = package.getTarget();
                     shouldAvoidCollision = isMoving;
                     shouldTurnToApproachingActor = false;
-                    break;
                 }
             }
+
             if (!shouldAvoidCollision && !shouldGiveWay)
                 continue;
 
@@ -1570,7 +1573,7 @@ namespace MWMechanics
                             mov.mRotation[2] = luaControls->mYawChange;
                             mov.mSpeedFactor = osg::Vec2(luaControls->mMovement, luaControls->mSideMovement).length();
                             stats.setMovementFlag(MWMechanics::CreatureStats::Flag_Run, luaControls->mRun);
-                            stats.setAttackingOrSpell(luaControls->mUse == 1);
+                            stats.setAttackingOrSpell((luaControls->mUse & 1) == 1);
                             luaControls->mChanged = false;
                         }
                         luaControls->mSideMovement = movement.x();

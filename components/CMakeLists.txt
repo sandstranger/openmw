@@ -29,7 +29,11 @@ endif (GIT_CHECKOUT)
 # source files
 
 add_component_dir (lua
-    luastate scriptscontainer utilpackage serialization configuration i18n storage
+    luastate scriptscontainer utilpackage serialization configuration l10n storage
+    )
+
+add_component_dir (l10n
+    messagebundles
     )
 
 add_component_dir (settings
@@ -256,7 +260,7 @@ add_component_dir (fallback
 add_component_dir (lua_ui
     registerscriptsettings scriptsettings
     properties widget element util layers content alignment resources
-    adapter text textedit window image container
+    adapter text textedit window image container flex
     )
 
 
@@ -318,6 +322,10 @@ add_component_dir(esmloader
     load
     esmdata
 )
+
+add_component_dir(navmeshtool
+    protocol
+    )
 
 set (ESM_UI ${CMAKE_SOURCE_DIR}/files/ui/contentselector.ui
     )
@@ -391,6 +399,8 @@ target_link_libraries(components
     Base64
     SQLite::SQLite3
     smhasher
+    ${ICU_LIBRARIES}
+    yaml-cpp
     )
 
 target_link_libraries(components ${BULLET_LIBRARIES})

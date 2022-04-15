@@ -105,6 +105,7 @@
     Bug #6559: Weapon condition inconsistency between melee and ranged critical / sneak / KO attacks
     Bug #6579: OpenMW compilation error when using OSG doubles for BoundingSphere
     Bug #6606: Quests with multiple IDs cannot always be restarted
+    Bug #6653: With default settings the in-game console doesn't fit into screen
     Bug #6655: Constant effect absorb attribute causes the game to break
     Bug #6670: Dialogue order is incorrect
     Bug #6680: object.cpp handles nodetree unsafely, memory access with dangling pointer
@@ -114,6 +115,7 @@
     Feature #2491: Ability to make OpenMW "portable"
     Feature #2554: Modifying an object triggers the instances table to scroll to the corresponding record
     Feature #2780: A way to see current OpenMW version in the console
+    Feature #3245: Grid and angle snapping for the OpenMW-CS
     Feature #3616: Allow Zoom levels on the World Map
     Feature #4297: Implement APPLIED_ONCE flag for magic effects
     Feature #4414: Handle duration of EXTRA SPELL magic effect
@@ -137,11 +139,12 @@
     Feature #6288: Preserve the "blocked" record flag for referenceable objects.
     Feature #6380: Commas are treated as whitespace in vanilla
     Feature #6419: Topics shouldn't be greyed out if they can produce another topic reference
-    Feature #6443: NiStencilProperty is not fully supported
+    Feature #6443: Support NiStencilProperty
     Feature #6534: Shader-based object texture blending
     Feature #6541: Gloss-mapping
     Feature #6592: Missing support for NiTriShape particle emitters
     Feature #6600: Support NiSortAdjustNode
+    Feature #6684: Support NiFltAnimationNode
     Task #6201: Remove the "Note: No relevant classes found. No output generated" warnings
     Task #6264: Remove the old classes in animation.cpp
     Task #6553: Simplify interpreter instruction registration

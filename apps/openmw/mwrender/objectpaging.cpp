@@ -2,9 +2,9 @@
 
 #include <unordered_map>
 
-#include <osg/Version>
 #include <osg/LOD>
 #include <osg/Switch>
+#include <osg/Sequence>
 #include <osg/MatrixTransform>
 #include <osg/Material>
 #include <osgUtil/IncrementalCompileOperation>
@@ -57,20 +57,16 @@ namespace MWRender
     {
         switch (type)
         {
-            case ESM::REC_STAT:
-            {
-                const ESM::Static* entity = store.get<ESM::Static>().searchStatic(id);
-                isGroundcover = entity->mIsGroundcover;
-                return entity->mModel;
-            }
-            case ESM::REC_ACTI:
-                return store.get<ESM::Activator>().searchStatic(id)->mModel;
-            case ESM::REC_DOOR:
-                return store.get<ESM::Door>().searchStatic(id)->mModel;
-            case ESM::REC_CONT:
-                return store.get<ESM::Container>().searchStatic(id)->mModel;
-            default:
-                return std::string();
+          case ESM::REC_STAT:
+            return store.get<ESM::Static>().searchStatic(id)->mModel;
+          case ESM::REC_ACTI:
+            return store.get<ESM::Activator>().searchStatic(id)->mModel;
+          case ESM::REC_DOOR:
+            return store.get<ESM::Door>().searchStatic(id)->mModel;
+          case ESM::REC_CONT:
+            return store.get<ESM::Container>().searchStatic(id)->mModel;
+          default:
+            return {};
         }
     }
 
@@ -194,6 +190,13 @@ namespace MWRender
                 for (unsigned int i=0; i<lod->getNumChildren(); ++i)
                     if (lod->getMinRange(i) * lod->getMinRange(i) <= mSqrDistance && mSqrDistance < lod->getMaxRange(i) * lod->getMaxRange(i))
                         n->addChild(operator()(lod->getChild(i)));
+                n->setDataVariance(osg::Object::STATIC);
+                return n;
+            }
+            if (const osg::Sequence* sq = dynamic_cast<const osg::Sequence*>(node))
+            {
+                osg::Group* n = new osg::Group;
+                n->addChild(operator()(sq->getChild(sq->getValue() != -1 ? sq->getValue() : 0)));
                 n->setDataVariance(osg::Object::STATIC);
                 return n;
             }
@@ -346,6 +349,11 @@ namespace MWRender
                         traverse(*lod->getChild(i));
                 return;
             }
+            if (osg::Sequence* sq = dynamic_cast<osg::Sequence*>(&node))
+            {
+                traverse(*sq->getChild(sq->getValue() != -1 ? sq->getValue() : 0));
+                return;
+            }
 
             traverse(node);
         }
@@ -483,12 +491,15 @@ namespace MWRender
                         cMRef.mRefNum.mIndex = 0;
                         bool deleted = false;
                         bool moved = false;
-                        while(cell->getNextRef(esm[index], ref, deleted, cMRef, moved))
+                        while (ESM::Cell::getNextRef(esm[index], ref, deleted, cMRef, moved, ESM::Cell::GetNextRefMode::LoadOnlyNotMoved))
                         {
                             if (moved)
                                 continue;
 
-                            if (std::find(cell->mMovedRefs.begin(), cell->mMovedRefs.end(), ref.mRefNum) != cell->mMovedRefs.end()) continue;
+                            if (std::find(cell->mMovedRefs.begin(), cell->mMovedRefs.end(), ref.mRefNum) != cell->mMovedRefs.end())
+                                continue;
+
+                            Misc::StringUtils::lowerCaseInPlace(ref.mRefID);
                             int type = store.findStatic(ref.mRefID);
                             if (!typeFilter(type,size>=2)) continue;
                             if (deleted) { refs.erase(ref.mRefNum); continue; }
@@ -512,7 +523,12 @@ namespace MWRender
                 }
                 for (auto [ref, deleted] : cell->mLeasedRefs)
                 {
-                    if (deleted) { refs.erase(ref.mRefNum); continue; }
+                    if (deleted)
+                    {
+                        refs.erase(ref.mRefNum);
+                        continue;
+                    }
+                    Misc::StringUtils::lowerCaseInPlace(ref.mRefID);
                     int type = store.findStatic(ref.mRefID);
                     if (!typeFilter(type,size>=2)) continue;
                     refs[ref.mRefNum] = std::move(ref);

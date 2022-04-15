@@ -245,6 +245,10 @@ namespace
 
 namespace MWClass
 {
+    Npc::Npc()
+        : MWWorld::RegisteredClass<Npc, Actor>(ESM::NPC::sRecordId)
+    {
+    }
 
     class NpcCustomData : public MWWorld::TypedCustomData<NpcCustomData>
     {
@@ -856,12 +860,12 @@ namespace MWClass
         }
     }
 
-    std::shared_ptr<MWWorld::Action> Npc::activate (const MWWorld::Ptr& ptr,
+    std::unique_ptr<MWWorld::Action> Npc::activate (const MWWorld::Ptr& ptr,
         const MWWorld::Ptr& actor) const
     {
         // player got activated by another NPC
         if(ptr == MWMechanics::getPlayer())
-            return std::shared_ptr<MWWorld::Action>(new MWWorld::ActionTalk(actor));
+            return std::unique_ptr<MWWorld::Action>(new MWWorld::ActionTalk(actor));
 
         // Werewolfs can't activate NPCs
         if(actor.getClass().isNpc() && actor.getClass().getNpcStats(actor).isWerewolf())
@@ -870,7 +874,7 @@ namespace MWClass
             auto& prng = MWBase::Environment::get().getWorld()->getPrng();
             const ESM::Sound *sound = store.get<ESM::Sound>().searchRandom("WolfNPC", prng);
 
-            std::shared_ptr<MWWorld::Action> action(new MWWorld::FailedAction("#{sWerewolfRefusal}"));
+            std::unique_ptr<MWWorld::Action> action(new MWWorld::FailedAction("#{sWerewolfRefusal}"));
             if(sound) action->setSound(sound->mId);
 
             return action;
@@ -884,33 +888,33 @@ namespace MWClass
 
             // by default user can loot friendly actors during death animation
             if (canLoot && !stats.getAiSequence().isInCombat())
-                return std::shared_ptr<MWWorld::Action>(new MWWorld::ActionOpen(ptr));
+                return std::unique_ptr<MWWorld::Action>(new MWWorld::ActionOpen(ptr));
 
             // otherwise wait until death animation
             if(stats.isDeathAnimationFinished())
-                return std::shared_ptr<MWWorld::Action>(new MWWorld::ActionOpen(ptr));
+                return std::unique_ptr<MWWorld::Action>(new MWWorld::ActionOpen(ptr));
         }
         else if (!stats.getAiSequence().isInCombat())
         {
             if (stats.getKnockedDown() || MWBase::Environment::get().getMechanicsManager()->isSneaking(actor))
-                return std::shared_ptr<MWWorld::Action>(new MWWorld::ActionOpen(ptr)); // stealing
+                return std::unique_ptr<MWWorld::Action>(new MWWorld::ActionOpen(ptr)); // stealing
 
             // Can't talk to werewolves
             if (!getNpcStats(ptr).isWerewolf())
-                return std::shared_ptr<MWWorld::Action>(new MWWorld::ActionTalk(ptr));
+                return std::unique_ptr<MWWorld::Action>(new MWWorld::ActionTalk(ptr));
         }
         else // In combat
         {
             const bool stealingInCombat = Settings::Manager::getBool ("always allow stealing from knocked out actors", "Game");
             if (stealingInCombat && stats.getKnockedDown())
-                return std::shared_ptr<MWWorld::Action>(new MWWorld::ActionOpen(ptr)); // stealing
+                return std::unique_ptr<MWWorld::Action>(new MWWorld::ActionOpen(ptr)); // stealing
         }
 
         // Tribunal and some mod companions oddly enough must use open action as fallback
         if (!getScript(ptr).empty() && ptr.getRefData().getLocals().getIntVar(getScript(ptr), "companion"))
-            return std::shared_ptr<MWWorld::Action>(new MWWorld::ActionOpen(ptr));
+            return std::unique_ptr<MWWorld::Action>(new MWWorld::ActionOpen(ptr));
 
-        return std::shared_ptr<MWWorld::Action> (new MWWorld::FailedAction(""));
+        return std::unique_ptr<MWWorld::Action> (new MWWorld::FailedAction(""));
     }
 
     MWWorld::ContainerStore& Npc::getContainerStore (const MWWorld::Ptr& ptr)
@@ -1037,12 +1041,6 @@ namespace MWClass
         const MWWorld::LiveCellRef<ESM::NPC> *ref = ptr.get<ESM::NPC>();
 
         return (ref->mBase->mFlags & ESM::NPC::Essential) != 0;
-    }
-
-    void Npc::registerSelf()
-    {
-        std::shared_ptr<Class> instance (new Npc);
-        registerClass (ESM::NPC::sRecordId, instance);
     }
 
     bool Npc::hasToolTip(const MWWorld::ConstPtr& ptr) const

@@ -581,7 +581,7 @@ namespace MWWorld
                 cMRef.mRefNum.mIndex = 0;
                 bool deleted = false;
                 bool moved = false;
-                while(mCell->getNextRef(esm[index], ref, deleted, cMRef, moved))
+                while (ESM::Cell::getNextRef(esm[index], ref, deleted, cMRef, moved, ESM::Cell::GetNextRefMode::LoadOnlyNotMoved))
                 {
                     if (deleted || moved)
                         continue;
@@ -641,7 +641,7 @@ namespace MWWorld
                 cMRef.mRefNum.mIndex = 0;
                 bool deleted = false;
                 bool moved = false;
-                while(mCell->getNextRef(esm[index], ref, deleted, cMRef, moved))
+                while (ESM::Cell::getNextRef(esm[index], ref, deleted, cMRef, moved, ESM::Cell::GetNextRefMode::LoadOnlyNotMoved))
                 {
                     if (moved)
                         continue;
@@ -1042,9 +1042,9 @@ namespace MWWorld
         return !(left==right);
     }
 
-    void CellStore::setFog(ESM::FogState *fog)
+    void CellStore::setFog(std::unique_ptr<ESM::FogState>&& fog)
     {
-        mFogState.reset(fog);
+        mFogState = std::move(fog);
     }
 
     ESM::FogState* CellStore::getFog() const

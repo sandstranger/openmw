@@ -125,7 +125,8 @@ namespace
         // Restore effect particles
         MWBase::Environment::get().getWorld()->applyLoopingParticles(ptr);
 
-        ptr.getClass().insertObject (ptr, model, rotation, physics);
+        if (!model.empty())
+            ptr.getClass().insertObject(ptr, model, rotation, physics);
 
         MWBase::Environment::get().getLuaManager()->objectAddedToScene(ptr);
     }
@@ -296,6 +297,13 @@ namespace MWWorld
 
     void Scene::update (float duration, bool paused)
     {
+        if (mChangeCellGridRequest.has_value())
+        {
+            changeCellGrid(mChangeCellGridRequest->mPosition, mChangeCellGridRequest->mCell.x(),
+                           mChangeCellGridRequest->mCell.y(), mChangeCellGridRequest->mChangeEvent);
+            mChangeCellGridRequest.reset();
+        }
+
         mPreloader->updateCache(mRendering.getReferenceTime());
         preloadCells(duration);
 
@@ -515,7 +523,12 @@ namespace MWWorld
 
         osg::Vec2i newCell = getNewGridCenter(pos, &mCurrentGridCenter);
         if (newCell != mCurrentGridCenter)
-            changeCellGrid(pos, newCell.x(), newCell.y());
+            requestChangeCellGrid(pos, newCell);
+    }
+
+    void Scene::requestChangeCellGrid(const osg::Vec3f &position, const osg::Vec2i& cell, bool changeEvent)
+    {
+        mChangeCellGridRequest = ChangeCellGridRequest {position, cell, changeEvent};
     }
 
     void Scene::changeCellGrid (const osg::Vec3f &pos, int playerCellX, int playerCellY, bool changeEvent)
@@ -572,10 +585,14 @@ namespace MWWorld
                 if(ptr.mRef->mData.mPhysicsPostponed)
                 {
                     ptr.mRef->mData.mPhysicsPostponed = false;
-                    if(ptr.mRef->mData.isEnabled() && ptr.mRef->mData.getCount() > 0) {
+                    if (ptr.mRef->mData.isEnabled() && ptr.mRef->mData.getCount() > 0)
+                    {
                         std::string model = getModel(ptr, MWBase::Environment::get().getResourceSystem()->getVFS());
-                        const auto rotation = makeNodeRotation(ptr, RotationOrder::direct);
-                        ptr.getClass().insertObjectPhysics(ptr, model, rotation, *mPhysics);
+                        if (!model.empty())
+                        {
+                            const auto rotation = makeNodeRotation(ptr, RotationOrder::direct);
+                            ptr.getClass().insertObjectPhysics(ptr, model, rotation, *mPhysics);
+                        }
                     }
                 }
                 return true;

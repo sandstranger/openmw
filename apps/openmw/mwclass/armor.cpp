@@ -26,6 +26,10 @@
 
 namespace MWClass
 {
+    Armor::Armor()
+        : MWWorld::RegisteredClass<Armor>(ESM::Armor::sRecordId)
+    {
+    }
 
     void Armor::insertObjectRendering (const MWWorld::Ptr& ptr, const std::string& model, MWRender::RenderingInterface& renderingInterface) const
     {
@@ -53,7 +57,7 @@ namespace MWClass
         return !name.empty() ? name : ref->mBase->mId;
     }
 
-    std::shared_ptr<MWWorld::Action> Armor::activate (const MWWorld::Ptr& ptr,
+    std::unique_ptr<MWWorld::Action> Armor::activate (const MWWorld::Ptr& ptr,
         const MWWorld::Ptr& actor) const
     {
         return defaultItemActivate(ptr, actor);
@@ -157,13 +161,6 @@ namespace MWClass
         const MWWorld::LiveCellRef<ESM::Armor> *ref = ptr.get<ESM::Armor>();
 
         return ref->mBase->mData.mValue;
-    }
-
-    void Armor::registerSelf()
-    {
-        std::shared_ptr<Class> instance (new Armor);
-
-        registerClass (ESM::Armor::sRecordId, instance);
     }
 
     std::string Armor::getUpSoundId (const MWWorld::ConstPtr& ptr) const
@@ -335,9 +332,9 @@ namespace MWClass
         return std::make_pair(1,"");
     }
 
-    std::shared_ptr<MWWorld::Action> Armor::use (const MWWorld::Ptr& ptr, bool force) const
+    std::unique_ptr<MWWorld::Action> Armor::use (const MWWorld::Ptr& ptr, bool force) const
     {
-        std::shared_ptr<MWWorld::Action> action(new MWWorld::ActionEquip(ptr, force));
+        std::unique_ptr<MWWorld::Action> action(new MWWorld::ActionEquip(ptr, force));
 
         action->setSound(getUpSoundId(ptr));
 

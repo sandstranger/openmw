@@ -8,6 +8,7 @@
 #include <osg/Array>
 #include <osg/LOD>
 #include <osg/Switch>
+#include <osg/Sequence>
 #include <osg/TexGen>
 #include <osg/ValueObject>
 
@@ -387,9 +388,9 @@ namespace NifOsg
         {
             bool autoPlay = animflags & Nif::NiNode::AnimFlag_AutoPlay;
             if (autoPlay)
-                toSetup->setSource(std::shared_ptr<SceneUtil::ControllerSource>(new SceneUtil::FrameTimeSource));
+                toSetup->setSource(std::make_shared<SceneUtil::FrameTimeSource>());
 
-            toSetup->setFunction(std::shared_ptr<ControllerFunction>(new ControllerFunction(ctrl)));
+            toSetup->setFunction(std::make_shared<ControllerFunction>(ctrl));
         }
 
         static osg::ref_ptr<osg::LOD> handleLodNode(const Nif::NiLODNode* niLodNode)
@@ -414,6 +415,33 @@ namespace NifOsg
             switchNode->setNewChildDefaultValue(false);
             switchNode->setSingleChildOn(niSwitchNode->initialIndex);
             return switchNode;
+        }
+
+        static osg::ref_ptr<osg::Sequence> prepareSequenceNode(const Nif::Node* nifNode)
+        {
+            const Nif::NiFltAnimationNode* niFltAnimationNode = static_cast<const Nif::NiFltAnimationNode*>(nifNode);
+            osg::ref_ptr<osg::Sequence> sequenceNode (new osg::Sequence);
+            sequenceNode->setName(niFltAnimationNode->name);
+            if (niFltAnimationNode->children.length()!=0)
+            {
+                if (niFltAnimationNode->flags & Nif::NiFltAnimationNode::Flag_Swing)
+                    sequenceNode->setDefaultTime(niFltAnimationNode->mDuration/(niFltAnimationNode->children.length()*2));
+                else
+                    sequenceNode->setDefaultTime(niFltAnimationNode->mDuration/niFltAnimationNode->children.length());
+            }
+            return sequenceNode;
+        }
+
+        static void activateSequenceNode(osg::Group* osgNode, const Nif::Node* nifNode)
+        {
+            const Nif::NiFltAnimationNode* niFltAnimationNode = static_cast<const Nif::NiFltAnimationNode*>(nifNode);
+            osg::Sequence* sequenceNode = static_cast<osg::Sequence*>(osgNode);
+            if (niFltAnimationNode->flags & Nif::NiFltAnimationNode::Flag_Swing)
+                sequenceNode->setInterval(osg::Sequence::SWING, 0,-1);
+            else
+                sequenceNode->setInterval(osg::Sequence::LOOP, 0,-1);
+            sequenceNode->setDuration(1.0f, -1);
+            sequenceNode->setMode(osg::Sequence::START);
         }
 
         osg::ref_ptr<osg::Image> handleSourceTexture(const Nif::NiSourceTexture* st, Resource::ImageManager* imageManager)
@@ -516,13 +544,6 @@ namespace NifOsg
             }
             if (!node)
                 node = new NifOsg::MatrixTransform(nifNode->trafo);
-
-            if (nifNode->recType == Nif::RC_NiCollisionSwitch && !(nifNode->flags & Nif::NiNode::Flag_ActiveCollision))
-            {
-                node->setNodeMask(Loader::getIntersectionDisabledNodeMask());
-                // This node must not be combined with another node.
-                dataVariance = osg::Object::DYNAMIC;
-            }
 
             node->setDataVariance(dataVariance);
 
@@ -639,6 +660,9 @@ namespace NifOsg
                 node->setNodeMask(Loader::getHiddenNodeMask());
             }
 
+            if (nifNode->recType == Nif::RC_NiCollisionSwitch && !(nifNode->flags & Nif::NiNode::Flag_ActiveCollision))
+                node->setNodeMask(Loader::getIntersectionDisabledNodeMask());
+
             osg::ref_ptr<SceneUtil::CompositeStateSetUpdater> composite = new SceneUtil::CompositeStateSetUpdater;
 
             applyNodeProperties(nifNode, node, composite, imageManager, boundTextures, animflags);
@@ -711,6 +735,12 @@ namespace NifOsg
                 node->addChild(lodNode);
                 currentNode = lodNode;
             }
+            else if (nifNode->recType == Nif::RC_NiFltAnimationNode)
+            {
+                osg::ref_ptr<osg::Sequence> sequenceNode = prepareSequenceNode(nifNode);
+                node->addChild(sequenceNode);
+                currentNode = sequenceNode;
+            }
 
             const Nif::NiNode *ninode = dynamic_cast<const Nif::NiNode*>(nifNode);
             if(ninode)
@@ -730,6 +760,9 @@ namespace NifOsg
                         handleNode(children[i].getPtr(), &currentParent, currentNode, imageManager, boundTextures, animflags, skipMeshes, hasMarkers, hasAnimatedParents, textKeys, rootNode);
                 }
             }
+
+            if (nifNode->recType == Nif::RC_NiFltAnimationNode)
+                activateSequenceNode(currentNode,nifNode);
 
             return node;
         }

@@ -907,6 +907,11 @@ namespace MWRender
         updateNavMesh();
         updateRecastMesh();
 
+        if (mUpdateProjectionMatrix)
+        {
+            mUpdateProjectionMatrix = false;
+            updateProjectionMatrix();
+        }
         mCamera->update(dt, paused);
 
         bool isUnderwater = mWater->isUnderwater(mCamera->getPosition());
@@ -1254,8 +1259,7 @@ namespace MWRender
 
         // Since our fog is not radial yet, we should take FOV in account, otherwise terrain near viewing distance may disappear.
         // Limit FOV here just for sure, otherwise viewing distance can be too high.
-        fov = std::min(mFieldOfView, 140.f);
-        float distanceMult = std::cos(osg::DegreesToRadians(fov)/2.f);
+        float distanceMult = std::cos(osg::DegreesToRadians(std::min(fov, 140.f))/2.f);
         mTerrain->setViewDistance(mViewDistance * (distanceMult ? 1.f/distanceMult : 1.f));
 
         if (mGroundcoverWorld)
@@ -1443,6 +1447,17 @@ namespace MWRender
             mFieldOfViewOverride = val;
             updateProjectionMatrix();
         }
+    }
+
+    void RenderingManager::setFieldOfView(float val)
+    {
+        mFieldOfView = val;
+        mUpdateProjectionMatrix = true;
+    }
+
+    float RenderingManager::getFieldOfView() const
+    {
+        return mFieldOfViewOverridden ? mFieldOfViewOverridden : mFieldOfView;
     }
 
     osg::Vec3f RenderingManager::getHalfExtents(const MWWorld::ConstPtr& object) const

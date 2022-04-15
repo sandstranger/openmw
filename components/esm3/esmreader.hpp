@@ -2,9 +2,7 @@
 #define OPENMW_ESM_READER_H
 
 #include <cstdint>
-#include <cassert>
 #include <vector>
-#include <sstream>
 
 #include <components/files/constrainedfilestream.hpp>
 
@@ -15,7 +13,8 @@
 #include "components/esm/esmcommon.hpp"
 #include "loadtes3.hpp"
 
-namespace ESM {
+namespace ESM
+{
 
 class ESMReader
 {
@@ -115,20 +114,18 @@ public:
 
   // Version with extra size checking, to make sure the compiler
   // doesn't mess up our struct padding.
-  template <typename X>
-  void getHNT(X &x, NAME name, int size)
+  template <std::size_t size, typename X>
+  void getHNTSized(X &x, NAME name)
   {
-      assert(sizeof(X) == size);
-      getSubNameIs(name);
-      getHT(x);
+      static_assert(sizeof(X) == size);
+      getHNT(x, name);
   }
 
-  template <typename X>
-  void getHNOT(X &x, NAME name, int size)
+  template <std::size_t size, typename X>
+  void getHNOTSized(X &x, NAME name)
   {
-      assert(sizeof(X) == size);
-      if(isNextSub(name))
-          getHT(x);
+      static_assert(sizeof(X) == size);
+      getHNOT(x, name);
   }
 
   // Get data of a given type/size, including subrecord header
@@ -141,23 +138,43 @@ public:
       getT(x);
   }
 
+  template <typename T>
+  void skipHT()
+  {
+      getSubHeader();
+      if (mCtx.leftSub != sizeof(T))
+          reportSubSizeMismatch(sizeof(T), mCtx.leftSub);
+      skipT<T>();
+  }
+
   // Version with extra size checking, to make sure the compiler
   // doesn't mess up our struct padding.
-  template <typename X>
-  void getHT(X &x, int size)
+  template <std::size_t size, typename X>
+  void getHTSized(X &x)
   {
-      assert(sizeof(X) == size);
+      static_assert(sizeof(X) == size);
       getHT(x);
+  }
+
+  template <std::size_t size, typename T>
+  void skipHTSized()
+  {
+      static_assert(sizeof(T) == size);
+      skipHT<T>();
   }
 
   // Read a string by the given name if it is the next record.
   std::string getHNOString(NAME name);
+
+  void skipHNOString(NAME name);
 
   // Read a string with the given sub-record name
   std::string getHNString(NAME name);
 
   // Read a string, including the sub-record header (but not the name)
   std::string getHString();
+
+  void skipHString();
 
   // Read the given number of bytes from a subrecord
   void getHExact(void*p, int size);
@@ -238,6 +255,9 @@ public:
   template <typename X>
   void getT(X &x) { getExact(&x, sizeof(X)); }
 
+  template <typename T>
+  void skipT() { skip(sizeof(T)); }
+
   void getExact(void* x, int size) { mEsm->read((char*)x, size); }
   void getName(NAME &name) { getT(name); }
   void getUint(uint32_t &u) { getT(u); }
@@ -246,7 +266,14 @@ public:
   // them from native encoding to UTF8 in the process.
   std::string getString(int size);
 
-  void skip(int bytes) { mEsm->seekg(getFileOffset()+bytes); };
+    void skip(std::size_t bytes)
+    {
+        char buffer[4096];
+        if (bytes > std::size(buffer))
+            mEsm->seekg(getFileOffset() + bytes);
+        else
+            mEsm->read(buffer, bytes);
+    }
 
   /// Used for error handling
   [[noreturn]] void fail(const std::string &msg);

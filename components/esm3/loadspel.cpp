@@ -22,23 +22,23 @@ namespace ESM
             esm.getSubName();
             switch (esm.retSubName().toInt())
             {
-                case ESM::SREC_NAME:
+                case SREC_NAME:
                     mId = esm.getHString();
                     hasName = true;
                     break;
-                case ESM::fourCC("FNAM"):
+                case fourCC("FNAM"):
                     mName = esm.getHString();
                     break;
-                case ESM::fourCC("SPDT"):
-                    esm.getHT(mData, 12);
+                case fourCC("SPDT"):
+                    esm.getHTSized<12>(mData);
                     hasData = true;
                     break;
-                case ESM::fourCC("ENAM"):
+                case fourCC("ENAM"):
                     ENAMstruct s;
-                    esm.getHT(s, 24);
+                    esm.getHTSized<24>(s);
                     mEffects.mList.push_back(s);
                     break;
-                case ESM::SREC_DELE:
+                case SREC_DELE:
                     esm.skipHSub();
                     isDeleted = true;
                     break;

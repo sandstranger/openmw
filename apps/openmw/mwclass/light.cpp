@@ -23,6 +23,10 @@
 
 namespace MWClass
 {
+    Light::Light()
+        : MWWorld::RegisteredClass<Light>(ESM::Light::sRecordId)
+    {
+    }
 
     void Light::insertObjectRendering (const MWWorld::Ptr& ptr, const std::string& model, MWRender::RenderingInterface& renderingInterface) const
     {
@@ -50,7 +54,7 @@ namespace MWClass
     void Light::insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const
     {
         // TODO: add option somewhere to enable collision for placeable objects
-        if (!model.empty() && (ptr.get<ESM::Light>()->mBase->mData.mFlags & ESM::Light::Carry) == 0)
+        if ((ptr.get<ESM::Light>()->mBase->mData.mFlags & ESM::Light::Carry) == 0)
             physics.addObject(ptr, model, rotation, MWPhysics::CollisionType_World);
     }
 
@@ -81,15 +85,15 @@ namespace MWClass
         return !name.empty() ? name : ref->mBase->mId;
     }
 
-    std::shared_ptr<MWWorld::Action> Light::activate (const MWWorld::Ptr& ptr,
+    std::unique_ptr<MWWorld::Action> Light::activate (const MWWorld::Ptr& ptr,
         const MWWorld::Ptr& actor) const
     {
         if(!MWBase::Environment::get().getWindowManager()->isAllowed(MWGui::GW_Inventory))
-            return std::shared_ptr<MWWorld::Action>(new MWWorld::NullAction());
+            return std::unique_ptr<MWWorld::Action>(new MWWorld::NullAction());
 
         MWWorld::LiveCellRef<ESM::Light> *ref = ptr.get<ESM::Light>();
         if(!(ref->mBase->mData.mFlags&ESM::Light::Carry))
-            return std::shared_ptr<MWWorld::Action>(new MWWorld::FailedAction());
+            return std::unique_ptr<MWWorld::Action>(new MWWorld::FailedAction());
 
         return defaultItemActivate(ptr, actor);
     }
@@ -118,13 +122,6 @@ namespace MWClass
         const MWWorld::LiveCellRef<ESM::Light> *ref = ptr.get<ESM::Light>();
 
         return ref->mBase->mData.mValue;
-    }
-
-    void Light::registerSelf()
-    {
-        std::shared_ptr<Class> instance (new Light);
-
-        registerClass (ESM::Light::sRecordId, instance);
     }
 
     std::string Light::getUpSoundId (const MWWorld::ConstPtr& ptr) const
@@ -187,9 +184,9 @@ namespace MWClass
         return Class::showsInInventory(ptr);
     }
 
-    std::shared_ptr<MWWorld::Action> Light::use (const MWWorld::Ptr& ptr, bool force) const
+    std::unique_ptr<MWWorld::Action> Light::use (const MWWorld::Ptr& ptr, bool force) const
     {
-        std::shared_ptr<MWWorld::Action> action(new MWWorld::ActionEquip(ptr, force));
+        std::unique_ptr<MWWorld::Action> action(new MWWorld::ActionEquip(ptr, force));
 
         action->setSound(getUpSoundId(ptr));
 

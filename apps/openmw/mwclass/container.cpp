@@ -54,8 +54,9 @@ namespace MWClass
     }
 
     Container::Container()
+        : MWWorld::RegisteredClass<Container>(ESM::Container::sRecordId)
+        , mHarvestEnabled(Settings::Manager::getBool("graphic herbalism", "Game"))
     {
-        mHarvestEnabled = Settings::Manager::getBool("graphic herbalism", "Game");
     }
 
     void Container::ensureCustomData (const MWWorld::Ptr& ptr) const
@@ -111,8 +112,7 @@ namespace MWClass
 
     void Container::insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const
     {
-        if(!model.empty())
-            physics.addObject(ptr, model, rotation, MWPhysics::CollisionType_World);
+        physics.addObject(ptr, model, rotation, MWPhysics::CollisionType_World);
     }
 
     std::string Container::getModel(const MWWorld::ConstPtr &ptr) const
@@ -131,11 +131,11 @@ namespace MWClass
         return true;
     }
 
-    std::shared_ptr<MWWorld::Action> Container::activate (const MWWorld::Ptr& ptr,
+    std::unique_ptr<MWWorld::Action> Container::activate (const MWWorld::Ptr& ptr,
         const MWWorld::Ptr& actor) const
     {
         if (!MWBase::Environment::get().getWindowManager()->isAllowed(MWGui::GW_Inventory))
-            return std::shared_ptr<MWWorld::Action> (new MWWorld::NullAction ());
+            return std::unique_ptr<MWWorld::Action> (new MWWorld::NullAction ());
 
         if(actor.getClass().isNpc() && actor.getClass().getNpcStats(actor).isWerewolf())
         {
@@ -143,7 +143,7 @@ namespace MWClass
             auto& prng = MWBase::Environment::get().getWorld()->getPrng();
             const ESM::Sound *sound = store.get<ESM::Sound>().searchRandom("WolfContainer", prng);
 
-            std::shared_ptr<MWWorld::Action> action(new MWWorld::FailedAction("#{sWerewolfRefusal}"));
+            std::unique_ptr<MWWorld::Action> action(new MWWorld::FailedAction("#{sWerewolfRefusal}"));
             if(sound) action->setSound(sound->mId);
 
             return action;
@@ -191,24 +191,24 @@ namespace MWClass
             {
                 if (canBeHarvested(ptr))
                 {
-                    std::shared_ptr<MWWorld::Action> action (new MWWorld::ActionHarvest(ptr));
+                    std::unique_ptr<MWWorld::Action> action (new MWWorld::ActionHarvest(ptr));
                     return action;
                 }
 
-                std::shared_ptr<MWWorld::Action> action (new MWWorld::ActionOpen(ptr));
+                std::unique_ptr<MWWorld::Action> action (new MWWorld::ActionOpen(ptr));
                 return action;
             }
             else
             {
                 // Activate trap
-                std::shared_ptr<MWWorld::Action> action(new MWWorld::ActionTrap(ptr.getCellRef().getTrap(), ptr));
+                std::unique_ptr<MWWorld::Action> action(new MWWorld::ActionTrap(ptr.getCellRef().getTrap(), ptr));
                 action->setSound(trapActivationSound);
                 return action;
             }
         }
         else
         {
-            std::shared_ptr<MWWorld::Action> action(new MWWorld::FailedAction(std::string(), ptr));
+            std::unique_ptr<MWWorld::Action> action(new MWWorld::FailedAction(std::string(), ptr));
             action->setSound(lockedSound);
             return action;
         }
@@ -235,13 +235,6 @@ namespace MWClass
         const MWWorld::LiveCellRef<ESM::Container> *ref = ptr.get<ESM::Container>();
 
         return ref->mBase->mScript;
-    }
-
-    void Container::registerSelf()
-    {
-        std::shared_ptr<Class> instance (new Container);
-
-        registerClass (ESM::Container::sRecordId, instance);
     }
 
     bool Container::hasToolTip (const MWWorld::ConstPtr& ptr) const

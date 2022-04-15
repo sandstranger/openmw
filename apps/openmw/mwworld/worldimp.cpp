@@ -2064,6 +2064,25 @@ namespace MWWorld
         return facedObject;
     }
 
+    bool World::castRenderingRay(MWPhysics::RayCastingResult& res, const osg::Vec3f& from, const osg::Vec3f& to,
+                                 bool ignorePlayer, bool ignoreActors)
+    {
+        MWRender::RenderingManager::RayResult rayRes = mRendering->castRay(from, to, ignorePlayer, ignoreActors);
+        res.mHit = rayRes.mHit;
+        res.mHitPos = rayRes.mHitPointWorld;
+        res.mHitNormal = rayRes.mHitNormalWorld;
+        res.mHitObject = rayRes.mHitObject;
+        if (res.mHitObject.isEmpty() && rayRes.mHitRefnum.isSet())
+        {
+            for (CellStore* cellstore : mWorldScene->getActiveCells())
+            {
+                res.mHitObject = cellstore->searchViaRefNum(rayRes.mHitRefnum);
+                if (!res.mHitObject.isEmpty()) break;
+            }
+        }
+        return res.mHit;
+    }
+
     bool World::isCellExterior() const
     {
         const CellStore *currentCell = mWorldScene->getCurrentCell();
@@ -3882,7 +3901,7 @@ namespace MWWorld
         if (object.getRefData().activate())
         {
             MWBase::Environment::get().getLuaManager()->objectActivated(object, actor);
-            std::shared_ptr<MWWorld::Action> action = object.getClass().activate(object, actor);
+            std::unique_ptr<MWWorld::Action> action = object.getClass().activate(object, actor);
             action->execute (actor);
         }
     }
@@ -4027,7 +4046,7 @@ namespace MWWorld
     }
 
     bool World::isAreaOccupiedByOtherActor(const osg::Vec3f& position, const float radius,
-        const MWWorld::ConstPtr& ignore, std::vector<MWWorld::Ptr>* occupyingActors) const
+        const Misc::Span<const MWWorld::ConstPtr>& ignore, std::vector<MWWorld::Ptr>* occupyingActors) const
     {
         return mPhysics->isAreaOccupiedByOtherActor(position, radius, ignore, occupyingActors);
     }

@@ -1,5 +1,7 @@
 #include "loadscpt.hpp"
 
+#include <sstream>
+
 #include <components/debug/debuglog.hpp>
 
 #include "esmreader.hpp"
@@ -93,7 +95,7 @@ namespace ESM
             esm.getSubName();
             switch (esm.retSubName().toInt())
             {
-                case ESM::fourCC("SCHD"):
+                case fourCC("SCHD"):
                 {
                     esm.getSubHeader();
                     mId = esm.getString(32);
@@ -102,11 +104,11 @@ namespace ESM
                     hasHeader = true;
                     break;
                 }
-                case ESM::fourCC("SCVR"):
+                case fourCC("SCVR"):
                     // list of local variables
                     loadSCVR(esm);
                     break;
-                case ESM::fourCC("SCDT"):
+                case fourCC("SCDT"):
                 {
                     // compiled script
                     esm.getSubHeader();
@@ -125,10 +127,10 @@ namespace ESM
                     esm.getExact(mScriptData.data(), mScriptData.size());
                     break;
                 }
-                case ESM::fourCC("SCTX"):
+                case fourCC("SCTX"):
                     mScriptText = esm.getHString();
                     break;
-                case ESM::SREC_DELE:
+                case SREC_DELE:
                     esm.skipHSub();
                     isDeleted = true;
                     break;

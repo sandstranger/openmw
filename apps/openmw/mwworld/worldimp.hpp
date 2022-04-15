@@ -98,7 +98,7 @@ namespace MWWorld
             std::unique_ptr<MWWorld::Scene> mWorldScene;
             std::unique_ptr<MWWorld::WeatherManager> mWeatherManager;
             std::unique_ptr<MWWorld::DateTimeManager> mCurrentDate;
-            std::shared_ptr<ProjectileManager> mProjectileManager;
+            std::unique_ptr<ProjectileManager> mProjectileManager;
 
             bool mSky;
             bool mGodMode;
@@ -424,6 +424,9 @@ namespace MWWorld
 
             bool castRay(const osg::Vec3f& from, const osg::Vec3f& to, int mask, const MWWorld::ConstPtr& ignore) override;
 
+            bool castRenderingRay(MWPhysics::RayCastingResult& res, const osg::Vec3f& from, const osg::Vec3f& to,
+                                  bool ignorePlayer, bool ignoreActors) override;
+
             void setActorCollisionMode(const Ptr& ptr, bool internal, bool external) override;
             bool isActorCollisionEnabled(const Ptr& ptr) override;
 
@@ -742,13 +745,15 @@ namespace MWWorld
             bool hasCollisionWithDoor(const MWWorld::ConstPtr& door, const osg::Vec3f& position, const osg::Vec3f& destination) const override;
 
             bool isAreaOccupiedByOtherActor(const osg::Vec3f& position, const float radius,
-                const MWWorld::ConstPtr& ignore, std::vector<MWWorld::Ptr>* occupyingActors) const override;
+                const Misc::Span<const MWWorld::ConstPtr>& ignore, std::vector<MWWorld::Ptr>* occupyingActors) const override;
 
             void reportStats(unsigned int frameNumber, osg::Stats& stats) const override;
 
             std::vector<MWWorld::Ptr> getAll(const std::string& id) override;
 
             Misc::Rng::Generator& getPrng() override;
+
+            MWRender::RenderingManager* getRenderingManager() override { return mRendering.get(); }
     };
 }
 

@@ -28,6 +28,10 @@
 
 namespace MWClass
 {
+    Activator::Activator()
+        : MWWorld::RegisteredClass<Activator>(ESM::Activator::sRecordId)
+    {
+    }
 
     void Activator::insertObjectRendering (const MWWorld::Ptr& ptr, const std::string& model, MWRender::RenderingInterface& renderingInterface) const
     {
@@ -45,8 +49,7 @@ namespace MWClass
 
     void Activator::insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const
     {
-        if(!model.empty())
-            physics.addObject(ptr, model, rotation, MWPhysics::CollisionType_World);
+        physics.addObject(ptr, model, rotation, MWPhysics::CollisionType_World);
     }
 
     std::string Activator::getModel(const MWWorld::ConstPtr &ptr) const
@@ -85,13 +88,6 @@ namespace MWClass
         return ref->mBase->mScript;
     }
 
-    void Activator::registerSelf()
-    {
-        std::shared_ptr<Class> instance (new Activator);
-
-        registerClass (ESM::Activator::sRecordId, instance);
-    }
-
     bool Activator::hasToolTip (const MWWorld::ConstPtr& ptr) const
     {
         return !getName(ptr).empty();
@@ -115,7 +111,7 @@ namespace MWClass
         return info;
     }
 
-    std::shared_ptr<MWWorld::Action> Activator::activate(const MWWorld::Ptr &ptr, const MWWorld::Ptr &actor) const
+    std::unique_ptr<MWWorld::Action> Activator::activate(const MWWorld::Ptr &ptr, const MWWorld::Ptr &actor) const
     {
         if(actor.getClass().isNpc() && actor.getClass().getNpcStats(actor).isWerewolf())
         {
@@ -123,12 +119,12 @@ namespace MWClass
             auto& prng = MWBase::Environment::get().getWorld()->getPrng();
             const ESM::Sound *sound = store.get<ESM::Sound>().searchRandom("WolfActivator", prng);
 
-            std::shared_ptr<MWWorld::Action> action(new MWWorld::FailedAction("#{sWerewolfRefusal}"));
+            std::unique_ptr<MWWorld::Action> action(new MWWorld::FailedAction("#{sWerewolfRefusal}"));
             if(sound) action->setSound(sound->mId);
 
             return action;
         }
-        return std::shared_ptr<MWWorld::Action>(new MWWorld::NullAction);
+        return std::unique_ptr<MWWorld::Action>(new MWWorld::NullAction);
     }
 
 
