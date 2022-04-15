@@ -252,8 +252,8 @@ if (NOT OPENMW_USE_SYSTEM_ICU)
         set(NDK_STANDARD_ROOT ${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64)
         string(REPLACE "android-" "" ANDROIDVER ${ANDROID_PLATFORM})
         set(ICU_ENV
-            "CC=ccache ${NDK_STANDARD_ROOT}/bin/aarch64-linux-android${ANDROIDVER}-clang"
-            "CXX=ccache ${NDK_STANDARD_ROOT}/bin/aarch64-linux-android${ANDROIDVER}-clang"
+            "CC=${NDK_STANDARD_ROOT}/bin/aarch64-linux-android${ANDROIDVER}-clang"
+            "CXX=${NDK_STANDARD_ROOT}/bin/aarch64-linux-android${ANDROIDVER}-clang"
             "RANLIB=${NDK_STANDARD_ROOT}/bin/aarch64-linux-android-ranlib"
             "AR=${NDK_STANDARD_ROOT}/bin/aarch64-linux-android-ar"
             "CPPFLAGS=${ANDROID_COMPILER_FLAGS}"

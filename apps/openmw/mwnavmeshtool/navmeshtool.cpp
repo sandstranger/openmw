@@ -113,6 +113,7 @@ namespace NavMeshTool
 
             bpo::variables_map composingVariables = Files::separateComposingVariables(variables, desc);
             config.readConfiguration(variables, desc);
+            setupLogging(config.getLogPath().string(), "NavMeshTool");
             Files::mergeComposingVariables(variables, composingVariables, desc);
 
             const std::string encoding(variables["encoding"].as<std::string>());

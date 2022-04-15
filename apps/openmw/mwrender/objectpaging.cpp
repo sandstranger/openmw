@@ -97,11 +97,11 @@ namespace MWRender
 
     bool needvbo(const osg::Geometry* geom)
     {
-#if OSG_MIN_VERSION_REQUIRED(3,5,6)
+//#if OSG_MIN_VERSION_REQUIRED(3,5,6)
         return true;
-#else
-        return geom->getUseVertexBufferObjects();
-#endif
+//#else
+//        return geom->getUseVertexBufferObjects();
+//#endif
     }
 
     class CanOptimizeCallback : public SceneUtil::Optimizer::IsOperationPermissibleForObjectCallback
