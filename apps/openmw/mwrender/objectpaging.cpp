@@ -58,7 +58,11 @@ namespace MWRender
         switch (type)
         {
           case ESM::REC_STAT:
-            return store.get<ESM::Static>().searchStatic(id)->mModel;
+          {
+              const ESM::Static* entity = store.get<ESM::Static>().searchStatic(id);
+              isGroundcover = entity->mIsGroundcover;
+              return entity->mModel;
+          }
           case ESM::REC_ACTI:
             return store.get<ESM::Activator>().searchStatic(id)->mModel;
           case ESM::REC_DOOR:
