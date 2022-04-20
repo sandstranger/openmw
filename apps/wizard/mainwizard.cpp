@@ -55,6 +55,9 @@ Wizard::MainWizard::MainWizard(QWidget *parent) :
                    <p>Please make sure you have the right permissions \
                    and try again.</p></body></html>");
 
+    boost::filesystem::create_directories(mCfgMgr.getUserConfigPath());
+    boost::filesystem::create_directories(mCfgMgr.getUserDataPath());
+
     setupLog();
     setupGameSettings();
     setupLauncherSettings();
@@ -325,7 +328,7 @@ void Wizard::MainWizard::setupPages()
     setPage(Page_InstallationTarget, new InstallationTargetPage(this, mCfgMgr));
     setPage(Page_ComponentSelection, new ComponentSelectionPage(this));
 #ifdef OPENMW_USE_UNSHIELD
-    setPage(Page_Installation, new InstallationPage(this));
+    setPage(Page_Installation, new InstallationPage(this, mGameSettings));
 #endif
     setPage(Page_Import, new ImportPage(this));
     setPage(Page_Conclusion, new ConclusionPage(this));

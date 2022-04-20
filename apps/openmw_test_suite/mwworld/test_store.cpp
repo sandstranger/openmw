@@ -29,13 +29,14 @@ struct ContentFileTest : public ::testing::Test
 
         // load the content files
         int index=0;
+        ESM::Dialogue* dialogue = nullptr;
         for (const auto & mContentFile : mContentFiles)
         {
             ESM::ESMReader lEsm;
             lEsm.setEncoder(nullptr);
             lEsm.setIndex(index);
             lEsm.open(mContentFile.string());
-            mEsmStore.load(lEsm, &dummyListener);
+            mEsmStore.load(lEsm, &dummyListener, dialogue);
 
             ++index;
         }
@@ -224,17 +225,17 @@ protected:
 /// Create an ESM file in-memory containing the specified record.
 /// @param deleted Write record with deleted flag?
 template <typename T>
-Files::IStreamPtr getEsmFile(T record, bool deleted)
+std::unique_ptr<std::istream> getEsmFile(T record, bool deleted)
 {
     ESM::ESMWriter writer;
-    auto* stream = new std::stringstream;
+    auto stream = std::make_unique<std::stringstream>();
     writer.setFormat(0);
     writer.save(*stream);
     writer.startRecord(T::sRecordId);
     record.save(writer, deleted);
     writer.endRecord(T::sRecordId);
 
-    return Files::IStreamPtr(stream);
+    return stream;
 }
 
 /// Tests deletion of records.
@@ -249,28 +250,26 @@ TEST_F(StoreTest, delete_test)
     record.mId = recordId;
 
     ESM::ESMReader reader;
+    ESM::Dialogue* dialogue = nullptr;
 
     // master file inserts a record
-    Files::IStreamPtr file = getEsmFile(record, false);
-    reader.open(file, "filename");
-    mEsmStore.load(reader, &dummyListener);
+    reader.open(getEsmFile(record, false), "filename");
+    mEsmStore.load(reader, &dummyListener, dialogue);
     mEsmStore.setUp();
 
     ASSERT_TRUE (mEsmStore.get<RecordType>().getSize() == 1);
 
     // now a plugin deletes it
-    file = getEsmFile(record, true);
-    reader.open(file, "filename");
-    mEsmStore.load(reader, &dummyListener);
+    reader.open(getEsmFile(record, true), "filename");
+    mEsmStore.load(reader, &dummyListener, dialogue);
     mEsmStore.setUp();
 
     ASSERT_TRUE (mEsmStore.get<RecordType>().getSize() == 0);
 
     // now another plugin inserts it again
     // expected behaviour is the record to reappear rather than staying deleted
-    file = getEsmFile(record, false);
-    reader.open(file, "filename");
-    mEsmStore.load(reader, &dummyListener);
+    reader.open(getEsmFile(record, false), "filename");
+    mEsmStore.load(reader, &dummyListener, dialogue);
     mEsmStore.setUp();
 
     ASSERT_TRUE (mEsmStore.get<RecordType>().getSize() == 1);
@@ -289,19 +288,18 @@ TEST_F(StoreTest, overwrite_test)
     record.mId = recordId;
 
     ESM::ESMReader reader;
+    ESM::Dialogue* dialogue = nullptr;
 
     // master file inserts a record
-    Files::IStreamPtr file = getEsmFile(record, false);
-    reader.open(file, "filename");
-    mEsmStore.load(reader, &dummyListener);
+    reader.open(getEsmFile(record, false), "filename");
+    mEsmStore.load(reader, &dummyListener, dialogue);
     mEsmStore.setUp();
 
     // now a plugin overwrites it with changed data
     record.mId = recordIdUpper; // change id to uppercase, to test case smashing while we're at it
     record.mModel = "the_new_model";
-    file = getEsmFile(record, false);
-    reader.open(file, "filename");
-    mEsmStore.load(reader, &dummyListener);
+    reader.open(getEsmFile(record, false), "filename");
+    mEsmStore.load(reader, &dummyListener, dialogue);
     mEsmStore.setUp();
 
     // verify that changes were actually applied

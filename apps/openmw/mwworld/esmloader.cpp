@@ -11,6 +11,7 @@ EsmLoader::EsmLoader(MWWorld::ESMStore& store, std::vector<ESM::ESMReader>& read
     : mEsm(readers)
     , mStore(store)
     , mEncoder(encoder)
+    , mDialogue(nullptr) // A content file containing INFO records without a DIAL record appends them to the previous file's dialogue
 {
 }
 
@@ -21,8 +22,8 @@ void EsmLoader::load(const boost::filesystem::path& filepath, int& index, Loadin
     lEsm.setIndex(index);
     lEsm.open(filepath.string());
     lEsm.resolveParentFileIndices(mEsm);
-    mEsm[index] = lEsm;
-    mStore.load(mEsm[index], listener);
+    mEsm[index] = std::move(lEsm);
+    mStore.load(mEsm[index], listener, mDialogue);
 }
 
 } /* namespace MWWorld */
