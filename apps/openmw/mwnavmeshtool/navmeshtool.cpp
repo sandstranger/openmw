@@ -126,7 +126,7 @@ namespace NavMeshTool
             if (!local.empty())
                 dataDirs.push_back(std::move(local));
 
-            config.processPaths(dataDirs);
+            config.filterOutNonExistingPaths(dataDirs);
 
             const auto fsStrict = variables["fs-strict"].as<bool>();
             const auto resDir = variables["resources"].as<Files::MaybeQuotedPath>();
