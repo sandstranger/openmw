@@ -15,7 +15,7 @@
 #include "model/world/data.hpp"
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <components/windows.hpp>
 #endif
 
 using namespace Fallback;
@@ -137,10 +137,12 @@ std::pair<Files::PathContainer, std::vector<std::string> > CS::Editor::readConfi
 
     Files::PathContainer::value_type local(variables["data-local"].as<Files::MaybeQuotedPathContainer::value_type>());
     if (!local.empty())
+    {
+        boost::filesystem::create_directories(local);
         dataLocal.push_back(local);
-
-    mCfgMgr.processPaths (dataDirs);
-    mCfgMgr.processPaths (dataLocal, true);
+    }
+    mCfgMgr.filterOutNonExistingPaths(dataDirs);
+    mCfgMgr.filterOutNonExistingPaths(dataLocal);
 
     if (!dataLocal.empty())
         mLocal = dataLocal[0];

@@ -80,7 +80,7 @@ add_component_dir (to_utf8
     to_utf8
     )
 
-add_component_dir(esm attr common defs esmcommon reader records util luascripts)
+add_component_dir(esm attr common defs esmcommon reader records util luascripts format)
 
 add_component_dir (esm3
     esmreader esmwriter loadacti loadalch loadappa loadarmo loadbody loadbook loadbsgn loadcell
@@ -206,7 +206,7 @@ IF(NOT WIN32 AND NOT APPLE)
 ENDIF()
 add_component_dir (files
     linuxpath androidpath windowspath macospath fixedpath multidircollection collections configurationmanager
-    lowlevelfile constrainedfilestream memorystream hash configfileparser openfile
+    lowlevelfile constrainedfilestream memorystream hash configfileparser openfile constrainedfilestreambuf
     )
 
 add_component_dir (compiler

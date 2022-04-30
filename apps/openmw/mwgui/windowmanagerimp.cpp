@@ -388,6 +388,7 @@ namespace MWGui
 
         mSettingsWindow = new SettingsWindow(getenv("OPENMW_SHADERS") ? "openmw_settings_window_shaders.layout" : "openmw_settings_window.layout");
         mWindows.push_back(mSettingsWindow);
+        trackWindow(mSettingsWindow, "settings");
         mGuiModeStates[GM_Settings] = GuiModeState(mSettingsWindow);
 
         mConfirmationDialog = new ConfirmationDialog();
@@ -2067,6 +2068,16 @@ namespace MWGui
     void WindowManager::setConsoleSelectedObject(const MWWorld::Ptr &object)
     {
         mConsole->setSelectedObject(object);
+    }
+
+    void WindowManager::printToConsole(const std::string& msg, std::string_view color)
+    {
+        mConsole->print(msg, color);
+    }
+
+    void WindowManager::setConsoleMode(const std::string& mode)
+    {
+        mConsole->setConsoleMode(mode);
     }
 
     std::string WindowManager::correctIconPath(const std::string& path)

@@ -194,8 +194,9 @@ void main()
     doLighting(passViewPos, normalize(viewNormal), shadowing, diffuseLight, ambientLight);
     vec3 emission = getEmissionColor().xyz * emissiveMult;
     lighting = diffuseColor.xyz * diffuseLight + getAmbientColor().xyz * ambientLight + emission;
-    clampLightingResult(lighting);
 #endif
+
+    clampLightingResult(lighting);
 
     gl_FragData[0].xyz *= lighting;
 
@@ -247,6 +248,4 @@ void main()
 #endif
 
     applyShadowDebugOverlay();
-
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
 }

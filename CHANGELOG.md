@@ -112,12 +112,15 @@
     Bug #6670: Dialogue order is incorrect
     Bug #6680: object.cpp handles nodetree unsafely, memory access with dangling pointer
     Bug #6682: HitOnMe doesn't fire as intended
+    Bug #6697: Shaders vertex lighting incorrectly clamped
+    Bug #6711: Log time differs from real time
     Feature #890: OpenMW-CS: Column filtering
     Feature #1465: "Reset" argument for AI functions
     Feature #2491: Ability to make OpenMW "portable"
     Feature #2554: Modifying an object triggers the instances table to scroll to the corresponding record
     Feature #2766: Warn user if their version of Morrowind is not the latest.
     Feature #2780: A way to see current OpenMW version in the console
+    Feature #2858: Add a tab to the launcher for handling datafolders
     Feature #3245: Grid and angle snapping for the OpenMW-CS
     Feature #3616: Allow Zoom levels on the World Map
     Feature #4297: Implement APPLIED_ONCE flag for magic effects
@@ -150,6 +153,7 @@
     Feature #6600: Support NiSortAdjustNode
     Feature #6684: Support NiFltAnimationNode
     Feature #6699: Ignored flag
+    Feature #6706: Save the size of the Options window
     Task #6201: Remove the "Note: No relevant classes found. No output generated" warnings
     Task #6264: Remove the old classes in animation.cpp
     Task #6553: Simplify interpreter instruction registration

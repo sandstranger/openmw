@@ -10,10 +10,7 @@
 #include "options.hpp"
 
 #if defined(_WIN32)
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
+#include <components/windows.hpp>
 // makes __argc and __argv available on windows
 #include <cstdlib>
 #endif
@@ -41,8 +38,6 @@ bool parseOptions (int argc, char** argv, OMW::Engine& engine, Files::Configurat
     typedef std::vector<std::string> StringsVector;
 
     bpo::options_description desc = OpenMW::makeOptionsDescription();
-    Files::ConfigurationManager::addCommonOptions(desc);
-
     bpo::variables_map variables;
 
     Files::parseArgs(argc, argv, variables, desc);
@@ -86,7 +81,7 @@ bool parseOptions (int argc, char** argv, OMW::Engine& engine, Files::Configurat
     if (!local.empty())
         dataDirs.push_back(local);
 
-    cfgMgr.processPaths(dataDirs);
+    cfgMgr.filterOutNonExistingPaths(dataDirs);
 
     engine.setResourceDir(variables["resources"].as<Files::MaybeQuotedPath>());
     engine.setDataDirs(dataDirs);
