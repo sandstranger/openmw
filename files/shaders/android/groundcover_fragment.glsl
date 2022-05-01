@@ -75,9 +75,9 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
     vec3 diffuseLight, ambientLight;
     doLighting(passViewPos, normalize(viewNormal), 1.0, diffuseLight, ambientLight);
     lighting = diffuseLight + ambientLight;
-    clampLightingResult(lighting);
 #endif
 
+    clampLightingResult(lighting);
     gl_FragData[0].xyz *= lighting;
 
     highp float fogValue = clamp((depth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);

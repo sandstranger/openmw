@@ -43,6 +43,7 @@
     Bug #5913: Failed assertion during Ritual of Trees quest
     Bug #5928: Glow in the Dahrk functionality used without mod installed
     Bug #5937: Lights always need to be rotated by 90 degrees
+    Bug #5989: Simple water isn't affected by texture filter settings
     Bug #6037: Morrowind Content Language Cannot be Set to English in OpenMW Launcher
     Bug #6051: NaN water height in ESM file is not handled gracefully
     Bug #6066: addtopic "return" does not work from within script. No errors thrown
@@ -114,6 +115,7 @@
     Bug #6682: HitOnMe doesn't fire as intended
     Bug #6697: Shaders vertex lighting incorrectly clamped
     Bug #6711: Log time differs from real time
+    Bug #6717: Broken script causes interpreter stack corruption
     Feature #890: OpenMW-CS: Column filtering
     Feature #1465: "Reset" argument for AI functions
     Feature #2491: Ability to make OpenMW "portable"
