@@ -51,7 +51,6 @@
 #include "../mwmechanics/summoning.hpp"
 
 #include "../mwrender/animation.hpp"
-#include "../mwrender/bobbing.hpp"
 #include "../mwrender/npcanimation.hpp"
 #include "../mwrender/renderingmanager.hpp"
 #include "../mwrender/camera.hpp"
@@ -1881,74 +1880,7 @@ namespace MWWorld
             stats.setAttribute(frameNumber, "physicsworker_time_end", 0);
         }
     }
-
-<<<<<<< HEAD
-    void World::updatePlayer()
-    {
-        MWWorld::Ptr player = getPlayerPtr();
-
-        // TODO: move to MWWorld::Player
-
-        if (player.getCell()->isExterior())
-        {
-            ESM::Position pos = player.getRefData().getPosition();
-            mPlayer->setLastKnownExteriorPosition(pos.asVec3());
-        }
-
-        bool isWerewolf = player.getClass().getNpcStats(player).isWerewolf();
-        bool isFirstPerson = this->isFirstPerson();
-        if (isWerewolf && isFirstPerson)
-        {
-            float werewolfFov = Fallback::Map::getFloat("General_Werewolf_FOV");
-            if (werewolfFov != 0)
-                mRendering->overrideFieldOfView(werewolfFov);
-            MWBase::Environment::get().getWindowManager()->setWerewolfOverlay(true);
-        }
-        else
-        {
-            mRendering->resetFieldOfView();
-            MWBase::Environment::get().getWindowManager()->setWerewolfOverlay(false);
-        }
-
-        // Sink the camera while sneaking
-        static MWRender::BobbingInfo bobbingInfo = {};
-        MWBase::Environment::get().getMechanicsManager()->getBobbingInfo(player, bobbingInfo);
-
-        static const bool headbobEnabled = Settings::Manager::getBool("head bobbing", "Camera");
-        static const bool exteriorsInertia = Settings::Manager::getBool("exteriors inertia", "Camera");
-
-        float fpOffset = bobbingInfo.mSneakOffset;
-        if (headbobEnabled)
-             fpOffset += bobbingInfo.mLandingOffset;
-
-        if (isFirstPerson && bobbingInfo.mHandBobEnabled)
-        {
-
-            if (exteriorsInertia || (!exteriorsInertia && !player.getCell()->isExterior()))
-            {
-                static const float handInertia = std::min(3.f, std::max(-3.f, Settings::Manager::getFloat("hand inertia", "Camera")));
-
-                float wpnPitch = bobbingInfo.mInertiaPitch * handInertia * 0.08f - (bobbingInfo.mLandingOffset * 0.001f);
-                float wpnYaw = bobbingInfo.mInertiaYaw * handInertia * 0.08f;
-
-                mRendering->getCamera()->setWeaponRotation(wpnPitch, wpnYaw);
-            }
-        }
-
-        mRendering->getCamera()->setSneakOffset(fpOffset);
-
-        int blind = 0;
-        const auto& magicEffects = player.getClass().getCreatureStats(player).getMagicEffects();
-        if (!mGodMode)
-            blind = static_cast<int>(magicEffects.get(ESM::MagicEffect::Blind).getMagnitude());
-        MWBase::Environment::get().getWindowManager()->setBlindness(std::clamp(blind, 0, 100));
-
-        int nightEye = static_cast<int>(magicEffects.get(ESM::MagicEffect::NightEye).getMagnitude());
-        mRendering->setNightEyeFactor(std::min(1.f, (nightEye/100.f)));
-    }
-
-=======
->>>>>>> openmw/master
+    
     void World::preloadSpells()
     {
         std::string selectedSpell = MWBase::Environment::get().getWindowManager()->getSelectedSpell();
