@@ -660,8 +660,10 @@ namespace Shader
         if (!node.getUserValue("shaderPrefix", shaderPrefix))
             shaderPrefix = mDefaultShaderPrefix;
 
-        if(partsys)
-            shaderPrefix = "particles";
+        //if(partsys)
+        //    shaderPrefix = "particles";
+
+        defineMap["isParticle"] = partsys ? "1" : "0";
 
         osg::ref_ptr<osg::Shader> vertexShader (mShaderManager.getShader(shaderPrefix + "_vertex.glsl", defineMap, osg::Shader::VERTEX));
         osg::ref_ptr<osg::Shader> fragmentShader (mShaderManager.getShader(shaderPrefix + "_fragment.glsl", defineMap, osg::Shader::FRAGMENT));
