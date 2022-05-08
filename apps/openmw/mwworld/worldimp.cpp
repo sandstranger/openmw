@@ -1851,7 +1851,7 @@ namespace MWWorld
             updateNavigator();
         }
 
-        updatePlayer();
+        mPlayer->update();
 
         mPhysics->debugDraw();
 
@@ -1882,6 +1882,7 @@ namespace MWWorld
         }
     }
 
+<<<<<<< HEAD
     void World::updatePlayer()
     {
         MWWorld::Ptr player = getPlayerPtr();
@@ -1946,6 +1947,8 @@ namespace MWWorld
         mRendering->setNightEyeFactor(std::min(1.f, (nightEye/100.f)));
     }
 
+=======
+>>>>>>> openmw/master
     void World::preloadSpells()
     {
         std::string selectedSpell = MWBase::Environment::get().getWindowManager()->getSelectedSpell();

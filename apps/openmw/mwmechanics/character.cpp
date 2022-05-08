@@ -764,19 +764,19 @@ void CharacterController::playDeath(float startpoint, CharacterState death)
     // However, they could still trigger text keys, such as Hit events, or sounds.
     mMovementState = CharState_None;
     mAnimation->disable(mCurrentMovement);
-    mCurrentMovement = "";
+    mCurrentMovement.clear();
     mUpperBodyState = UpperCharState_Nothing;
     mAnimation->disable(mCurrentWeapon);
-    mCurrentWeapon = "";
+    mCurrentWeapon.clear();
     mHitState = CharState_None;
     mAnimation->disable(mCurrentHit);
-    mCurrentHit = "";
+    mCurrentHit.clear();
     mIdleState = CharState_None;
     mAnimation->disable(mCurrentIdle);
-    mCurrentIdle = "";
+    mCurrentIdle.clear();
     mJumpState = JumpState_None;
     mAnimation->disable(mCurrentJump);
-    mCurrentJump = "";
+    mCurrentJump.clear();
     mMovementAnimationControlled = true;
 
     mAnimation->play(mCurrentDeath, Priority_Death, MWRender::Animation::BlendMask_All,
@@ -2523,7 +2523,7 @@ bool CharacterController::playGroup(const std::string &groupname, int mode, int 
 
     // We should not interrupt persistent animations by non-persistent ones
     if (isPersistentAnimPlaying() && !persist)
-        return false;
+        return true;
 
     // If this animation is a looped animation (has a "loop start" key) that is already playing
     // and has not yet reached the end of the loop, allow it to continue animating with its existing loop count

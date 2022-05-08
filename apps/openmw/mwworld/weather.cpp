@@ -982,7 +982,7 @@ namespace MWWorld
     {
         stopSounds();
 
-        mCurrentRegion = "";
+        mCurrentRegion.clear();
         mTimePassed = 0.0f;
         mWeatherUpdateTime = 0.0f;
         mSmoothedStormDirectionNeedReset = true;

@@ -116,6 +116,8 @@
     Bug #6697: Shaders vertex lighting incorrectly clamped
     Bug #6711: Log time differs from real time
     Bug #6717: Broken script causes interpreter stack corruption
+    Bug #6718: Throwable weapons cause arrow enchantment effect to be applied to the whole body
+    Bug #6730: LoopGroup stalls animation after playing :Stop frame until another animation is played
     Feature #890: OpenMW-CS: Column filtering
     Feature #1465: "Reset" argument for AI functions
     Feature #2491: Ability to make OpenMW "portable"
@@ -156,6 +158,7 @@
     Feature #6684: Support NiFltAnimationNode
     Feature #6699: Ignored flag
     Feature #6706: Save the size of the Options window
+    Feature #6721: [OpenMW-CS] Add option to open records in new window
     Task #6201: Remove the "Note: No relevant classes found. No output generated" warnings
     Task #6264: Remove the old classes in animation.cpp
     Task #6553: Simplify interpreter instruction registration
