@@ -843,7 +843,7 @@ namespace MWRender
                 stateset->addUniform(new osg::Uniform("debugColor", color));
             }
 
-            mSceneManager->recreateShaders(group, "groundcover", false, programTemplate);
+            mSceneManager->recreateShaders(group, "groundcover", true, programTemplate);
         }
 
         return group;
