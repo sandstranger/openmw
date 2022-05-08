@@ -583,11 +583,11 @@ namespace MWWorld
                 float wpnPitch = bobbingInfo.mInertiaPitch * handInertia * 0.08f - (bobbingInfo.mLandingOffset * 0.001f);
                 float wpnYaw = bobbingInfo.mInertiaYaw * handInertia * 0.08f;
 
-                Rendering->getCamera()->setWeaponRotation(wpnPitch, wpnYaw);
+                rendering->getCamera()->setWeaponRotation(wpnPitch, wpnYaw);
             }
         }
 
-        Rendering->getCamera()->setSneakOffset(fpOffset);
+        rendering->getCamera()->setSneakOffset(fpOffset);
 
         int blind = 0;
         const auto& magicEffects = playerClass.getCreatureStats(player).getMagicEffects();
