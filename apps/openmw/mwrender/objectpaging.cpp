@@ -446,7 +446,10 @@ namespace MWRender
         mDebugBatches = Settings::Manager::getBool("debug chunks", "Terrain");
         mDebugGroundcoverBatches = Settings::Manager::getBool("debug chunks", "Groundcover");
         mMergeFactor = Settings::Manager::getFloat("object paging merge factor", "Terrain");
-        mMinSize = Settings::Manager::getFloat("object paging min size", "Terrain");
+        if (mGroundcover) 
+            mMinSize = 0.01;
+        else
+            mMinSize = Settings::Manager::getFloat("object paging min size", "Terrain");
         mMinSizeMergeFactor = Settings::Manager::getFloat("object paging min size merge factor", "Terrain");
         mMinSizeCostMultiplier = Settings::Manager::getFloat("object paging min size cost multiplier", "Terrain");
     }
