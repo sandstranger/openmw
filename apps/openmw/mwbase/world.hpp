@@ -150,8 +150,6 @@ namespace MWBase
             virtual bool toggleWorld() = 0;
             virtual bool toggleBorders() = 0;
 
-            virtual void adjustSky() = 0;
-
             virtual MWWorld::Player& getPlayer() = 0;
             virtual MWWorld::Ptr getPlayerPtr() = 0;
             virtual MWWorld::ConstPtr getPlayerConstPtr() const = 0;
@@ -275,7 +273,7 @@ namespace MWBase
 
             virtual float getDistanceToFacedObject() = 0;
 
-            virtual float getMaxActivationDistance() = 0;
+            virtual float getMaxActivationDistance() const = 0;
 
             /// Returns a pointer to the object the provided object would hit (if within the
             /// specified distance), and the point where the hit occurs. This will attempt to
@@ -409,11 +407,6 @@ namespace MWBase
             virtual const ESM::Container *createOverrideRecord (const ESM::Container& record) = 0;
             ///< Write this record to the ESM store, allowing it to override a pre-existing record with the same ID.
             /// \return pointer to created record
-
-            virtual void update (float duration, bool paused) = 0;
-            virtual void updatePhysics (float duration, bool paused, osg::Timer_t frameStart, unsigned int frameNumber, osg::Stats& stats) = 0;
-
-            virtual void updateWindowManager () = 0;
 
             virtual MWWorld::Ptr placeObject (const MWWorld::ConstPtr& object, float cursorX, float cursorY, int amount) = 0;
             ///< copy and place an object into the gameworld at the specified cursor position
@@ -555,7 +548,7 @@ namespace MWBase
                                            const osg::Vec3f& worldPos, const osg::Quat& orient, MWWorld::Ptr& bow, float speed, float attackStrength) = 0;
             virtual void updateProjectilesCasters() = 0;
 
-            virtual void applyLoopingParticles(const MWWorld::Ptr& ptr) = 0;
+            virtual void applyLoopingParticles(const MWWorld::Ptr& ptr) const = 0;
 
             virtual const std::vector<std::string>& getContentFiles() const = 0;
 
@@ -633,7 +626,6 @@ namespace MWBase
             virtual bool isPlayerInJail() const = 0;
 
             virtual void rest(double hours) = 0;
-            virtual void rechargeItems(double duration, bool activeOnly) = 0;
 
             virtual void setPlayerTraveling(bool traveling) = 0;
             virtual bool isPlayerTraveling() const = 0;

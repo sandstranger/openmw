@@ -212,7 +212,7 @@ std::string CharacterController::chooseRandomGroup (const std::string& prefix, i
 
 void CharacterController::refreshHitRecoilAnims(CharacterState& idle)
 {
-    auto* world = MWBase::Environment::get().getWorld();
+    const auto world = MWBase::Environment::get().getWorld();
     auto& charClass = mPtr.getClass();
     auto& stats = charClass.getCreatureStats(mPtr);
     bool recovery = stats.getHitRecovery();
@@ -1108,7 +1108,7 @@ void CharacterController::updateIdleStormState(bool inwater)
         return;
     }
 
-    auto* world = MWBase::Environment::get().getWorld();
+    const auto world = MWBase::Environment::get().getWorld();
     if (world->isInStorm())
     {
         osg::Vec3f stormDirection = world->getStormDirection();
@@ -1146,7 +1146,7 @@ bool CharacterController::updateCarriedLeftVisible(const int weaptype) const
 
 bool CharacterController::updateState(CharacterState idle)
 {
-    auto* world = MWBase::Environment::get().getWorld();
+    const auto world = MWBase::Environment::get().getWorld();
     auto& prng = world->getPrng();
     MWBase::SoundManager* sndMgr = MWBase::Environment::get().getSoundManager();
 

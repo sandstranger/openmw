@@ -233,7 +233,7 @@ namespace MWWorld
             bool toggleWorld() override;
             bool toggleBorders() override;
 
-            void adjustSky() override;
+            void adjustSky();
 
             Player& getPlayer() override;
             MWWorld::Ptr getPlayerPtr() override;
@@ -399,7 +399,7 @@ namespace MWWorld
             ///< Place an object in a safe place next to \a referenceObject. \a direction and \a distance specify the wanted placement
             /// relative to \a referenceObject (but the object may be placed somewhere else if the wanted location is obstructed).
 
-            float getMaxActivationDistance() override;
+            float getMaxActivationDistance() const override;
 
             void indexToPosition (int cellX, int cellY, float &x, float &y, bool centre = false)
                 const override;
@@ -498,10 +498,10 @@ namespace MWWorld
             ///< Write this record to the ESM store, allowing it to override a pre-existing record with the same ID.
             /// \return pointer to created record
 
-            void update (float duration, bool paused) override;
-            void updatePhysics (float duration, bool paused, osg::Timer_t frameStart, unsigned int frameNumber, osg::Stats& stats) override;
+            void update(float duration, bool paused);
+            void updatePhysics(float duration, bool paused, osg::Timer_t frameStart, unsigned int frameNumber, osg::Stats& stats);
 
-            void updateWindowManager () override;
+            void updateWindowManager();
 
             MWWorld::Ptr placeObject (const MWWorld::ConstPtr& object, float cursorX, float cursorY, int amount) override;
             ///< copy and place an object into the gameworld at the specified cursor position
@@ -590,7 +590,7 @@ namespace MWWorld
             ///< check if the player is allowed to rest
 
             void rest(double hours) override;
-            void rechargeItems(double duration, bool activeOnly) override;
+            void rechargeItems(double duration, bool activeOnly);
 
             /// \todo Probably shouldn't be here
             MWRender::Animation* getAnimation(const MWWorld::Ptr &ptr) override;
@@ -646,7 +646,7 @@ namespace MWWorld
                                            const osg::Vec3f& worldPos, const osg::Quat& orient, MWWorld::Ptr& bow, float speed, float attackStrength) override;
             void updateProjectilesCasters() override;
 
-            void applyLoopingParticles(const MWWorld::Ptr& ptr) override;
+            void applyLoopingParticles(const MWWorld::Ptr& ptr) const override;
 
             const std::vector<std::string>& getContentFiles() const override;
             void breakInvisibility (const MWWorld::Ptr& actor) override;

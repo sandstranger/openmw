@@ -381,7 +381,7 @@ namespace MWMechanics
             return;
 
         // Play a random voice greeting if the player gets too close
-        static int iGreetDistanceMultiplier = MWBase::Environment::get().getWorld()->getStore()
+        static const int iGreetDistanceMultiplier = MWBase::Environment::get().getWorld()->getStore()
             .get<ESM::GameSetting>().find("iGreetDistanceMultiplier")->mValue.getInteger();
 
         float helloDistance = static_cast<float>(actorStats.getAiSetting(CreatureStats::AI_Hello).getModified() * iGreetDistanceMultiplier);
@@ -496,7 +496,7 @@ namespace MWMechanics
 
         getActorsSidingWith(actor1, allies1, cachedAllies);
 
-        auto* mechanicsManager = MWBase::Environment::get().getMechanicsManager();
+        const auto mechanicsManager = MWBase::Environment::get().getMechanicsManager();
         // If an ally of actor1 has been attacked by actor2 or has attacked actor2, start combat between actor1 and actor2
         for (const MWWorld::Ptr& ally : allies1)
         {
@@ -584,7 +584,7 @@ namespace MWMechanics
         }
 
         // Make guards go aggressive with creatures that are in combat, unless the creature is a follower or escorter
-        auto* world = MWBase::Environment::get().getWorld();
+        const auto world = MWBase::Environment::get().getWorld();
         if (!aggressive && actor1.getClass().isClass(actor1, "Guard") && !actor2.getClass().isNpc() && creatureStats2.getAiSequence().isInCombat())
         {
             // Check if the creature is too far
@@ -931,7 +931,7 @@ namespace MWMechanics
         //If holding a light...
         if(heldIter.getType() == MWWorld::ContainerStore::Type_Light)
         {
-            auto* world = MWBase::Environment::get().getWorld();
+            const auto world = MWBase::Environment::get().getWorld();
             // Use time from the player's light
             if(isPlayer)
             {
@@ -988,8 +988,8 @@ namespace MWMechanics
         if (playerStats.isWerewolf())
             return;
 
-        auto* mechanicsManager = MWBase::Environment::get().getMechanicsManager();
-        auto* world = MWBase::Environment::get().getWorld();
+        const auto mechanicsManager = MWBase::Environment::get().getMechanicsManager();
+        const auto world = MWBase::Environment::get().getWorld();
 
         if (actorClass.isClass(ptr, "Guard") && creatureStats.getAiSequence().isInPursuit() && !creatureStats.getAiSequence().isInCombat()
             && creatureStats.getMagicEffects().get(ESM::MagicEffect::CalmHumanoid).getMagnitude() == 0)
@@ -1221,18 +1221,17 @@ namespace MWMechanics
         }
 
         // check if we still have any player enemies to switch music
-        static int currentMusic = 0;
-
-        if (currentMusic != 1 && !hasHostiles && !(player.getClass().getCreatureStats(player).isDead() &&
-        MWBase::Environment::get().getSoundManager()->isMusicPlaying()))
+        if (mCurrentMusic != MusicType::Explore && !hasHostiles
+                && !(player.getClass().getCreatureStats(player).isDead()
+                     && MWBase::Environment::get().getSoundManager()->isMusicPlaying()))
         {
             MWBase::Environment::get().getSoundManager()->playPlaylist(std::string("Explore"));
-            currentMusic = 1;
+            mCurrentMusic = MusicType::Explore;
         }
-        else if (currentMusic != 2 && hasHostiles)
+        else if (mCurrentMusic != MusicType::Battle && hasHostiles)
         {
             MWBase::Environment::get().getSoundManager()->playPlaylist(std::string("Battle"));
-            currentMusic = 2;
+            mCurrentMusic = MusicType::Battle;
         }
 
     }
@@ -1388,15 +1387,19 @@ namespace MWMechanics
     {
         if(!paused)
         {
-            static float timerUpdateHeadTrack = 0;
-            static float timerUpdateEquippedLight = 0;
-            static float timerUpdateHello = 0;
             const float updateEquippedLightInterval = 1.0f;
 
-            if (timerUpdateHeadTrack >= 0.3f) timerUpdateHeadTrack = 0;
-            if (timerUpdateHello >= 0.25f) timerUpdateHello = 0;
-            if (mTimerDisposeSummonsCorpses >= 0.2f) mTimerDisposeSummonsCorpses = 0;
-            if (timerUpdateEquippedLight >= updateEquippedLightInterval) timerUpdateEquippedLight = 0;
+            if (mTimerUpdateHeadTrack >= 0.3f)
+                mTimerUpdateHeadTrack = 0;
+
+            if (mTimerUpdateHello >= 0.25f)
+                mTimerUpdateHello = 0;
+
+            if (mTimerDisposeSummonsCorpses >= 0.2f)
+                mTimerDisposeSummonsCorpses = 0;
+
+            if (mTimerUpdateEquippedLight >= updateEquippedLightInterval)
+                mTimerUpdateEquippedLight = 0;
 
             // show torches only when there are darkness and no precipitations
             MWBase::World* world = MWBase::Environment::get().getWorld();
@@ -1484,7 +1487,7 @@ namespace MWMechanics
                                 engageCombat(iter->first, it->first, cachedAllies, it->first == player);
                             }
                         }
-                        if (timerUpdateHeadTrack == 0)
+                        if (mTimerUpdateHeadTrack == 0)
                         {
                             float sqrHeadTrackDistance = std::numeric_limits<float>::max();
                             MWWorld::Ptr headTrackTarget;
@@ -1532,7 +1535,7 @@ namespace MWMechanics
                             if (isConscious(iter->first) && !(luaControls && luaControls->mDisableAI))
                             {
                                 stats.getAiSequence().execute(iter->first, *ctrl, duration);
-                                updateGreetingState(iter->first, *iter->second, timerUpdateHello > 0);
+                                updateGreetingState(iter->first, *iter->second, mTimerUpdateHello > 0);
                                 playIdleDialogue(iter->first);
                                 updateMovementSpeed(iter->first);
                             }
@@ -1549,7 +1552,7 @@ namespace MWMechanics
                         // We can not update drowning state for actors outside of AI distance - they can not resurface to breathe
                         updateDrowning(iter->first, duration, ctrl->isKnockedOut(), isPlayer);
                     }
-                    if(timerUpdateEquippedLight == 0 && iter->first.getClass().hasInventoryStore(iter->first))
+                    if(mTimerUpdateEquippedLight == 0 && iter->first.getClass().hasInventoryStore(iter->first))
                         updateEquippedLight(iter->first, updateEquippedLightInterval, showTorches);
 
                     if (luaControls && isConscious(iter->first))
@@ -1591,9 +1594,9 @@ namespace MWMechanics
             if (avoidCollisions)
                 predictAndAvoidCollisions(duration);
 
-            timerUpdateHeadTrack += duration;
-            timerUpdateEquippedLight += duration;
-            timerUpdateHello += duration;
+            mTimerUpdateHeadTrack += duration;
+            mTimerUpdateEquippedLight += duration;
+            mTimerUpdateHello += duration;
             mTimerDisposeSummonsCorpses += duration;
 
             // Animation/movement update
@@ -1843,8 +1846,6 @@ namespace MWMechanics
 
     void Actors::updateSneaking(CharacterController* ctrl, float duration)
     {
-        static float sneakTimer = 0.f; // Times update of sneak icon
-
         if (!ctrl)
         {
             MWBase::Environment::get().getWindowManager()->setSneakVisibility(false);
@@ -1859,17 +1860,15 @@ namespace MWMechanics
             return;
         }
 
-        static float sneakSkillTimer = 0.f; // Times sneak skill progress from "avoid notice"
-
         MWBase::World* world = MWBase::Environment::get().getWorld();
         const MWWorld::Store<ESM::GameSetting>& gmst = world->getStore().get<ESM::GameSetting>();
         static const float fSneakUseDist = gmst.find("fSneakUseDist")->mValue.getFloat();
         static const float fSneakUseDelay = gmst.find("fSneakUseDelay")->mValue.getFloat();
 
-        if (sneakTimer >= fSneakUseDelay)
-            sneakTimer = 0.f;
+        if (mSneakTimer >= fSneakUseDelay)
+            mSneakTimer = 0.f;
 
-        if (sneakTimer == 0.f)
+        if (mSneakTimer == 0.f)
         {
             // Set when an NPC is within line of sight and distance, but is still unaware. Used for skill progress.
             bool avoidedNotice = false;
@@ -1907,18 +1906,18 @@ namespace MWMechanics
                 }
             }
 
-            if (sneakSkillTimer >= fSneakUseDelay)
-                sneakSkillTimer = 0.f;
+            if (mSneakSkillTimer >= fSneakUseDelay)
+                mSneakSkillTimer = 0.f;
 
-            if (avoidedNotice && sneakSkillTimer == 0.f)
+            if (avoidedNotice && mSneakSkillTimer == 0.f)
                 player.getClass().skillUsageSucceeded(player, ESM::Skill::Sneak, 0);
 
             if (!detected)
                 MWBase::Environment::get().getWindowManager()->setSneakVisibility(true);
         }
 
-        sneakTimer += duration;
-        sneakSkillTimer += duration;
+        mSneakTimer += duration;
+        mSneakSkillTimer += duration;
     }
 
     int Actors::getHoursToRest(const MWWorld::Ptr &ptr) const

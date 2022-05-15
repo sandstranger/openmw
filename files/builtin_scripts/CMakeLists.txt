@@ -17,6 +17,11 @@ set(LUA_BUILTIN_FILES
     scripts/omw/console/player.lua
     scripts/omw/console/global.lua
     scripts/omw/console/local.lua
+    scripts/omw/settings/player.lua
+    scripts/omw/settings/global.lua
+    scripts/omw/settings/common.lua
+    scripts/omw/settings/render.lua
+    scripts/omw/settings/renderers.lua
 
     l10n/Calendar/en.yaml
 
@@ -25,6 +30,7 @@ set(LUA_BUILTIN_FILES
     scripts/omw/mwui/box.lua
     scripts/omw/mwui/text.lua
     scripts/omw/mwui/textEdit.lua
+    scripts/omw/mwui/space.lua
     scripts/omw/mwui/init.lua
 )
 

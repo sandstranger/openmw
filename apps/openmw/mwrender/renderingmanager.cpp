@@ -396,7 +396,7 @@ namespace MWRender
                             || Stereo::getMultiview();
 
         resourceSystem->getSceneManager()->setForceShaders(forceShaders);
-         
+
         // FIXME: calling dummy method because terrain needs to know whether lighting is clamped
         resourceSystem->getSceneManager()->setClampLighting(Settings::Manager::getBool("clamp lighting", "Shaders"));
         resourceSystem->getSceneManager()->setAutoUseNormalMaps(Settings::Manager::getBool("auto use object normal maps", "Shaders"));
@@ -570,7 +570,7 @@ namespace MWRender
 
         // water goes after terrain for correct waterculling order
         mWater.reset(new Water(sceneRoot->getParent(0), sceneRoot, mResourceSystem, mViewer->getIncrementalCompileOperation(), resourcePath));
-        
+
         mCamera.reset(new Camera(mViewer->getCamera()));
 
         mScreenshotManager.reset(new ScreenshotManager(viewer, mRootNode, sceneRoot, mResourceSystem, mWater.get()));
@@ -887,7 +887,7 @@ namespace MWRender
         }
         else if (mode == Render_Scene)
         {
-            auto* wm = MWBase::Environment::get().getWindowManager();
+            const auto wm = MWBase::Environment::get().getWindowManager();
             unsigned int mask = wm->getCullMask();
             bool enabled = !(mask&sToggleWorldMask);
             if (enabled)
@@ -1392,10 +1392,7 @@ namespace MWRender
             }
             else if (it->first == "Camera" && it->second == "viewing distance")
             {
-                mViewDistance = Settings::Manager::getFloat("viewing distance", "Camera");
-                if(!Settings::Manager::getBool("use distant fog", "Fog"))
-                    mStateUpdater->setFogEnd(mViewDistance);
-                updateProjection = true;
+                setViewDistance(Settings::Manager::getFloat("viewing distance", "Camera"));
             }
             else if (it->first == "Groundcover" && it->second == "rendering distance")
             {
@@ -1491,9 +1488,17 @@ namespace MWRender
         }
     }
 
-    float RenderingManager::getNearClipDistance() const
+    void RenderingManager::setViewDistance(float distance, bool delay)
     {
-        return mNearClip;
+        mViewDistance = distance;
+
+        if (delay)
+        {
+            mUpdateProjectionMatrix = true;
+            return;
+        }
+
+        updateProjectionMatrix();
     }
 
     float RenderingManager::getTerrainHeightAt(const osg::Vec3f &pos)

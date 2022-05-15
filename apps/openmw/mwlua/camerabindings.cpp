@@ -67,8 +67,10 @@ namespace MWLua
         api["setRoll"] = [camera](float v) { camera->setRoll(-v); };
         api["setExtraPitch"] = [camera](float v) { camera->setExtraPitch(-v); };
         api["setExtraYaw"] = [camera](float v) { camera->setExtraYaw(-v); };
+        api["setExtraRoll"] = [camera](float v) { camera->setExtraRoll(-v); };
         api["getExtraPitch"] = [camera]() { return -camera->getExtraPitch(); };
         api["getExtraYaw"] = [camera]() { return -camera->getExtraYaw(); };
+        api["getExtraRoll"] = [camera]() { return -camera->getExtraRoll(); };
 
         api["getThirdPersonDistance"] = [camera]() { return camera->getCameraDistance(); };
         api["setPreferredThirdPersonDistance"] = [camera](float v) { camera->setPreferredCameraDistance(v); };
@@ -91,6 +93,13 @@ namespace MWLua
         };
         api["getFieldOfView"] = [renderingManager]() { return osg::DegreesToRadians(renderingManager->getFieldOfView()); };
         api["setFieldOfView"] = [renderingManager](float v) { renderingManager->setFieldOfView(osg::RadiansToDegrees(v)); };
+
+        api["getBaseViewDistance"] = []()
+        {
+            return std::max(0.f, Settings::Manager::getFloat("viewing distance", "Camera"));
+        };
+        api["getViewDistance"] = [renderingManager]() { return renderingManager->getViewDistance(); };
+        api["setViewDistance"] = [renderingManager](float d) { renderingManager->setViewDistance(d, true); };
 
         api["getViewTransform"] = [camera]() { return LuaUtil::TransformM{camera->getViewMatrix()}; };
 
