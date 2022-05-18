@@ -28,6 +28,7 @@
 #include <components/resource/resourcesystem.hpp>
 
 #include <components/sceneutil/positionattitudetransform.hpp>
+#include <components/sceneutil/lightmanager.hpp>
 
 #include <components/detournavigator/navigator.hpp>
 #include <components/detournavigator/settings.hpp>
@@ -55,6 +56,7 @@
 #include "../mwrender/renderingmanager.hpp"
 #include "../mwrender/camera.hpp"
 #include "../mwrender/vismask.hpp"
+#include "../mwrender/postprocessor.hpp"
 
 #include "../mwscript/globalscripts.hpp"
 
@@ -196,7 +198,7 @@ namespace MWWorld
         }
 
         mRendering.reset(new MWRender::RenderingManager(viewer, rootNode, resourceSystem, workQueue, resourcePath, *mNavigator, mGroundcoverStore));
-        mProjectileManager.reset(new ProjectileManager(mRendering->getLightRoot(), resourceSystem, mRendering.get(), mPhysics.get()));
+        mProjectileManager.reset(new ProjectileManager(mRendering->getLightRoot()->asGroup(), resourceSystem, mRendering.get(), mPhysics.get()));
         mRendering->preloadCommonAssets();
 
         mWeatherManager.reset(new MWWorld::WeatherManager(*mRendering, mStore));
@@ -2050,6 +2052,16 @@ namespace MWWorld
         return mWeatherManager->getWeatherID();
     }
 
+    int World::getNextWeather() const
+    {
+        return mWeatherManager->getNextWeatherID();
+    }
+
+    float World::getWeatherTransition() const
+    {
+        return mWeatherManager->getTransitionFactor();
+    }
+
     unsigned int World::getNightDayMode() const
     {
         return mWeatherManager->getNightDayMode();
@@ -3698,7 +3710,7 @@ namespace MWWorld
         const ESM::CreatureLevList* list = mStore.get<ESM::CreatureLevList>().find(creatureList);
 
         static int iNumberCreatures = mStore.get<ESM::GameSetting>().find("iNumberCreatures")->mValue.getInteger();
-        int numCreatures = 1 + Misc::Rng::rollDice(iNumberCreatures); // [1, iNumberCreatures]
+        int numCreatures = 1 + Misc::Rng::rollDice(iNumberCreatures, mPrng); // [1, iNumberCreatures]
 
         for (int i=0; i<numCreatures; ++i)
         {
@@ -3999,4 +4011,8 @@ namespace MWWorld
         return mPrng;
     }
 
+    MWRender::PostProcessor* World::getPostProcessor()
+    {
+        return mRendering->getPostProcessor();
+    }
 }

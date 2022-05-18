@@ -118,6 +118,7 @@
     Bug #6717: Broken script causes interpreter stack corruption
     Bug #6718: Throwable weapons cause arrow enchantment effect to be applied to the whole body
     Bug #6730: LoopGroup stalls animation after playing :Stop frame until another animation is played
+    Bug #6753: Info records without a DATA subrecords are loaded incorrectly
     Feature #890: OpenMW-CS: Column filtering
     Feature #1465: "Reset" argument for AI functions
     Feature #2491: Ability to make OpenMW "portable"
@@ -127,6 +128,7 @@
     Feature #2858: Add a tab to the launcher for handling datafolders
     Feature #3245: Grid and angle snapping for the OpenMW-CS
     Feature #3616: Allow Zoom levels on the World Map
+    Feature #4067: Post Processing
     Feature #4297: Implement APPLIED_ONCE flag for magic effects
     Feature #4414: Handle duration of EXTRA SPELL magic effect
     Feature #4595: Unique object identifier
@@ -141,6 +143,7 @@
     Feature #6128: Soft Particles
     Feature #6161: Refactor Sky to use shaders and GLES/GL3 friendly
     Feature #6162: Refactor GUI to use shaders and to be GLES and GL3+ friendly
+    Feature #6171: In-game log viewer
     Feature #6189: Navigation mesh disk cache
     Feature #6199: Support FBO Rendering
     Feature #6248: Embedded error marker mesh

@@ -9,43 +9,51 @@ set(DDIRPBR resources/shaders/pbr)
 set(DDIRMODIFIED resources/shaders/modified)
 
 set(SHADER_FILES
-    android/groundcover_vertex.glsl
-    android/groundcover_fragment.glsl
-    android/vtastek_water_vertex.glsl
-    android/vtastek_water_fragment.glsl
-    android/water_vertex.glsl
-    android/water_fragment.glsl
-    android/water_nm.png
-    android/alpha.glsl
-    android/depth.glsl
-    android/objects_vertex.glsl
-    android/objects_fragment.glsl
-    android/terrain_vertex.glsl
-    android/terrain_fragment.glsl
-    android/particles_vertex.glsl
-    android/particles_fragment.glsl
-    android/lighting.glsl
-    android/lighting_util.glsl
-    android/parallax.glsl
-    android/s360_fragment.glsl
-    android/s360_vertex.glsl
-    android/shadows_vertex.glsl
-    android/shadows_fragment.glsl
-    android/shadowcasting_vertex.glsl
-    android/shadowcasting_fragment.glsl
-    android/vertexcolors.glsl
-    android/nv_default_vertex.glsl
-    android/nv_default_fragment.glsl
-    android/nv_nolighting_vertex.glsl
-    android/nv_nolighting_fragment.glsl
-    android/gui_vertex.glsl
-    android/gui_fragment.glsl
-    android/debug_vertex.glsl
-    android/debug_fragment.glsl
-    android/sky_vertex.glsl
-    android/sky_fragment.glsl
-    android/skypasses.glsl
-    android/softparticles.glsl
+    groundcover_vertex.glsl
+    groundcover_fragment.glsl
+    water_vertex.glsl
+    water_fragment.glsl
+    water_nm.png
+    alpha.glsl
+    depth.glsl
+    objects_vertex.glsl
+    objects_fragment.glsl
+    openmw_fragment.glsl
+    openmw_fragment.h.glsl
+    openmw_fragment_multiview.glsl
+    openmw_vertex.glsl
+    openmw_vertex.h.glsl
+    openmw_vertex_multiview.glsl
+    terrain_vertex.glsl
+    terrain_fragment.glsl
+    lighting.glsl
+    lighting_util.glsl
+    parallax.glsl
+    s360_fragment.glsl
+    s360_vertex.glsl
+    shadows_vertex.glsl
+    shadows_fragment.glsl
+    shadowcasting_vertex.glsl
+    shadowcasting_fragment.glsl
+    vertexcolors.glsl
+    nv_default_vertex.glsl
+    nv_default_fragment.glsl
+    nv_nolighting_vertex.glsl
+    nv_nolighting_fragment.glsl
+    blended_depth_postpass_vertex.glsl
+    blended_depth_postpass_fragment.glsl
+    gui_vertex.glsl
+    gui_fragment.glsl
+    debug_vertex.glsl
+    debug_fragment.glsl
+    sky_vertex.glsl
+    sky_fragment.glsl
+    skypasses.glsl
+    softparticles.glsl
+    hdr_fragment.glsl
+    hdr_luminance_fragment.glsl
+    fullscreen_tri_vertex.glsl
+    fullscreen_tri_fragment.glsl
 )
 
 set(MODIFIED_SHADER_FILES
@@ -81,6 +89,8 @@ set(MODIFIED_SHADER_FILES
     modified/nv_default_fragment.glsl
     modified/nv_nolighting_vertex.glsl
     modified/nv_nolighting_fragment.glsl
+    blended_depth_postpass_vertex.glsl
+    blended_depth_postpass_fragment.glsl
     modified/gui_vertex.glsl
     modified/gui_fragment.glsl
     modified/debug_vertex.glsl
@@ -89,6 +99,9 @@ set(MODIFIED_SHADER_FILES
     modified/sky_fragment.glsl
     modified/skypasses.glsl
     modified/softparticles.glsl
+    hdr_luminance_fragment.glsl
+    fullscreen_tri_vertex.glsl
+    fullscreen_tri_fragment.glsl
 )
 
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_RESOURCES_ROOT} ${DDIR} "${SHADER_FILES}")

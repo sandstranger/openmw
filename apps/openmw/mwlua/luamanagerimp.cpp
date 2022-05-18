@@ -23,6 +23,7 @@
 #include "luabindings.hpp"
 #include "userdataserializer.hpp"
 #include "types/types.hpp"
+#include "debugbindings.hpp"
 
 namespace MWLua
 {
@@ -95,6 +96,8 @@ namespace MWLua
         mPlayerSettingsPackage = initPlayerSettingsPackage(localContext);
         mLocalStoragePackage = initLocalStoragePackage(localContext, &mGlobalStorage);
         mPlayerStoragePackage = initPlayerStoragePackage(localContext, &mGlobalStorage, &mPlayerStorage);
+        mPostprocessingPackage = initPostprocessingPackage(localContext);
+        mDebugPackage = initDebugPackage(localContext);
 
         initConfiguration();
         mInitialized = true;
@@ -169,7 +172,7 @@ namespace MWLua
 
         // Run queued callbacks
         for (CallbackWithData& c : mQueuedCallbacks)
-            c.mCallback(c.mArg);
+            c.mCallback.call(c.mArg);
         mQueuedCallbacks.clear();
 
         // Engine handlers in local scripts
@@ -234,8 +237,8 @@ namespace MWLua
                 playerScripts->processInputEvent(event);
         }
         mInputEvents.clear();
-        if (playerScripts && !mWorldView.isPaused())
-            playerScripts->inputUpdate(MWBase::Environment::get().getFrameDuration());
+        if (playerScripts)
+            playerScripts->onFrame(mWorldView.isPaused() ? 0.0 : MWBase::Environment::get().getFrameDuration());
         mProcessingInputEvents = false;
 
         MWBase::WindowManager* windowManager = MWBase::Environment::get().getWindowManager();
@@ -407,6 +410,8 @@ namespace MWLua
             scripts->addPackage("openmw.input", mInputPackage);
             scripts->addPackage("openmw.settings", mPlayerSettingsPackage);
             scripts->addPackage("openmw.storage", mPlayerStoragePackage);
+            scripts->addPackage("openmw.postprocessing", mPostprocessingPackage);
+            scripts->addPackage("openmw.debug", mDebugPackage);
         }
         else
         {

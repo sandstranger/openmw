@@ -226,8 +226,8 @@ namespace MWWorld
             if(transitionRatio >= mThunderThreshold && mThunderFrequency > 0.0f)
             {
                 flashDecrement(elapsedSeconds);
-
-                if(Misc::Rng::rollProbability() <= thunderChance(transitionRatio, elapsedSeconds))
+                auto& prng = MWBase::Environment::get().getWorld()->getPrng();
+                if(Misc::Rng::rollProbability(prng) <= thunderChance(transitionRatio, elapsedSeconds))
                 {
                     lightningAndThunder();
                 }
@@ -265,7 +265,8 @@ namespace MWWorld
         // They appear to go from 0 (brightest, closest) to 3 (faintest, farthest). The value of 0.25 per distance
         // was derived by setting the Flash Decrement to 0.1 and measuring how long each value took to decay to 0.
         // TODO: Determine the distribution of each distance to see if it's evenly weighted.
-        unsigned int distance = Misc::Rng::rollDice(4);
+        auto& prng = MWBase::Environment::get().getWorld()->getPrng();
+        unsigned int distance = Misc::Rng::rollDice(4, prng);
         // Flash brightness appears additive, since if multiple strikes occur, it takes longer for it to decay to 0.
         mFlashBrightness += 1 - (distance * 0.25f);
         MWBase::Environment::get().getSoundManager()->playSound(mThunderSoundID[distance], 1.0, 1.0);
@@ -348,7 +349,8 @@ namespace MWWorld
         // All probabilities must add to 100 (responsibility of the user).
         // If chances A and B has values 30 and 70 then by generating 100 numbers 1..100, 30% will be lesser or equal 30
         // and 70% will be greater than 30 (in theory).
-        int chance = Misc::Rng::rollDice(100) + 1; // 1..100
+        auto& prng = MWBase::Environment::get().getWorld()->getPrng();
+        int chance = Misc::Rng::rollDice(100, prng) + 1; // 1..100
         int sum = 0;
         int i = 0;
         for(; static_cast<size_t>(i) < mChances.size(); ++i)
@@ -688,7 +690,8 @@ namespace MWWorld
             currentSpeed = targetSpeed;
 
         float multiplier = mWeatherSettings[weatherId].mRainEffect.empty() ? 1.f : 0.5f;
-        float updatedSpeed = (Misc::Rng::rollClosedProbability() - 0.5f) * multiplier * targetSpeed + currentSpeed;
+        auto& prng = MWBase::Environment::get().getWorld()->getPrng();
+        float updatedSpeed = (Misc::Rng::rollClosedProbability(prng) - 0.5f) * multiplier * targetSpeed + currentSpeed;
 
         if (updatedSpeed > 0.5f * targetSpeed && updatedSpeed < 2.f * targetSpeed)
             currentSpeed = updatedSpeed;
@@ -817,6 +820,7 @@ namespace MWWorld
                 -0.268f, // approx tan( -15 degrees )
                 static_cast<float>(sin(theta)));
             mRendering.setSunDirection( final * -1 );
+            mRendering.setNight(is_night);
         }
 
         float underwaterFog = mUnderwaterFog.getValue(time.getHour(), mTimeSettings, "Fog");
@@ -838,7 +842,7 @@ namespace MWWorld
         mRendering.configureFog(mResult.mFogDepth, underwaterFog, mResult.mDLFogFactor,
                                 mResult.mDLFogOffset/100.0f, mResult.mFogColor);
         mRendering.setAmbientColour(mResult.mAmbientColor);
-        mRendering.setSunColour(mResult.mSunColor, mResult.mSunColor * mResult.mGlareView * glareFade);
+        mRendering.setSunColour(mResult.mSunColor, mResult.mSunColor * mResult.mGlareView * glareFade, mResult.mGlareView * glareFade);
 
         mRendering.getSkyManager()->setWeather(mResult);
 
@@ -892,11 +896,6 @@ namespace MWWorld
         // immediately applied, regardless of whatever transition time might have been remaining.
         mTimePassed += hours;
         mFastForward = !incremental ? true : mFastForward;
-    }
-
-    unsigned int WeatherManager::getWeatherID() const
-    {
-        return mCurrentWeather;
     }
 
     NightDayMode WeatherManager::getNightDayMode() const

@@ -140,6 +140,8 @@ namespace MWLua
         sol::table mPlayerSettingsPackage;
         sol::table mLocalStoragePackage;
         sol::table mPlayerStoragePackage;
+        sol::table mPostprocessingPackage;
+        sol::table mDebugPackage;
 
         GlobalScripts mGlobalScripts{&mLua};
         std::set<LocalScripts*> mActiveLocalScripts;
