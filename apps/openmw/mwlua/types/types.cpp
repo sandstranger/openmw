@@ -160,7 +160,6 @@ namespace MWLua
         addType(ObjectTypeName::Player, {ESM::REC_INTERNAL_PLAYER}, ObjectTypeName::NPC);
 
         addType(ObjectTypeName::Armor, {ESM::REC_ARMO}, ObjectTypeName::Item);
-        addType(ObjectTypeName::Book, {ESM::REC_BOOK}, ObjectTypeName::Item);
         addType(ObjectTypeName::Clothing, {ESM::REC_CLOT}, ObjectTypeName::Item);
         addType(ObjectTypeName::Ingredient, {ESM::REC_INGR}, ObjectTypeName::Item);
         addType(ObjectTypeName::Light, {ESM::REC_LIGH}, ObjectTypeName::Item);
@@ -172,7 +171,8 @@ namespace MWLua
         addType(ObjectTypeName::Probe, {ESM::REC_PROB}, ObjectTypeName::Item);
         addType(ObjectTypeName::Repair, {ESM::REC_REPA}, ObjectTypeName::Item);
 
-        addType(ObjectTypeName::Activator, {ESM::REC_ACTI});
+        addActivatorBindings(addType(ObjectTypeName::Activator, {ESM::REC_ACTI}), context);
+        addBookBindings(addType(ObjectTypeName::Book, {ESM::REC_BOOK}), context);
         addContainerBindings(addType(ObjectTypeName::Container, {ESM::REC_CONT}), context);
         addDoorBindings(addType(ObjectTypeName::Door, {ESM::REC_DOOR}), context);
         addType(ObjectTypeName::Static, {ESM::REC_STAT});
