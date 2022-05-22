@@ -390,7 +390,7 @@ namespace MWGui
         mCountDialog = new CountDialog();
         mWindows.push_back(mCountDialog);
 
-        mSettingsWindow = new SettingsWindow(getenv("OPENMW_SHADERS") == "modified".c_str() ? "openmw_settings_window_shaders.layout" : "openmw_settings_window.layout");
+        mSettingsWindow = new SettingsWindow(settingsLayoutName());
         mWindows.push_back(mSettingsWindow);
         trackWindow(mSettingsWindow, "settings");
         mGuiModeStates[GM_Settings] = GuiModeState(mSettingsWindow);
@@ -2294,6 +2294,16 @@ namespace MWGui
         mStatsWatcher->watchActor(ptr);
     }
 
+    std::string settingsLayoutName()
+    {
+        std::string layoutName = "openmw_settings_window";
+        const char *path = getenv("OPENMW_SHADERS");
+        if(path)
+            if(std::string(path) == "modified") layoutName += "_shaders";
+        
+        return layoutName + ".layout";
+    }
+    
     MWWorld::Ptr WindowManager::getWatchedActor() const
     {
         return mStatsWatcher->getWatchedActor();
