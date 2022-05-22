@@ -5,7 +5,7 @@ endif()
 # Copy resource files into the build directory
 set(SDIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(DDIR resources/shaders)
-set(DDIRPBR resources/shaders/pbr)
+set(DDIRZESTERER resources/shaders/zesterer)
 set(DDIRMODIFIED resources/shaders/modified)
 
 set(SHADER_FILES
@@ -56,6 +56,58 @@ set(SHADER_FILES
     fullscreen_tri_fragment.glsl
 )
 
+set(ZESTERER_SHADER_FILES
+    zesterer/groundcover_vertex.glsl
+    zesterer/groundcover_fragment.glsl
+    zesterer/water_vertex.glsl
+    zesterer/water_fragment.glsl
+    zesterer/water_nm.png
+    zesterer/alpha.glsl
+    zesterer/depth.glsl
+    zesterer/objects_vertex.glsl
+    zesterer/objects_fragment.glsl
+    zesterer/openmw_fragment.glsl
+    zesterer/openmw_fragment.h.glsl
+    zesterer/openmw_fragment_multiview.glsl
+    zesterer/openmw_vertex.glsl
+    zesterer/openmw_vertex.h.glsl
+    zesterer/openmw_vertex_multiview.glsl
+    zesterer/terrain_vertex.glsl
+    zesterer/terrain_fragment.glsl
+    zesterer/lighting.glsl
+    zesterer/lighting_util.glsl
+    zesterer/parallax.glsl
+    zesterer/s360_fragment.glsl
+    zesterer/s360_vertex.glsl
+    zesterer/shadows_vertex.glsl
+    zesterer/shadows_fragment.glsl
+    zesterer/shadowcasting_vertex.glsl
+    zesterer/shadowcasting_fragment.glsl
+    zesterer/vertexcolors.glsl
+    zesterer/nv_default_vertex.glsl
+    zesterer/nv_default_fragment.glsl
+    zesterer/nv_nolighting_vertex.glsl
+    zesterer/nv_nolighting_fragment.glsl
+    zesterer/blended_depth_postpass_vertex.glsl
+    zesterer/blended_depth_postpass_fragment.glsl
+    zesterer/gui_vertex.glsl
+    zesterer/gui_fragment.glsl
+    zesterer/debug_vertex.glsl
+    zesterer/debug_fragment.glsl
+    zesterer/sky_vertex.glsl
+    zesterer/sky_fragment.glsl
+    zesterer/skypasses.glsl
+    zesterer/softparticles.glsl
+    zesterer/hdr_fragment.glsl
+    zesterer/hdr_luminance_fragment.glsl
+    zesterer/fullscreen_tri_vertex.glsl
+    zesterer/fullscreen_tri_fragment.glsl
+    zesterer/config.glsl
+    zesterer/pbr.glsl
+    zesterer/rand.glsl
+    zesterer/sway.glsl
+)
+
 set(MODIFIED_SHADER_FILES
     modified/fog.glsl
     modified/effects.glsl
@@ -103,5 +155,6 @@ set(MODIFIED_SHADER_FILES
 )
 
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_RESOURCES_ROOT} ${DDIR} "${SHADER_FILES}")
+copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_RESOURCES_ROOT} ${DDIRMODIFIED} "${ZESTERER_SHADER_FILES}")
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_RESOURCES_ROOT} ${DDIRMODIFIED} "${MODIFIED_SHADER_FILES}")
 
