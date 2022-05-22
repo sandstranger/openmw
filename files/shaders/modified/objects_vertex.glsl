@@ -1,7 +1,7 @@
 #version 120
 
 #define OBJECT
-#define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL))
+#define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL && !@isParticle))
 
 #if @diffuseMap
 varying vec2 diffuseMapUV;
