@@ -2294,7 +2294,7 @@ namespace MWGui
         mStatsWatcher->watchActor(ptr);
     }
 
-    std::string settingsLayoutName()
+    std::string WindowManager::settingsLayoutName()
     {
         std::string layoutName = "openmw_settings_window";
         const char *path = getenv("OPENMW_SHADERS");
