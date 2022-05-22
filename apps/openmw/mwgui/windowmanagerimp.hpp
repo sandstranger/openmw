@@ -581,6 +581,8 @@ namespace MWGui
 
     void updatePinnedWindows();
 
+    std::string settingsLayoutName();
+    
     void enableScene(bool enable);
 
     void handleScheduledMessageBoxes();
