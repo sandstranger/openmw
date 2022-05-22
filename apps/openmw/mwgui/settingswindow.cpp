@@ -291,7 +291,8 @@ namespace MWGui
             grassDensitySlider->setVisible(false);
         }
 
-        if(getenv("OPENMW_SHADERS"))
+        const char *shaderDir = getenv("OPENMW_SHADERS");
+        if(shaderDir && std::string(shaderDir) == "modified")
         {
             MyGUI::Button *PPLButton;
             getWidget(PPLButton, "PPLLightingButton");
@@ -317,7 +318,7 @@ namespace MWGui
 
             tonemaperSwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onTonemaperSwitchChanged);
             tonemaperSwitch->setIndexSelected(std::min(9, std::max(0, Settings::Manager::getInt("tonemaper", "Shaders"))));
-	}
+        }
 
         mMainWidget->castType<MyGUI::Window>()->eventWindowChangeCoord += MyGUI::newDelegate(this, &SettingsWindow::onWindowResize);
 
