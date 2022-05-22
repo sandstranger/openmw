@@ -429,7 +429,6 @@ bool OMW::Engine::frame(float frametime)
 OMW::Engine::Engine(Files::ConfigurationManager& configurationManager)
   : mWindow(nullptr)
   , mEncoding(ToUTF8::WINDOWS_1252)
-  , mEncoder(nullptr)
   , mScreenCaptureOperation(nullptr)
   , mSelectDepthFormatOperation(new SceneUtil::SelectDepthFormatOperation())
   , mSelectColorFormatOperation(new SceneUtil::Color::SelectColorFormatOperation())
@@ -444,7 +443,6 @@ OMW::Engine::Engine(Files::ConfigurationManager& configurationManager)
   , mGrab(true)
   , mExportFonts(false)
   , mRandomSeed(0)
-  , mScriptContext (nullptr)
   , mFSStrict (false)
   , mScriptBlacklistUse (true)
   , mNewGame (false)
@@ -468,20 +466,18 @@ OMW::Engine::~Engine()
     if (mScreenCaptureOperation != nullptr)
         mScreenCaptureOperation->stop();
 
-    mStereoManager = nullptr;
-
     mMechanicsManager = nullptr;
     mDialogueManager = nullptr;
     mJournal = nullptr;
     mScriptManager = nullptr;
     mWindowManager = nullptr;
     mWorld = nullptr;
+    mStereoManager = nullptr;
     mSoundManager = nullptr;
     mInputManager = nullptr;
     mStateManager = nullptr;
     mLuaManager = nullptr;
 
-    delete mScriptContext;
     mScriptContext = nullptr;
 
     mWorkQueue = nullptr;
@@ -490,7 +486,6 @@ OMW::Engine::~Engine()
 
     mResourceSystem.reset();
 
-    delete mEncoder;
     mEncoder = nullptr;
 
     if (mWindow)
@@ -839,7 +834,7 @@ void OMW::Engine::prepareEngine (Settings::Manager & settings)
 
     // Create the world
     mWorld = std::make_unique<MWWorld::World>(mViewer, rootNode, mResourceSystem.get(), mWorkQueue.get(),
-        mFileCollections, mContentFiles, mGroundcoverFiles, mEncoder, mActivationDistanceOverride, mCellName,
+        mFileCollections, mContentFiles, mGroundcoverFiles, mEncoder.get(), mActivationDistanceOverride, mCellName,
         mStartupScript, mResDir.string(), mCfgMgr.getUserDataPath().string());
     mWorld->setupPlayer();
     mWorld->setRandomSeed(mRandomSeed);
@@ -849,14 +844,14 @@ void OMW::Engine::prepareEngine (Settings::Manager & settings)
     mWindowManager->initUI();
 
     //Load translation data
-    mTranslationDataStorage.setEncoder(mEncoder);
+    mTranslationDataStorage.setEncoder(mEncoder.get());
     for (size_t i = 0; i < mContentFiles.size(); i++)
       mTranslationDataStorage.loadTranslationData(mFileCollections, mContentFiles[i]);
 
     Compiler::registerExtensions (mExtensions);
 
     // Create script system
-    mScriptContext = new MWScript::CompilerContext (MWScript::CompilerContext::Type_Full);
+    mScriptContext = std::make_unique<MWScript::CompilerContext>(MWScript::CompilerContext::Type_Full);
     mScriptContext->setExtensions (&mExtensions);
 
     mScriptManager = std::make_unique<MWScript::ScriptManager>(mWorld->getStore(), *mScriptContext, mWarningsMode,
@@ -999,7 +994,7 @@ void OMW::Engine::go()
     MWClass::registerClasses();
 
     // Create encoder
-    mEncoder = new ToUTF8::Utf8Encoder(mEncoding);
+    mEncoder = std::make_unique<ToUTF8::Utf8Encoder>(mEncoding);
 
     // Setup viewer
     mViewer = new osgViewer::Viewer;
