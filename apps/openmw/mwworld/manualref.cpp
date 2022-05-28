@@ -6,7 +6,7 @@ namespace
 {
 
     template<typename T>
-    void create(const MWWorld::Store<T>& list, const std::string& name, boost::any& refValue, MWWorld::Ptr& ptrValue)
+    void create(const MWWorld::Store<T>& list, const std::string& name, std::any& refValue, MWWorld::Ptr& ptrValue)
     {
         const T* base = list.find(name);
 
@@ -26,11 +26,11 @@ namespace
         MWWorld::LiveCellRef<T> ref(cellRef, base);
 
         refValue = ref;
-        ptrValue = MWWorld::Ptr(&boost::any_cast<MWWorld::LiveCellRef<T>&>(refValue), nullptr);
+        ptrValue = MWWorld::Ptr(&std::any_cast<MWWorld::LiveCellRef<T>&>(refValue), nullptr);
     }
 }
 
-MWWorld::ManualRef::ManualRef(const MWWorld::ESMStore& store, const std::string& name, const int count)
+MWWorld::ManualRef::ManualRef(const MWWorld::ESMStore& store, std::string_view name, const int count)
 {
     std::string lowerName = Misc::StringUtils::lowerCase(name);
     switch (store.find(lowerName))

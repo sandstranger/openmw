@@ -1,11 +1,11 @@
 #include "esmreader.hpp"
 
-#include <boost/filesystem/path.hpp>
 #include <components/misc/stringops.hpp>
 #include <components/files/openfile.hpp>
 
 #include <stdexcept>
 #include <sstream>
+#include <filesystem>
 #include <fstream>
 
 namespace ESM
@@ -74,7 +74,7 @@ void ESMReader::resolveParentFileIndices(const std::vector<ESMReader>& allPlugin
             if (reader.getFileSize() == 0)
                 continue;  // Content file in non-ESM format
             const std::string& candidate = reader.getName();
-            std::string fnamecandidate = boost::filesystem::path(candidate).filename().string();
+            std::string fnamecandidate = std::filesystem::path(candidate).filename().string();
             if (Misc::StringUtils::ciEqual(fname, fnamecandidate)) {
                 index = i;
                 break;
@@ -84,7 +84,7 @@ void ESMReader::resolveParentFileIndices(const std::vector<ESMReader>& allPlugin
     }
 }
 
-void ESMReader::openRaw(std::unique_ptr<std::istream>&& stream, const std::string& name)
+void ESMReader::openRaw(std::unique_ptr<std::istream>&& stream, std::string_view name)
 {
     close();
     mEsm = std::move(stream);
@@ -94,9 +94,9 @@ void ESMReader::openRaw(std::unique_ptr<std::istream>&& stream, const std::strin
     mEsm->seekg(0, mEsm->beg);
 }
 
-void ESMReader::openRaw(const std::string& filename)
+void ESMReader::openRaw(std::string_view filename)
 {
-    openRaw(Files::openBinaryInputFileStream(filename), filename);
+    openRaw(Files::openBinaryInputFileStream(std::string(filename)), filename);
 }
 
 void ESMReader::open(std::unique_ptr<std::istream>&& stream, const std::string &name, bool isGroundcover)
