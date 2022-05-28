@@ -151,7 +151,7 @@ vec4 rain(vec2 uv, float time)
   // z should always point up
   ret.z  = a.z  + b.z /2.0 + c.z /4.0 + d.z /8.0;
   //ret.xyz *= 1.5;
-  // fake specularity looks weird if we use every single ring, also if the inner rings are too bright 
+  // fake specularity looks weird if we use every single ring, also if the inner rings are too bright
   ret.w  = (a.w + c.w /8.0)*1.5;
   return ret;
 #else
@@ -222,6 +222,8 @@ uniform vec3 nodePosition;
 uniform float rainIntensity;
 
 uniform vec2 screenRes;
+
+uniform mat4 osg_ViewMatrixInverse;
 
 #define PER_PIXEL_LIGHTING 0
 
@@ -313,7 +315,27 @@ void main(void)
 
     vec3 waterColor = WATER_COLOR * sunFade;
 
-    vec4 sunSpec = lcalcSpecular(0);
+    //vec4 sunSpec = lcalcSpecular(0);
+    vec4 sunSpec = vec4(getPbr(
+        osg_ViewMatrixInverse,
+        (gl_ModelViewMatrix * position).xyz,
+        (gl_ModelViewMatrix * vec4(normal, 0.0)).xyz,
+        waterColor,
+        0.1,
+        1.0,
+        1.0,
+        shadow,
+        #if SHADOWS
+            shadowFadeStart,
+        #else
+            3500.0,
+        #endif
+        1.0,
+        vec3(0.0),
+        0.0,
+        0.0,
+        MAT_DEFAULT
+    ), 1.0);
 
     // artificial specularity to make rain ripples more noticeable
     vec3 skyColorEstimate = vec3(max(0.0, mix(-0.3, 1.0, sunFade)));

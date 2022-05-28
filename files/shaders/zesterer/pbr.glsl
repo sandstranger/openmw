@@ -81,7 +81,7 @@ vec3 getLightPbr(
     kDiff *= 1.0 - metalness;
 
     // Color of specular reflections is determined by metalness and surface alignment and angle of incidence
-    vec3 specular_albedo = mix(vec3(1.0), albedo, metalness);
+    vec3 specular_albedo = vec3(1.0);//mix(vec3(1.0), albedo, metalness);
 
     // The final diffuse and specular reflectance of the surface
     vec3 brdf = kDiff * albedo * INV_PI + kSpec * specular * specular_albedo;
@@ -106,23 +106,23 @@ vec3 getSunColor(float sunLightLevel, float isntDusk, float isInterior) {
     const vec3 interiorSunColor = vec3(1.8, 1.6, 1.3);
     return (isInterior == 1.0) ? (interiorSunColor * interior_strength) : (mix(
         mix(
-            vec3(0.25, 1.0, 2.0),
+            vec3(0.25, 0.65, 1.0) * 1.65,
             // TODO: Actually detect time of day and make dawn/dusk more red
             vec3(6.0, 5.0, 0.5),
             clamp(sunLightLevel * 10.0 - 3.0, 0.0, 1.0)
         ),
-        vec3(8.0, 7.0, 6.0),
+        vec3(7.0 + TINT, 7.0, 7.0 - TINT),
         isntDusk
-    ) * sunlight_strength);
+    ) * lcalcDiffuse(0) * sunlight_strength);
 }
 
 vec3 getAmbientColor(float isntDusk, float isInterior) {
-    const vec3 interiorAmbientColor = vec3(0.3, 0.25, 0.2);
+    const vec3 interiorAmbientColor = vec3(0.4, 0.35, 0.2);
     return (isInterior == 1.0) ? (interiorAmbientColor * interior_strength) : (mix(
         vec3(0.15, 0.2, 0.4),
-        vec3(1.2, 1.5, 2.5),
+        vec3(1.5 - TINT * 0.3, 1.5, 1.5 + TINT * 0.3),
         isntDusk
-    ) * ambiance_strength);
+    ) * mix(lcalcDiffuse(0), vec3(1.0), 0.5) * ambiance_strength);
 }
 
 vec3 getPbr(
@@ -176,15 +176,15 @@ vec3 getPbr(
     vec3 attenuation = (waterDepth == 0.0 || isInterior == 1.0) ? vec3(1.0) : exp(-MU_WATER * waterDepth * unitsToMetres);
 
     // Direct sunlight
-    vec3 sunColor = getSunColor(sunLightLevel, isntDusk, isInterior) /* * lcalcDiffuse(0)*/ * attenuation;
+    vec3 sunColor = getSunColor(sunLightLevel, isntDusk, isInterior) * attenuation;
     light += getLightPbr(surfPos, surfNorm, camDir, sunDir, sunColor, albedo, roughness, baseRefl, metalness, sunShadow, shadowFadeStart, subsurface, ao, mat);
 
     // Sky (ambient)
     // TODO: Better ambiance
     float ambientFresnel = mix(max(dot(surfNorm, -camDir), 0.0) * 0.5 + 0.5, 1.0, subsurface);
-    vec3 skyColor = getAmbientColor(isntDusk, isInterior) /* * lcalcDiffuse(0)*/ * attenuation;
+    vec3 skyColor = getAmbientColor(isntDusk, isInterior) /* * lcalcAmbient(0)*/ * attenuation;
     // Even ambient light has some directionality, favouring surfaces facing toward the sky. Account for that.
-    float ambientDirectionalBias = (max(dot(surfNorm, sunDir), 0.0) * 0.5 + 0.5) * 1.5;
+    float ambientDirectionalBias = (max(dot((osg_ViewMatrixInverse * vec4(surfNorm, 0.0)).xyz, vec3(0.0, 0.0, 1.0)), 0.0) * 0.5 + 0.5) * 1.5;
     light += albedo * ao * baseRefl * skyColor * ambientFresnel * ambientDirectionalBias;
 
     for (int i = @startLight; i < @endLight; ++i) {
@@ -207,16 +207,37 @@ vec3 getPbr(
 
         vec3 lightColor = lcalcDiffuse(lightIdx)
             // The strength of a light reduces with distance
-            * lcalcIllumination(lightIdx, lightDist) * 20.0
+            * lcalcIllumination(lightIdx, lightDist) * 12.0
             // Make lights less powerful during the day (otherwise, they're a bit overpowering)
             * max(1.0 - sunLightLevel, 0.5)
             // Final cap to make sure that lights don't abruptly cut off beyond the maximum light distance
             * min((1.0 - lightDist / lightMaxRadius) * 3.0, 1.0);
 
         light += getLightPbr(surfPos, surfNorm, camDir, lightDir, lightColor, albedo, roughness, baseRefl, metalness, 1.0, 1.0, subsurface, ao, mat);
+
+        // Ambiance from the point light
+        light += albedo * ao * baseRefl * lightColor * 0.05;
     }
 
     return light;
+}
+
+vec3 rgb2hsv(vec3 c)
+{
+    vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10;
+    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+vec3 hsv2rgb(vec3 c)
+{
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
 void untonemap(inout vec3 color) {
@@ -229,9 +250,17 @@ void untonemap(inout vec3 color) {
 // As a result, this entire thing is an enormous hack that lets us do that!
 void colorToPbr(vec3 color, out vec3 albedo, out float ao) {
     untonemap(color);
+
+    vec3 hsv = rgb2hsv(color);
+
+    ao = hsv.z;
+    albedo = hsv2rgb(vec3(hsv.x + HUE_SHIFT, hsv.y * saturation_factor, 1.0));
+
+    /*
     ao = min(length(color) * 0.58, 1.0);
     float saturation = mix(1.0, saturation_factor, ao);
     albedo = clamp(pow(normalize(color), vec3(saturation)) * mix(saturation, 1.5, 0.5) - 0.25, vec3(0.0), vec3(1.0));
+    */
 }
 
 // Derive PBR parameters from coloured specular, if possible. If not, old values will be used.

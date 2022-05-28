@@ -39,6 +39,7 @@ varying vec3 passNormal;
 #include "lighting.glsl"
 #include "parallax.glsl"
 #include "rand.glsl"
+#include "wave.glsl"
 
 void main()
 {
@@ -73,7 +74,7 @@ void main()
 
     vec3 wPos = (osg_ViewMatrixInverse * vec4(passViewPos, 1)).xyz;
     vec3 wPosModel = (gl_ModelViewMatrixInverse * vec4(passViewPos, 1)).xyz;
-    float waterDepth = max(-wPosModel.z, 0);
+    float waterDepth = max(-wPosModel.z + doWave(wPos.xy), 0);
 
     if (PROCEDURAL_DETAIL_LEVEL > 0.0) {
         //proceduralUV(wPos, length(passViewPos), adjustedUV);
@@ -90,7 +91,7 @@ void main()
     vec4 diffuseColor = getDiffuseColor();
     gl_FragData[0].a *= diffuseColor.a;
 
-    float roughness = 0.5;
+    float roughness = 0.6;
     float reflectance = 1.0;
     float metalness = 0.0;
 
@@ -115,8 +116,11 @@ void main()
     lighting = passLighting + shadowDiffuseLighting * shadowing;
     gl_FragData[0].xyz *= lighting;
 #else
-    vec3 color = gl_FragData[0].rgb * mix(vec3(1.0), diffuseColor.rgb, noise(wPos.xy * 0.005));
+    vec3 color = gl_FragData[0].rgb
+        // Apply terrain shadowing, but less closer to the camera
+        * mix(diffuseColor.rgb, vec3(1.0), 1.0 / (1.0 + length(passViewPos) / 10000.0));
 
+    color = color * 1.1 - 0.05; // TODO: Why?! Bad vanilla textures?
     vec3 albedo; float ao;
     colorToPbr(color, albedo, ao);
 
@@ -124,6 +128,27 @@ void main()
         // Apply procedural detail to distant terrain
         proceduralNormal(wPos, length(passViewPos), viewNormal);
     }
+
+    float waterH = 0.0;
+    #if (WAVES == 1)
+        waterH = doWave(wPos.xy, 0.0, 0.2, 0.0);
+        float prevWaterH = doWave(wPos.xy, -1.5, 0.1, 0.5);
+        float wave_depth = 5.0;
+        if (wPos.z < waterH) {
+            albedo *= mix(vec3(1.0), vec3(0.7, 0.8, 1.0), clamp(5.0 - (0.0 - wPos.z) * 1.5, 0.0, 1.0));
+        }
+        if (wPos.z < waterH && wPos.z > waterH - wave_depth) {
+            albedo += clamp(1.0 - (waterH - wPos.z) / wave_depth, 0.0, 1.0) * 1.0;
+        }
+        if (wPos.z > waterH && wPos.z < prevWaterH) {
+            roughness *= 0.5;
+        }
+    #endif
+
+    #if (CAUSTICS == 1)
+        // TODO: Don't apply to ao, very hacky
+        ao *= mix(1.0, 0.5 + caustics(wPos.xy * 0.01, osg_SimulationTime * 0.5) * 1.5, clamp((waterH - wPos.z) * 0.01, 0.0, 1.0) / (1.0 + waterDepth / 1000.0));
+    #endif
 
     gl_FragData[0].xyz = getPbr(
         osg_ViewMatrixInverse,
