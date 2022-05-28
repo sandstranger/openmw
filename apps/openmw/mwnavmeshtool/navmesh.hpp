@@ -15,8 +15,15 @@ namespace NavMeshTool
 {
     struct WorldspaceData;
 
-    void generateAllNavMeshTiles(const osg::Vec3f& agentHalfExtents, const DetourNavigator::Settings& settings,
-        std::size_t threadsNumber, bool removeUnusedTiles, WorldspaceData& cellsData,
+    enum class Status
+    {
+        Ok,
+        Cancelled,
+        NotEnoughSpace,
+    };
+
+    Status generateAllNavMeshTiles(const osg::Vec3f& agentHalfExtents, const DetourNavigator::Settings& settings,
+        std::size_t threadsNumber, bool removeUnusedTiles, bool writeBinaryLog, WorldspaceData& cellsData,
         DetourNavigator::NavMeshDb&& db);
 }
 

@@ -796,15 +796,15 @@ namespace MWMechanics
 
     void Actors::getBobbingInfo(const MWWorld::Ptr& ptr, MWRender::BobbingInfo& outBobbingInfo)
     {
-        PtrActorMap::iterator it = mActors.find(ptr);
-        if (it == mActors.end())
+        const auto it = mIndex.find(ptr.mRef);
+        if (it == mIndex.end())
         {
             outBobbingInfo.mHandBobEnabled = false;
             return;
         }
-        CharacterController* ctrl = it->second->getCharacterController();
+        CharacterController& ctrl = it->second->getCharacterController();
 
-        outBobbingInfo = ctrl->getBobbingInfo();
+        outBobbingInfo = ctrl.getBobbingInfo();
     }
 
     void Actors::updateDrowning(const MWWorld::Ptr& ptr, float duration, bool isKnockedOut, bool isPlayer)

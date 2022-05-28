@@ -13,6 +13,8 @@
 #include <components/windows.hpp>
 #endif
 
+#include <osgViewer/Viewer>
+
 namespace Debug
 {
 #ifdef _WIN32
@@ -188,6 +190,8 @@ void setupLogging(const std::string& logDir, const std::string& appName, std::io
 #endif
 }
 
+extern osg::ref_ptr<osgViewer::Viewer> g_viewer;
+
 int wrapApplication(int (*innerApplication)(int argc, char *argv[]), int argc, char *argv[],
                     const std::string& appName, bool autoSetupLogging)
 {
@@ -227,6 +231,7 @@ int wrapApplication(int (*innerApplication)(int argc, char *argv[]), int argc, c
     }
     catch (const std::exception& e)
     {
+        g_viewer.release();
 #if (defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix))
         if (!isatty(fileno(stdin)))
 #endif
