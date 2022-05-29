@@ -106,6 +106,7 @@ set(ZESTERER_SHADER_FILES
     zesterer/pbr.glsl
     zesterer/rand.glsl
     zesterer/sway.glsl
+    zesterer/wave.glsl
 )
 
 set(MODIFIED_SHADER_FILES

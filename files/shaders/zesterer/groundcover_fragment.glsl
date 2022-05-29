@@ -122,7 +122,7 @@ if(grassData[2].y != grassData[2].x)
         vec3(0.0),
         0.5,
         waterDepth,
-        MAT_DEFAULT
+        MAT_LEAF
     );
 #endif
 

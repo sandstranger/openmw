@@ -210,7 +210,7 @@ uniform sampler2D normalMap;
 uniform sampler2D reflectionMap;
 #if REFRACTION
 uniform sampler2D refractionMap;
-uniform sampler2D refractionDepthMap;
+uniform highp sampler2D refractionDepthMap;
 #endif
 
 uniform float osg_SimulationTime;
@@ -321,7 +321,7 @@ void main(void)
         (gl_ModelViewMatrix * position).xyz,
         (gl_ModelViewMatrix * vec4(normal, 0.0)).xyz,
         waterColor,
-        0.1,
+        0.02,
         1.0,
         1.0,
         shadow,
