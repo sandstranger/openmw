@@ -2,12 +2,9 @@
 
 #include "esmreader.hpp"
 #include "esmwriter.hpp"
-#include "components/esm/defs.hpp"
 
 namespace ESM
 {
-    unsigned int Region::sRecordId = REC_REGN;
-
     void Region::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
@@ -106,6 +103,7 @@ namespace ESM
 
     void Region::blank()
     {
+        mRecordFlags = 0;
         mData.mClear = mData.mCloudy = mData.mFoggy = mData.mOvercast = mData.mRain =
             mData.mThunder = mData.mAsh = mData.mBlight = mData.mA = mData.mB = 0;
 

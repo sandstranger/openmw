@@ -2,12 +2,9 @@
 
 #include "esmreader.hpp"
 #include "esmwriter.hpp"
-#include "components/esm/defs.hpp"
 
 namespace ESM
 {
-    unsigned int Sound::sRecordId = REC_SOUN;
-
     void Sound::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
@@ -63,6 +60,7 @@ namespace ESM
 
     void Sound::blank()
     {
+        mRecordFlags = 0;
         mSound.clear();
 
         mData.mVolume = 128;

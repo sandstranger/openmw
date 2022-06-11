@@ -95,7 +95,7 @@ add_component_dir (esm3
     savedgame journalentry queststate locals globalscript player objectstate cellid cellstate globalmap
     inventorystate containerstate npcstate creaturestate dialoguestate statstate npcstats creaturestats
     weatherstate quickkeys fogstate spellstate activespells creaturelevliststate doorstate projectilestate debugprofile
-    aisequence magiceffects custommarkerstate stolenitems transport animationstate controlsstate mappings
+    aisequence magiceffects custommarkerstate stolenitems transport animationstate controlsstate mappings readerscache
     )
 
 add_component_dir (esm3terrain
@@ -333,6 +333,10 @@ add_component_dir(esmloader
 
 add_component_dir(navmeshtool
     protocol
+    )
+
+add_component_dir(platform
+    platform
     )
 
 set (ESM_UI ${CMAKE_SOURCE_DIR}/files/ui/contentselector.ui

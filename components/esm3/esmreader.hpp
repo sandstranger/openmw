@@ -16,6 +16,8 @@
 namespace ESM
 {
 
+class ReadersCache;
+
 class ESMReader
 {
 public:
@@ -40,6 +42,7 @@ public:
   const NAME &retSubName() const { return mCtx.subName; }
   uint32_t getSubSize() const { return mCtx.leftSub; }
   const std::string& getName() const { return mCtx.filename; };
+  bool isOpen() const { return mEsm != nullptr; }
 
   /*************************************************************************
    *
@@ -86,9 +89,8 @@ public:
   // all files/readers used by the engine. This is required for correct adjustRefNum() results
   // as required for handling moved, deleted and edited CellRefs.
   /// @note Does not validate.
-  void resolveParentFileIndices(const std::vector<ESMReader>& files);
+  void resolveParentFileIndices(ReadersCache& readers);
   const std::vector<int>& getParentFileIndices() const { return mCtx.parentFileIndices; }
-  bool isValidParentFileIndex(int i) const { return i != getIndex(); }
 
   /*************************************************************************
    *

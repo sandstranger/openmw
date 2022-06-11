@@ -2,12 +2,9 @@
 
 #include "esmreader.hpp"
 #include "esmwriter.hpp"
-#include "components/esm/defs.hpp"
 
 namespace ESM
 {
-    unsigned int Miscellaneous::sRecordId = REC_MISC;
-
     void Miscellaneous::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
@@ -75,6 +72,7 @@ namespace ESM
 
     void Miscellaneous::blank()
     {
+        mRecordFlags = 0;
         mData.mWeight = 0;
         mData.mValue = 0;
         mData.mIsKey = 0;

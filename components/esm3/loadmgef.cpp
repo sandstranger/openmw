@@ -187,8 +187,6 @@ namespace
 
 namespace ESM
 {
-    unsigned int MagicEffect::sRecordId = REC_MGEF;
-
 void MagicEffect::load(ESMReader &esm, bool &isDeleted)
 {
     isDeleted = false; // MagicEffect record can't be deleted now (may be changed in the future)
@@ -578,6 +576,7 @@ MagicEffect::MagnitudeDisplayType MagicEffect::getMagnitudeDisplayType() const {
 
     void MagicEffect::blank()
     {
+        mRecordFlags = 0;
         mData.mSchool = 0;
         mData.mBaseCost = 0;
         mData.mFlags = 0;

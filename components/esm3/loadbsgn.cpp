@@ -2,12 +2,9 @@
 
 #include "esmreader.hpp"
 #include "esmwriter.hpp"
-#include "components/esm/defs.hpp"
 
 namespace ESM
 {
-    unsigned int BirthSign::sRecordId = REC_BSGN;
-
     void BirthSign::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
@@ -69,6 +66,7 @@ namespace ESM
 
     void BirthSign::blank()
     {
+        mRecordFlags = 0;
         mName.clear();
         mDescription.clear();
         mTexture.clear();

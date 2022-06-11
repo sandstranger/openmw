@@ -15,6 +15,8 @@
 #include <components/version/version.hpp>
 #include <components/vfs/manager.hpp>
 #include <components/vfs/registerarchives.hpp>
+#include <components/esm3/readerscache.hpp>
+#include <components/platform/platform.hpp>
 
 #include <boost/program_options.hpp>
 
@@ -24,6 +26,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+
 
 namespace
 {
@@ -105,6 +108,8 @@ namespace
 
     int runBulletObjectTool(int argc, char *argv[])
     {
+        Platform::init();
+
         bpo::options_description desc = makeOptionsDescription();
 
         bpo::parsed_options options = bpo::command_line_parser(argc, argv)
@@ -156,7 +161,7 @@ namespace
         Settings::Manager settings;
         settings.load(config);
 
-        std::vector<ESM::ESMReader> readers(contentFiles.size());
+        ESM::ReadersCache readers;
         EsmLoader::Query query;
         query.mLoadActivators = true;
         query.mLoadCells = true;

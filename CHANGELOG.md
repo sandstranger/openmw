@@ -109,6 +109,7 @@
     Bug #6606: Quests with multiple IDs cannot always be restarted
     Bug #6653: With default settings the in-game console doesn't fit into screen
     Bug #6655: Constant effect absorb attribute causes the game to break
+    Bug #6631: Fix ffmpeg avio API usage causing hangs in ffmpeg version 5
     Bug #6667: Pressing the Esc key while resting or waiting causes black screen.
     Bug #6670: Dialogue order is incorrect
     Bug #6680: object.cpp handles nodetree unsafely, memory access with dangling pointer
@@ -119,6 +120,8 @@
     Bug #6718: Throwable weapons cause arrow enchantment effect to be applied to the whole body
     Bug #6730: LoopGroup stalls animation after playing :Stop frame until another animation is played
     Bug #6753: Info records without a DATA subrecords are loaded incorrectly
+    Bug #6794: Light sources are attached to mesh bounds centers instead of mesh origins when AttachLight NiNode is missing
+    Bug #6799: Game crashes if an NPC has no Class attached
     Feature #890: OpenMW-CS: Column filtering
     Feature #1465: "Reset" argument for AI functions
     Feature #2491: Ability to make OpenMW "portable"
@@ -167,6 +170,7 @@
     Task #6264: Remove the old classes in animation.cpp
     Task #6553: Simplify interpreter instruction registration
     Task #6564: Remove predefined data paths `data="?global?data"`, `data=./data`
+    Task #6709: Move KeyframeController transformation magic to NifOsg::MatrixTransform
 
 0.47.0
 ------

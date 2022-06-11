@@ -2,14 +2,11 @@
 
 #include "esmreader.hpp"
 #include "esmwriter.hpp"
-#include "components/esm/defs.hpp"
 
 #include <components/settings/settings.hpp>
 
 namespace ESM
 {
-    unsigned int Static::sRecordId = REC_STAT;
-
     void Static::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
@@ -67,6 +64,7 @@ namespace ESM
 
     void Static::blank()
     {
+        mRecordFlags = 0;
         mModel.clear();
     }
 }

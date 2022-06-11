@@ -4,6 +4,7 @@
 #include <components/fallback/validate.hpp>
 #include <components/debug/debugging.hpp>
 #include <components/misc/rng.hpp>
+#include <components/platform/platform.hpp>
 
 #include "mwnavmeshtool/navmeshtool.hpp"
 #include "mwgui/debugwindow.hpp"
@@ -16,6 +17,8 @@
 // makes __argc and __argv available on windows
 #include <cstdlib>
 #endif
+
+#include <filesystem>
 
 #if (defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix))
 #include <unistd.h>
@@ -208,17 +211,17 @@ Files::ConfigurationManager *g_cfgMgr;
 
 int runApplication(int argc, char *argv[])
 {
+    Platform::init();
+
 #ifdef __APPLE__
-    boost::filesystem::path binary_path = boost::filesystem::system_complete(boost::filesystem::path(argv[0]));
-    boost::filesystem::current_path(binary_path.parent_path());
+    std::filesystem::path binary_path = std::filesystem::absolute(std::filesystem::path(argv[0]));
+    std::filesystem::current_path(binary_path.parent_path());
     setenv("OSG_GL_TEXTURE_STORAGE", "OFF", 0);
 #endif
 
     osg::setNotifyHandler(new OSGLogHandler());
     Files::ConfigurationManager cfgMgr;
-    g_cfgMgr = &cfgMgr;
-    std::unique_ptr<OMW::Engine> engine;
-    engine.reset(new OMW::Engine(cfgMgr));
+    std::unique_ptr<OMW::Engine> engine = std::make_unique<OMW::Engine>(cfgMgr);
 
     if (getenv("OPENMW_GENERATE_NAVMESH_CACHE"))
     {

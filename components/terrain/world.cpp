@@ -42,10 +42,11 @@ World::World(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSyst
 
     mHeightCullCallback = new HeightCullCallback();
 
-    mTextureManager.reset(new TextureManager(mResourceSystem->getSceneManager()));
-    mChunkManager.reset(new ChunkManager(mStorage, mResourceSystem->getSceneManager(), mTextureManager.get(), mCompositeMapRenderer));
+    mTextureManager = std::make_unique<TextureManager>(mResourceSystem->getSceneManager());
+    mChunkManager = std::make_unique<ChunkManager>(mStorage, mResourceSystem->getSceneManager(), mTextureManager.get(), mCompositeMapRenderer);
+
     mChunkManager->setNodeMask(nodeMask);
-    mCellBorder.reset(new CellBorder(this,mTerrainRoot.get(),borderMask,mResourceSystem->getSceneManager()));
+    mCellBorder = std::make_unique<CellBorder>(this,mTerrainRoot.get(),borderMask,mResourceSystem->getSceneManager());
 
     mResourceSystem->addResourceManager(mChunkManager.get());
     mResourceSystem->addResourceManager(mTextureManager.get());

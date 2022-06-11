@@ -59,9 +59,11 @@ namespace fx
             osg::ref_ptr<osg::StateSet> mStateSet = new osg::StateSet;
             osg::ref_ptr<osg::FrameBufferObject> mRenderTarget;
             osg::ref_ptr<osg::Texture2D> mRenderTexture;
+            bool mResolve = false;
 
             SubPass(const SubPass& other, const osg::CopyOp& copyOp = osg::CopyOp::SHALLOW_COPY)
                 : mStateSet(new osg::StateSet(*other.mStateSet, copyOp))
+                , mResolve(other.mResolve)
             {
                 if (other.mRenderTarget)
                     mRenderTarget = new osg::FrameBufferObject(*other.mRenderTarget, copyOp);
@@ -69,6 +71,18 @@ namespace fx
                     mRenderTexture = new osg::Texture2D(*other.mRenderTexture, copyOp);
             }
         };
+
+        void compile()
+        {
+            for (auto rit = mPasses.rbegin(); rit != mPasses.rend(); ++rit)
+            {
+                if (!rit->mRenderTarget)
+                {
+                    rit->mResolve = true;
+                    break;
+                }
+            }
+        }
 
         // not safe to read/write in draw thread
         std::shared_ptr<fx::Technique> mHandle = nullptr;
@@ -158,6 +172,8 @@ namespace fx
         std::string getLastError() const { return mLastError; }
 
         UniformMap::iterator findUniform(const std::string& name);
+
+        bool getDynamic() const { return mDynamic; }
 
     private:
         [[noreturn]] void error(const std::string& msg);
@@ -275,6 +291,8 @@ namespace fx
         std::string mBuffer;
 
         std::string mLastError;
+
+        bool mDynamic = false;
     };
 
     template<> void Technique::parseBlockImp<Lexer::Shared>();

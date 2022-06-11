@@ -3,6 +3,7 @@
 #include <MyGUI_ListBox.h>
 #include <MyGUI_ImageBox.h>
 #include <MyGUI_Gui.h>
+#include <MyGUI_ScrollBar.h>
 
 #include <osg/Texture2D>
 
@@ -134,11 +135,11 @@ namespace MWGui
         mPreview.reset(nullptr);
         mPreviewTexture.reset(nullptr);
 
-        mPreview.reset(new MWRender::RaceSelectionPreview(mParent, mResourceSystem));
+        mPreview = std::make_unique<MWRender::RaceSelectionPreview>(mParent, mResourceSystem);
         mPreview->rebuild();
         mPreview->setAngle (mCurrentAngle);
 
-        mPreviewTexture.reset(new osgMyGUI::OSGTexture(mPreview->getTexture(), mPreview->getTextureStateSet()));
+        mPreviewTexture = std::make_unique<osgMyGUI::OSGTexture>(mPreview->getTexture(), mPreview->getTextureStateSet());
         mPreviewImage->setRenderItemTexture(mPreviewTexture.get());
         mPreviewImage->getSubWidgetMain()->_setUVSet(MyGUI::FloatRect(0.f, 0.f, 1.f, 1.f));
 

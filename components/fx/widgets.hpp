@@ -3,7 +3,6 @@
 
 #include <MyGUI_Gui.h>
 #include <MyGUI_Button.h>
-#include <MyGUI_ScrollView.h>
 #include <MyGUI_InputManager.h>
 
 #include <osg/Vec2f>
@@ -68,6 +67,7 @@ namespace fx
             void notifyMouseButtonClick(MyGUI::Widget* sender);
 
             MyGUI::Button* mCheckbutton;
+            MyGUI::Widget* mFill;
         };
 
         template <class T, class UType>
@@ -86,17 +86,29 @@ namespace fx
                 else
                     mValueLabel->setCaption(std::to_string(mValue));
 
+                float range = 0.f;
+                float min = 0.f;
+
                 if (auto uniform = mUniform.lock())
                 {
                     if constexpr (std::is_fundamental_v<UType>)
+                    {
                         uniform->template setValue<UType>(mValue);
+                        range = uniform->template getMax<UType>() - uniform->template getMin<UType>();
+                        min = uniform->template getMin<UType>();
+                    }
                     else
                     {
                         UType uvalue = uniform->template getValue<UType>();
                         uvalue[mIndex] = mValue;
                         uniform->template setValue<UType>(uvalue);
+                        range = uniform->template getMax<UType>()[mIndex] - uniform->template getMin<UType>()[mIndex];
+                        min = uniform->template getMin<UType>()[mIndex];
                     }
                 }
+
+                float fill = (range == 0.f) ? 1.f : (mValue - min) / range;
+                mFill->setRealSize(fill, 1.0);
             }
 
             void setValueFromUniform() override
@@ -135,6 +147,7 @@ namespace fx
                 assignWidget(mValueLabel, "Value");
                 assignWidget(mButtonIncrease, "ButtonIncrease");
                 assignWidget(mButtonDecrease, "ButtonDecrease");
+                assignWidget(mFill, "Fill");
 
                 mButtonIncrease->eventMouseButtonClick += MyGUI::newDelegate(this, &EditNumber::notifyButtonClicked);
                 mButtonDecrease->eventMouseButtonClick += MyGUI::newDelegate(this, &EditNumber::notifyButtonClicked);
@@ -226,6 +239,7 @@ namespace fx
             MyGUI::Button* mButtonDecrease;
             MyGUI::Button* mButtonIncrease;
             MyGUI::Widget* mDragger;
+            MyGUI::Widget* mFill;
             MyGUI::TextBox* mValueLabel;
             T mValue;
 

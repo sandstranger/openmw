@@ -29,6 +29,7 @@ Actor::Actor(const MWWorld::Ptr& ptr, const Resource::BulletShape* shape, Physic
   , mForce(0.f, 0.f, 0.f), mOnGround(true), mOnSlope(false)
   , mInternalCollisionMode(true)
   , mExternalCollisionMode(true)
+  , mActive(false)
   , mTaskScheduler(scheduler)
 {
     mPtr = ptr;
@@ -57,7 +58,7 @@ Actor::Actor(const MWWorld::Ptr& ptr, const Resource::BulletShape* shape, Physic
             Log(Debug::Error) << "Error: Failed to calculate bounding box for actor \"" << ptr.getCellRef().getRefId() << "\".";
     }
 
-    mShape.reset(new btBoxShape(Misc::Convert::toBullet(mOriginalHalfExtents)));
+    mShape = std::make_unique<btBoxShape>(Misc::Convert::toBullet(mOriginalHalfExtents));
     mRotationallyInvariant = (mMeshTranslation.x() == 0.0 && mMeshTranslation.y() == 0.0) && std::fabs(mOriginalHalfExtents.x() - mOriginalHalfExtents.y()) < 2.2;
 
     mConvexShape = static_cast<btConvexShape*>(mShape.get());

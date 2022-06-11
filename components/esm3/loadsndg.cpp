@@ -6,8 +6,6 @@
 
 namespace ESM
 {
-    unsigned int SoundGenerator::sRecordId = REC_SNDG;
-
     void SoundGenerator::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
@@ -67,6 +65,7 @@ namespace ESM
 
     void SoundGenerator::blank()
     {
+        mRecordFlags = 0;
         mType = LeftFoot;
         mCreature.clear();
         mSound.clear();

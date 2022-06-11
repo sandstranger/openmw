@@ -117,7 +117,7 @@ void CSVRender::Object::update()
     {
         if (recordType == CSMWorld::UniversalId::Type_Npc || recordType == CSMWorld::UniversalId::Type_Creature)
         {
-            if (!mActor) mActor.reset(new Actor(mReferenceableId, mData));
+            if (!mActor) mActor = std::make_unique<Actor>(mReferenceableId, mData);
             mActor->update();
             mBaseNode->addChild(mActor->getBaseNode());
         }
@@ -140,7 +140,7 @@ void CSVRender::Object::update()
     if (light)
     {
         bool isExterior = false; // FIXME
-        SceneUtil::addLight(mBaseNode, light, Mask_ParticleSystem, Mask_Lighting, isExterior);
+        SceneUtil::addLight(mBaseNode, light, Mask_Lighting, isExterior);
     }
 }
 

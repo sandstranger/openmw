@@ -435,7 +435,7 @@ namespace MWRender
         if (Settings::Manager::getBool("terrain shadows", "Shadows"))
             shadowCastingTraversalMask |= Mask_Terrain;
 
-        mShadowManager.reset(new SceneUtil::ShadowManager(sceneRoot, mRootNode, shadowCastingTraversalMask, indoorShadowCastingTraversalMask, Mask_Terrain|Mask_Object|Mask_Static, mResourceSystem->getSceneManager()->getShaderManager()));
+        mShadowManager = std::make_unique<SceneUtil::ShadowManager>(sceneRoot, mRootNode, shadowCastingTraversalMask, indoorShadowCastingTraversalMask, Mask_Terrain|Mask_Object|Mask_Static, mResourceSystem->getSceneManager()->getShaderManager());
 
         Shader::ShaderManager::DefineMap shadowDefines = mShadowManager->getShadowDefines();
         Shader::ShaderManager::DefineMap lightDefines = sceneRoot->getLightDefines();
@@ -474,13 +474,13 @@ namespace MWRender
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
 
-        mNavMesh.reset(new NavMesh(mRootNode, mWorkQueue, Settings::Manager::getBool("enable nav mesh render", "Navigator"),
-                                   parseNavMeshMode(Settings::Manager::getString("nav mesh render mode", "Navigator"))));
-        mActorsPaths.reset(new ActorsPaths(mRootNode, Settings::Manager::getBool("enable agents paths render", "Navigator")));
-        mRecastMesh.reset(new RecastMesh(mRootNode, Settings::Manager::getBool("enable recast mesh render", "Navigator")));
-        mPathgrid.reset(new Pathgrid(mRootNode));
+        mNavMesh = std::make_unique<NavMesh>(mRootNode, mWorkQueue, Settings::Manager::getBool("enable nav mesh render", "Navigator"),
+                                   parseNavMeshMode(Settings::Manager::getString("nav mesh render mode", "Navigator")));
+        mActorsPaths = std::make_unique<ActorsPaths>(mRootNode, Settings::Manager::getBool("enable agents paths render", "Navigator"));
+        mRecastMesh = std::make_unique<RecastMesh>(mRootNode, Settings::Manager::getBool("enable recast mesh render", "Navigator"));
+        mPathgrid = std::make_unique<Pathgrid>(mRootNode);
 
-        mObjects.reset(new Objects(mResourceSystem, sceneRoot));
+        mObjects = std::make_unique<Objects>(mResourceSystem, sceneRoot);
 
         if (getenv("OPENMW_DONT_PRECOMPILE") == nullptr)
         {
@@ -490,7 +490,7 @@ namespace MWRender
 
         mResourceSystem->getSceneManager()->setIncrementalCompileOperation(mViewer->getIncrementalCompileOperation());
 
-        mEffectManager.reset(new EffectManager(sceneRoot, mResourceSystem));
+        mEffectManager = std::make_unique<EffectManager>(sceneRoot, mResourceSystem);
 
         const std::string normalMapPattern = Settings::Manager::getString("normal map pattern", "Shaders");
         const std::string heightMapPattern = Settings::Manager::getString("normal height map pattern", "Shaders");
@@ -498,7 +498,7 @@ namespace MWRender
         const bool useTerrainNormalMaps = Settings::Manager::getBool("auto use terrain normal maps", "Shaders");
         const bool useTerrainSpecularMaps = Settings::Manager::getBool("auto use terrain specular maps", "Shaders");
 
-        mTerrainStorage.reset(new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps));
+        mTerrainStorage = std::make_unique<TerrainStorage>(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps);
 
         const float lodFactor = Settings::Manager::getFloat("lod factor", "Terrain");
 
@@ -516,21 +516,19 @@ namespace MWRender
 
             bool debugChunks = Settings::Manager::getBool("debug chunks", "Terrain");
 
-            mTerrainQuadTreeWorld = new Terrain::QuadTreeWorld(
+            mTerrain = std::make_unique<Terrain::QuadTreeWorld>(
                 sceneRoot, mRootNode, mResourceSystem, mTerrainStorage.get(), Mask_Terrain, Mask_PreCompile, Mask_Debug,
                 compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, debugChunks);
 
-            mTerrain.reset(mTerrainQuadTreeWorld);
-
             if (Settings::Manager::getBool("object paging", "Terrain"))
             {
-                mObjectPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager()));
+                mObjectPaging = std::make_unique<ObjectPaging>(mResourceSystem->getSceneManager());
                 static_cast<Terrain::QuadTreeWorld*>(mTerrain.get())->addChunkManager(mObjectPaging.get());
                 mResourceSystem->addResourceManager(mObjectPaging.get());
             }
         }
         else
-            mTerrain.reset(new Terrain::TerrainGrid(sceneRoot, mRootNode, mResourceSystem, mTerrainStorage.get(), Mask_Terrain, Mask_PreCompile, Mask_Debug));
+            mTerrain = std::make_unique<Terrain::TerrainGrid>(sceneRoot, mRootNode, mResourceSystem, mTerrainStorage.get(), Mask_Terrain, Mask_PreCompile, Mask_Debug);
 
         mTerrain->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
 
@@ -556,7 +554,13 @@ namespace MWRender
             static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
             mResourceSystem->addResourceManager(mGroundcoverPaging.get());
 
+<<<<<<< HEAD
             mGroundcoverWorld->setActiveGrid(osg::Vec4i(0, 0, 0, 0));
+=======
+            mGroundcover = std::make_unique<Groundcover>(mResourceSystem->getSceneManager(), density, groundcoverDistance, groundcoverStore);
+            static_cast<Terrain::QuadTreeWorld*>(mTerrain.get())->addChunkManager(mGroundcover.get());
+            mResourceSystem->addResourceManager(mGroundcover.get());
+>>>>>>> openmw/master
         }
 
         mStateUpdater = new StateUpdater;
@@ -573,11 +577,11 @@ namespace MWRender
         resourceSystem->getSceneManager()->setSupportsNormalsRT(mPostProcessor->getSupportsNormalsRT());
 
         // water goes after terrain for correct waterculling order
-        mWater.reset(new Water(sceneRoot->getParent(0), sceneRoot, mResourceSystem, mViewer->getIncrementalCompileOperation(), resourcePath));
+        mWater = std::make_unique<Water>(sceneRoot->getParent(0), sceneRoot, mResourceSystem, mViewer->getIncrementalCompileOperation(), resourcePath);
 
-        mCamera.reset(new Camera(mViewer->getCamera()));
+        mCamera = std::make_unique<Camera>(mViewer->getCamera());
 
-        mScreenshotManager.reset(new ScreenshotManager(viewer, mRootNode, sceneRoot, mResourceSystem, mWater.get()));
+        mScreenshotManager = std::make_unique<ScreenshotManager>(viewer, mRootNode, sceneRoot, mResourceSystem, mWater.get());
 
         osg::ref_ptr<GammaCorrection> gamma = new GammaCorrection(1.0);
         mViewer->getCamera()->getOrCreateStateSet()->setAttribute(gamma);
@@ -607,9 +611,9 @@ namespace MWRender
         sceneRoot->getOrCreateStateSet()->addUniform(new osg::Uniform("emissiveMult", 1.f));
         sceneRoot->getOrCreateStateSet()->addUniform(new osg::Uniform("specStrength", 1.f));
 
-        mFog.reset(new FogManager());
+        mFog = std::make_unique<FogManager>();
 
-        mSky.reset(new SkyManager(sceneRoot, resourceSystem->getSceneManager()));
+        mSky = std::make_unique<SkyManager>(sceneRoot, resourceSystem->getSceneManager());
         mSky->setCamera(mViewer->getCamera());
 
         source->setStateSetModes(*mRootNode->getOrCreateStateSet(), osg::StateAttribute::ON);
@@ -1451,7 +1455,7 @@ namespace MWRender
             	mGroundcoverPaging->clearCache();
                 mGroundcoverWorld->rebuildViews();
             }
-            else if (it->first == "Terrain" && it->second == "overall terrain quality")
+            /*else if (it->first == "Terrain" && it->second == "overall terrain quality")
             {
                 int quality = Settings::Manager::getInt("overall terrain quality", "Terrain");
                 mTerrain->clearAssociatedCaches();
@@ -1464,7 +1468,7 @@ namespace MWRender
                     mTerrainQuadTreeWorld->setTerainQuality(128, -2, 4.0, -2, 2.0);
 
                 mTerrainQuadTreeWorld->rebuildViews();
-            }
+            }*/
             else if (it->first == "Shaders" && it->second == "radial fog")
             {
 		mRadialFogUniform->set(Settings::Manager::getBool("radial fog", "Shaders"));

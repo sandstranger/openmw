@@ -1,5 +1,7 @@
 #include "armor.hpp"
 
+#include <MyGUI_TextIterator.h>
+
 #include <components/esm3/loadarmo.hpp>
 #include <components/esm3/loadskil.hpp>
 #include <components/esm3/loadgmst.hpp>
@@ -336,7 +338,7 @@ namespace MWClass
 
     std::unique_ptr<MWWorld::Action> Armor::use (const MWWorld::Ptr& ptr, bool force) const
     {
-        std::unique_ptr<MWWorld::Action> action(new MWWorld::ActionEquip(ptr, force));
+        std::unique_ptr<MWWorld::Action> action = std::make_unique<MWWorld::ActionEquip>(ptr, force);
 
         action->setSound(getUpSoundId(ptr));
 

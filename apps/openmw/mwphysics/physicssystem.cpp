@@ -1,8 +1,5 @@
 #include "physicssystem.hpp"
 
-#include <LinearMath/btIDebugDraw.h>
-#include <LinearMath/btVector3.h>
-
 #include <memory>
 #include <algorithm>
 #include <vector>
@@ -14,12 +11,12 @@
 #include <BulletCollision/CollisionShapes/btConeShape.h>
 #include <BulletCollision/CollisionShapes/btSphereShape.h>
 #include <BulletCollision/CollisionShapes/btStaticPlaneShape.h>
-#include <BulletCollision/CollisionShapes/btCompoundShape.h>
 #include <BulletCollision/CollisionDispatch/btCollisionObject.h>
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 #include <BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.h>
 #include <BulletCollision/BroadphaseCollision/btDbvtBroadphase.h>
 
+#include <LinearMath/btVector3.h>
 #include <LinearMath/btQuickprof.h>
 
 #include <components/nifbullet/bulletnifloader.hpp>
@@ -98,7 +95,7 @@ namespace
 namespace MWPhysics
 {
     PhysicsSystem::PhysicsSystem(Resource::ResourceSystem* resourceSystem, osg::ref_ptr<osg::Group> parentNode)
-        : mShapeManager(new Resource::BulletShapeManager(resourceSystem->getVFS(), resourceSystem->getSceneManager(), resourceSystem->getNifFileManager()))
+        : mShapeManager(std::make_unique<Resource::BulletShapeManager>(resourceSystem->getVFS(), resourceSystem->getSceneManager(), resourceSystem->getNifFileManager()))
         , mResourceSystem(resourceSystem)
         , mDebugDrawEnabled(false)
         , mTimeAccum(0.0f)
@@ -712,6 +709,9 @@ namespace MWPhysics
         const MWBase::World *world = MWBase::Environment::get().getWorld();
         for (const auto& [ref, physicActor] : mActors)
         {
+            if (!physicActor->isActive())
+                continue;
+
             auto ptr = physicActor->getPtr();
             if (!ptr.getClass().isMobile(ptr))
                 continue;
@@ -891,8 +891,8 @@ namespace MWPhysics
             return;
         }
 
-        mWaterCollisionObject.reset(new btCollisionObject());
-        mWaterCollisionShape.reset(new btStaticPlaneShape(btVector3(0,0,1), mWaterHeight));
+        mWaterCollisionObject = std::make_unique<btCollisionObject>();
+        mWaterCollisionShape = std::make_unique<btStaticPlaneShape>(btVector3(0,0,1), mWaterHeight);
         mWaterCollisionObject->setCollisionShape(mWaterCollisionShape.get());
         mTaskScheduler->addCollisionObject(mWaterCollisionObject.get(), CollisionType_Water,
                                                     CollisionType_Actor|CollisionType_Projectile);

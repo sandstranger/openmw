@@ -163,14 +163,14 @@ namespace MWLua
         addType(ObjectTypeName::Clothing, {ESM::REC_CLOT}, ObjectTypeName::Item);
         addType(ObjectTypeName::Ingredient, {ESM::REC_INGR}, ObjectTypeName::Item);
         addType(ObjectTypeName::Light, {ESM::REC_LIGH}, ObjectTypeName::Item);
-        addType(ObjectTypeName::MiscItem, {ESM::REC_MISC}, ObjectTypeName::Item);
-        addType(ObjectTypeName::Potion, {ESM::REC_ALCH}, ObjectTypeName::Item);
+        addMiscellaneousBindings(addType(ObjectTypeName::MiscItem, {ESM::REC_MISC}, ObjectTypeName::Item), context);
+        addPotionBindings(addType(ObjectTypeName::Potion, {ESM::REC_ALCH}, ObjectTypeName::Item), context);
         addWeaponBindings(addType(ObjectTypeName::Weapon, {ESM::REC_WEAP}, ObjectTypeName::Item), context);
         addBookBindings(addType(ObjectTypeName::Book, {ESM::REC_BOOK}, ObjectTypeName::Item), context);
         addLockpickBindings(addType(ObjectTypeName::Lockpick, {ESM::REC_LOCK}, ObjectTypeName::Item), context);
         addProbeBindings(addType(ObjectTypeName::Probe, {ESM::REC_PROB}, ObjectTypeName::Item), context);
-        addType(ObjectTypeName::Apparatus, {ESM::REC_APPA}, ObjectTypeName::Item);
-        addType(ObjectTypeName::Repair, {ESM::REC_REPA}, ObjectTypeName::Item);
+        addApparatusBindings(addType(ObjectTypeName::Apparatus, {ESM::REC_APPA}, ObjectTypeName::Item), context);
+        addRepairBindings(addType(ObjectTypeName::Repair, {ESM::REC_REPA}, ObjectTypeName::Item), context);
 
         addActivatorBindings(addType(ObjectTypeName::Activator, {ESM::REC_ACTI}), context);
         addContainerBindings(addType(ObjectTypeName::Container, {ESM::REC_CONT}), context);

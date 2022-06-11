@@ -2,12 +2,9 @@
 
 #include "esmreader.hpp"
 #include "esmwriter.hpp"
-#include "components/esm/defs.hpp"
 
 namespace ESM
 {
-    unsigned int Spell::sRecordId = REC_SPEL;
-
     void Spell::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
@@ -71,6 +68,7 @@ namespace ESM
 
     void Spell::blank()
     {
+        mRecordFlags = 0;
         mData.mType = 0;
         mData.mCost = 0;
         mData.mFlags = 0;

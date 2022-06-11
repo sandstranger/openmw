@@ -158,10 +158,6 @@ namespace MWBase
 
             virtual const MWWorld::ESMStore& getStore() const = 0;
 
-            virtual const MWWorld::ESMStore& getGroundcoverStore() const = 0;
-
-            virtual std::vector<ESM::ESMReader>& getEsmReader() = 0;
-
             virtual MWWorld::LocalScripts& getLocalScripts() = 0;
 
             virtual bool hasCellChanged() const = 0;
@@ -674,6 +670,8 @@ namespace MWBase
             virtual MWRender::RenderingManager* getRenderingManager() = 0;
 
             virtual MWRender::PostProcessor* getPostProcessor() = 0;
+
+            virtual void setActorActive(const MWWorld::Ptr& ptr, bool value) = 0;
     };
 }
 

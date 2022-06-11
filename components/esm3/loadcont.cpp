@@ -27,8 +27,6 @@ namespace ESM
         }
     }
 
-    unsigned int Container::sRecordId = REC_CONT;
-
     void Container::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
@@ -112,6 +110,7 @@ namespace ESM
 
     void Container::blank()
     {
+        mRecordFlags = 0;
         mName.clear();
         mModel.clear();
         mScript.clear();

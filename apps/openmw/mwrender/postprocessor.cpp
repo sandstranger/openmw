@@ -148,7 +148,6 @@ namespace MWRender
             {
                 const auto [w, h] = rt.mSize.get(mWidth, mHeight);
                 rt.mTarget->setTextureSize(w, h);
-                rt.mTarget->dirtyTextureObject();
             }
         }
 
@@ -182,7 +181,6 @@ namespace MWRender
             if (!path.parent_path().has_parent_path() && fileExt == fx::Technique::sExt)
             {
                 auto absolutePath = std::filesystem::path(mVFS->getAbsoluteFileName(name));
-
                 mTechniqueFileMap[absolutePath.stem().string()] = absolutePath;
             }
         }
@@ -210,7 +208,6 @@ namespace MWRender
         if (mUsePostProcessing && mTechniqueFileMap.empty())
         {
             populateTechniqueFiles();
-
         }
 
         mMainTemplate->setFilter(osg::Texture::MIN_FILTER, osg::Texture::LINEAR);
@@ -422,6 +419,8 @@ namespace MWRender
             createTexturesAndCamera(frameId);
             createObjectsForFrame(frameId);
             mDirty = false;
+
+            mPingPongCanvas->setCurrentFrameData(frameId, fx::DispatchArray(mTemplateData));
         }
 
         if ((mNormalsSupported && mNormals != mPrevNormals) || (mPassLights != mPrevPassLights))
@@ -523,7 +522,12 @@ namespace MWRender
         if (!isEnabled())
             return;
 
-        fx::DispatchArray data;
+        size_t frameId = frame() % 2;
+
+        mDirty = true;
+        mDirtyFrameId = !frameId;
+
+        mTemplateData = {};
 
         bool sunglare = true;
         mHDR = false;
@@ -635,12 +639,12 @@ namespace MWRender
                 node.mPasses.emplace_back(std::move(subPass));
             }
 
-            data.emplace_back(std::move(node));
+            node.compile();
+
+            mTemplateData.emplace_back(std::move(node));
         }
 
-        size_t frameId = frame() % 2;
-
-        mPingPongCanvas->setCurrentFrameData(frameId, std::move(data));
+        mPingPongCanvas->setCurrentFrameData(frameId, fx::DispatchArray(mTemplateData));
 
         if (auto hud = MWBase::Environment::get().getWindowManager()->getPostProcessorHud())
             hud->updateTechniques();
@@ -648,16 +652,16 @@ namespace MWRender
         mRendering.getSkyManager()->setSunglare(sunglare);
     }
 
-    bool PostProcessor::enableTechnique(std::shared_ptr<fx::Technique> technique, std::optional<int> location)
+    PostProcessor::Status PostProcessor::enableTechnique(std::shared_ptr<fx::Technique> technique, std::optional<int> location)
     {
         if (!isEnabled())
         {
             Log(Debug::Warning) << "PostProcessing disabled, cannot load technique '" << technique->getName() << "'";
-            return false;
+            return Status_Error;
         }
 
         if (!technique || Misc::StringUtils::ciEqual(technique->getName(), "main") || (location.has_value() && location.value() <= 0))
-            return false;
+            return Status_Error;
 
         disableTechnique(technique, false);
 
@@ -666,23 +670,23 @@ namespace MWRender
         mTechniques.insert(mTechniques.begin() + pos, technique);
         dirtyTechniques();
 
-        return true;
+        return Status_Toggled;
     }
 
-    bool PostProcessor::disableTechnique(std::shared_ptr<fx::Technique> technique, bool dirty)
+    PostProcessor::Status PostProcessor::disableTechnique(std::shared_ptr<fx::Technique> technique, bool dirty)
     {
         if (Misc::StringUtils::ciEqual(technique->getName(), "main"))
-            return false;
+            return Status_Error;
 
         auto it = std::find(mTechniques.begin(), mTechniques.end(), technique);
         if (it == std::end(mTechniques))
-            return false;
+            return Status_Unchanged;
 
         mTechniques.erase(it);
         if (dirty)
             dirtyTechniques();
 
-        return true;
+        return Status_Toggled;
     }
 
     bool PostProcessor::isTechniqueEnabled(const std::shared_ptr<fx::Technique>& technique) const
@@ -792,7 +796,7 @@ namespace MWRender
         if (technique->getStatus() != fx::Technique::Status::File_Not_exists)
             technique->setLastModificationTime(std::filesystem::last_write_time(mTechniqueFileMap[technique->getName()]));
 
-        if (!loadNextFrame)
+        if (loadNextFrame)
         {
             mQueuedTemplates.push_back(technique);
             return technique;
@@ -852,6 +856,13 @@ namespace MWRender
             technique->compile();
 
         dirtyTechniques();
+    }
+
+    void PostProcessor::disableDynamicShaders()
+    {
+        for (auto& technique : mTechniques)
+            if (technique->getDynamic())
+                disableTechnique(technique);
     }
 }
 

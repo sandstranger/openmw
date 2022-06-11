@@ -2,12 +2,9 @@
 
 #include "esmreader.hpp"
 #include "esmwriter.hpp"
-#include "components/esm/defs.hpp"
 
 namespace ESM
 {
-    unsigned int GameSetting::sRecordId = REC_GMST;
-
     void GameSetting::load (ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false; // GameSetting record can't be deleted now (may be changed in the future)
@@ -25,6 +22,7 @@ namespace ESM
 
     void GameSetting::blank()
     {
+        mRecordFlags = 0;
         mValue.setType (VT_None);
     }
 

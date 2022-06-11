@@ -6,6 +6,8 @@ if (GTEST_FOUND AND GMOCK_FOUND)
     include_directories(SYSTEM ${GMOCK_INCLUDE_DIRS})
 
     file(GLOB UNITTEST_SRC_FILES
+        testing_util.hpp
+
         ../openmw/mwworld/store.cpp
         ../openmw/mwworld/esmstore.cpp
         mwworld/test_store.cpp
@@ -79,6 +81,8 @@ if (GTEST_FOUND AND GMOCK_FOUND)
 
         fx/lexer.cpp
         fx/technique.cpp
+
+        esm3/readerscache.cpp
     )
 
     source_group(apps\\openmw_test_suite FILES openmw_test_suite.cpp ${UNITTEST_SRC_FILES})

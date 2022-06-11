@@ -2,12 +2,9 @@
 
 #include "esmreader.hpp"
 #include "esmwriter.hpp"
-#include "components/esm/defs.hpp"
 
 namespace ESM
 {
-    unsigned int Global::sRecordId = REC_GLOB;
-
     void Global::load (ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
@@ -42,6 +39,7 @@ namespace ESM
 
     void Global::blank()
     {
+        mRecordFlags = 0;
         mValue.setType (VT_None);
     }
 

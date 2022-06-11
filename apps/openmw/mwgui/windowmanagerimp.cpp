@@ -9,14 +9,12 @@
 #include <osgViewer/Viewer>
 
 #include <MyGUI_UString.h>
-#include <MyGUI_IPointer.h>
 #include <MyGUI_FactoryManager.h>
 #include <MyGUI_LanguageManager.h>
 #include <MyGUI_PointerManager.h>
 #include <MyGUI_InputManager.h>
 #include <MyGUI_Gui.h>
 #include <MyGUI_ClipboardManager.h>
-#include <MyGUI_WidgetManager.h>
 
 // For BT_NO_PROFILE
 #include <LinearMath/btQuickprof.h>
@@ -206,7 +204,7 @@ namespace MWGui
         MyGUI::LanguageManager::getInstance().eventRequestTag = MyGUI::newDelegate(this, &WindowManager::onRetrieveTag);
 
         // Load fonts
-        mFontLoader.reset(new Gui::FontLoader(encoding, resourceSystem->getVFS(), userDataPath, mScalingFactor));
+        mFontLoader = std::make_unique<Gui::FontLoader>(encoding, resourceSystem->getVFS(), userDataPath, mScalingFactor);
         mFontLoader->loadBitmapFonts(exportFonts);
 
         //Register own widgets with MyGUI
@@ -238,7 +236,7 @@ namespace MWGui
         WindowManager::loadUserFonts();
 
         bool keyboardNav = Settings::Manager::getBool("keyboard navigation", "GUI");
-        mKeyboardNavigation.reset(new KeyboardNavigation());
+        mKeyboardNavigation = std::make_unique<KeyboardNavigation>();
         mKeyboardNavigation->setEnabled(keyboardNav);
         Gui::ImageButton::setDefaultNeedKeyFocus(keyboardNav);
 
@@ -288,7 +286,7 @@ namespace MWGui
         if (useShaders)
             mGuiPlatform->getRenderManagerPtr()->enableShaders(mResourceSystem->getSceneManager()->getShaderManager());
 
-        mStatsWatcher.reset(new StatsWatcher());
+        mStatsWatcher = std::make_unique<StatsWatcher>();
     }
 
     void WindowManager::loadUserFonts()

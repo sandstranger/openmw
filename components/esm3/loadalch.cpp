@@ -2,12 +2,9 @@
 
 #include "esmreader.hpp"
 #include "esmwriter.hpp"
-#include "components/esm/defs.hpp"
 
 namespace ESM
 {
-    unsigned int Potion::sRecordId = REC_ALCH;
-
     void Potion::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
@@ -80,6 +77,7 @@ namespace ESM
 
     void Potion::blank()
     {
+        mRecordFlags = 0;
         mData.mWeight = 0;
         mData.mValue = 0;
         mData.mAutoCalc = 0;

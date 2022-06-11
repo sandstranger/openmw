@@ -1,5 +1,7 @@
 #include "clothing.hpp"
 
+#include <MyGUI_TextIterator.h>
+
 #include <components/esm3/loadclot.hpp>
 
 #include "../mwbase/environment.hpp"
@@ -230,7 +232,7 @@ namespace MWClass
 
     std::unique_ptr<MWWorld::Action> Clothing::use (const MWWorld::Ptr& ptr, bool force) const
     {
-        std::unique_ptr<MWWorld::Action> action(new MWWorld::ActionEquip(ptr, force));
+        std::unique_ptr<MWWorld::Action> action = std::make_unique<MWWorld::ActionEquip>(ptr, force);
 
         action->setSound(getUpSoundId(ptr));
 

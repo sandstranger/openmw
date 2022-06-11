@@ -2,12 +2,9 @@
 
 #include "esmreader.hpp"
 #include "esmwriter.hpp"
-#include "components/esm/defs.hpp"
 
 namespace ESM
 {
-    unsigned int StartScript::sRecordId = REC_SSCR;
-
     void StartScript::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
@@ -58,6 +55,7 @@ namespace ESM
 
     void StartScript::blank()
     {
+        mRecordFlags = 0;
         mData.clear();
     }
 }

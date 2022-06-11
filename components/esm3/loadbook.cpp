@@ -2,12 +2,9 @@
 
 #include "esmreader.hpp"
 #include "esmwriter.hpp"
-#include "components/esm/defs.hpp"
 
 namespace ESM
 {
-    unsigned int Book::sRecordId = REC_BOOK;
-
     void Book::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
@@ -82,6 +79,7 @@ namespace ESM
 
     void Book::blank()
     {
+        mRecordFlags = 0;
         mData.mWeight = 0;
         mData.mValue = 0;
         mData.mIsScroll = 0;

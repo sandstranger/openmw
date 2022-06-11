@@ -1,5 +1,7 @@
 #include "weapon.hpp"
 
+#include <MyGUI_TextIterator.h>
+
 #include <components/esm3/loadweap.hpp>
 #include <components/misc/constants.hpp>
 #include <components/settings/settings.hpp>
@@ -301,7 +303,7 @@ namespace MWClass
 
     std::unique_ptr<MWWorld::Action> Weapon::use (const MWWorld::Ptr& ptr, bool force) const
     {
-        std::unique_ptr<MWWorld::Action> action(new MWWorld::ActionEquip(ptr, force));
+        std::unique_ptr<MWWorld::Action> action = std::make_unique<MWWorld::ActionEquip>(ptr, force);
 
         action->setSound(getUpSoundId(ptr));
 
