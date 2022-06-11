@@ -306,7 +306,7 @@
                         </Widget>
 
                         <Widget type="HBox" skin="" position="182 160 300 24">
-                            <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="WindowBorderButton">
+                            <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="PostProcessButton">
                                 <UserString key="SettingCategory" value="Post Processing"/>
                                 <UserString key="SettingName" value="enabled"/>
                                 <UserString key="SettingType" value="CheckButton"/>
@@ -372,14 +372,6 @@
                         <Widget type="ComboBox" skin="MW_ComboBox" position="14 28 110 24" align="Left Top" name="TextureFilteringButton">
                             <Property key="AddItem" value="Bilinear"/>
                             <Property key="AddItem" value="Trilinear"/>
-                        </Widget>
-                       <Widget type="TextBox" skin="NormalText" position="8 54 300 24" align="Left Top" name="TerrainQualityLabel">
-                            <Property key="Caption" value="Terrain Quality"/>
-                        </Widget>
-                        <Widget type="ComboBox" skin="MW_ComboBox" position="14 78 110 24" align="Left Top" name="TerrainQualityButton">
-                            <Property key="AddItem" value="Low"/>
-                            <Property key="AddItem" value="Medium"/>
-                            <Property key="AddItem" value="High"/>
                         </Widget>
                         <Widget type="Widget" skin="" position="184 4 300 50" align="Left Top" name="AnisotropyBox">
                             <Widget type="TextBox" skin="NormalText" position="0 0 300 24" align="Left Top" name="AnisotropyLabel">

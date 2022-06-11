@@ -267,12 +267,6 @@ namespace MWGui
         terrainQualitySwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onTerrainQualitySwitchChanged);
         terrainQualitySwitch->setIndexSelected(std::min(2, std::max(0, Settings::Manager::getInt("overall terrain quality", "Terrain"))));
 
-        //doesnt work properly hide it for now
-        MyGUI::TextBox *terrainQualityLabel;
-        getWidget(terrainQualityLabel, "TerrainQualityLabel");
-        terrainQualityLabel->setVisible(false);
-        terrainQualitySwitch->setVisible(false);
-
         if (!Settings::Manager::getBool("enabled", "Groundcover"))
         {
             MyGUI::TextBox *grassDistanceLabel;
@@ -289,6 +283,10 @@ namespace MWGui
             getWidget(grassDensitySlider, "GrassDensitySlider");
             grassDensitySlider->setVisible(false);
         }
+
+        MyGUI::Button *PostProcessButton;
+        getWidget(PostProcessButton, "PostProcessButton");
+        PostProcessButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onButtonRequiringestartClicked);
 
         const char *shaderDir = getenv("OPENMW_SHADERS");
         if(shaderDir && std::string(shaderDir) == "modified")

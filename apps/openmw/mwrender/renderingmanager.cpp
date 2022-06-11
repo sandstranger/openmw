@@ -549,18 +549,12 @@ namespace MWRender
             else if (chunkSize != 0.125f)
                 chunkSize = 0.125f;
 
-            mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(groundcoverRoot, mTerrainStorage.get(), Mask_Groundcover, lodFactor, chunkSize));
-            mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
+            mGroundcoverWorld = std::make_unique<Terrain::QuadTreeWorld>(groundcoverRoot, mTerrainStorage.get(), Mask_Groundcover, lodFactor, chunkSize);
+            mGroundcoverPaging = std::make_unique<ObjectPaging>(mResourceSystem->getSceneManager(), true);
             static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
             mResourceSystem->addResourceManager(mGroundcoverPaging.get());
 
-<<<<<<< HEAD
             mGroundcoverWorld->setActiveGrid(osg::Vec4i(0, 0, 0, 0));
-=======
-            mGroundcover = std::make_unique<Groundcover>(mResourceSystem->getSceneManager(), density, groundcoverDistance, groundcoverStore);
-            static_cast<Terrain::QuadTreeWorld*>(mTerrain.get())->addChunkManager(mGroundcover.get());
-            mResourceSystem->addResourceManager(mGroundcover.get());
->>>>>>> openmw/master
         }
 
         mStateUpdater = new StateUpdater;
@@ -1455,20 +1449,6 @@ namespace MWRender
             	mGroundcoverPaging->clearCache();
                 mGroundcoverWorld->rebuildViews();
             }
-            /*else if (it->first == "Terrain" && it->second == "overall terrain quality")
-            {
-                int quality = Settings::Manager::getInt("overall terrain quality", "Terrain");
-                mTerrain->clearAssociatedCaches();
-
-                if (quality == 2)
-                    mTerrainQuadTreeWorld->setTerainQuality(512, 0, 4.0, 0, 1.0); //comp res, comp level, com max size, lod mod, lod factor
-                else if (quality == 1)
-                    mTerrainQuadTreeWorld->setTerainQuality(256, -1, 4.0, -1, 1.5);
-                else if (quality == 0)
-                    mTerrainQuadTreeWorld->setTerainQuality(128, -2, 4.0, -2, 2.0);
-
-                mTerrainQuadTreeWorld->rebuildViews();
-            }*/
             else if (it->first == "Shaders" && it->second == "radial fog")
             {
 		mRadialFogUniform->set(Settings::Manager::getBool("radial fog", "Shaders"));
@@ -1533,6 +1513,7 @@ namespace MWRender
             }
             else if (it->first == "Post Processing" && it->second == "enabled")
             {
+/*
                 if (Settings::Manager::getBool("enabled", "Post Processing"))
                     mPostProcessor->enable();
                 else
@@ -1541,6 +1522,7 @@ namespace MWRender
                     if (auto* hud = MWBase::Environment::get().getWindowManager()->getPostProcessorHud())
                         hud->setVisible(false);
                 }
+*/
             }
         }
 

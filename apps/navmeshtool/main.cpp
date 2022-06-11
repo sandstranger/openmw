@@ -40,8 +40,8 @@
 
 namespace NavMeshTool
 {
-    namespace
-    {
+//    namespace
+//    {
         namespace bpo = boost::program_options;
 
         using StringsVector = std::vector<std::string>;
@@ -125,6 +125,7 @@ namespace NavMeshTool
 
             bpo::variables_map composingVariables = Files::separateComposingVariables(variables, desc);
             config.readConfiguration(variables, desc);
+            setupLogging(config.getLogPath().string(), "NavMeshTool");
             Files::mergeComposingVariables(variables, composingVariables, desc);
 
             const std::string encoding(variables["encoding"].as<std::string>());
@@ -222,10 +223,6 @@ namespace NavMeshTool
 
             return 0;
         }
-    }
+//    }
 }
 
-int main(int argc, char *argv[])
-{
-    return wrapApplication(NavMeshTool::runNavMeshTool, argc, argv, "NavMeshTool");
-}

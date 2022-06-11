@@ -6,7 +6,7 @@
 #include <components/misc/rng.hpp>
 #include <components/platform/platform.hpp>
 
-#include "mwnavmeshtool/navmeshtool.hpp"
+#include "../navmeshtool/navmeshtool.hpp"
 #include "mwgui/debugwindow.hpp"
 
 #include "engine.hpp"
@@ -223,7 +223,7 @@ int runApplication(int argc, char *argv[])
     Files::ConfigurationManager cfgMgr;
     std::unique_ptr<OMW::Engine> engine = std::make_unique<OMW::Engine>(cfgMgr);
 
-    if (getenv("OPENMW_GENERATE_NAVMESH_CACHE"))
+    if ( getenv("OPENMW_GENERATE_NAVMESH_CACHE") )
     {
         if(NavMeshTool::runNavMeshTool(argc, argv))
            Log(Debug::Error) << "runNavMeshTool failed";
