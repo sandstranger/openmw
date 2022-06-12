@@ -221,6 +221,7 @@ int runApplication(int argc, char *argv[])
 
     osg::setNotifyHandler(new OSGLogHandler());
     Files::ConfigurationManager cfgMgr;
+    g_cfgMgr = &cfgMgr;
     std::unique_ptr<OMW::Engine> engine = std::make_unique<OMW::Engine>(cfgMgr);
 
     if ( getenv("OPENMW_GENERATE_NAVMESH_CACHE") )
