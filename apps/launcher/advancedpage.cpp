@@ -2,15 +2,15 @@
 
 #include <array>
 #include <string>
+#include <cmath>
 
-#include <components/config/gamesettings.hpp>
 #include <QFileDialog>
 #include <QCompleter>
 #include <QString>
+
+#include <components/config/gamesettings.hpp>
 #include <components/contentselector/view/contentselector.hpp>
 #include <components/contentselector/model/esmfile.hpp>
-
-#include <cmath>
 
 #include "utils/openalutil.hpp"
 
@@ -74,12 +74,12 @@ namespace
 
     double convertToCells(double unitRadius)
     {
-        return std::round((unitRadius + 1024) / CellSizeInUnits);
+        return unitRadius / CellSizeInUnits;
     }
 
-    double convertToUnits(double CellGridRadius)
+    int convertToUnits(double CellGridRadius)
     {
-        return CellSizeInUnits * CellGridRadius - 1024;
+        return static_cast<int>(CellSizeInUnits * CellGridRadius);
     }
 }
 
@@ -117,7 +117,7 @@ bool Launcher::AdvancedPage::loadSettings()
         loadSettingBool(autoUseTerrainNormalMapsCheckBox, "auto use terrain normal maps", "Shaders");
         loadSettingBool(autoUseTerrainSpecularMapsCheckBox, "auto use terrain specular maps", "Shaders");
         loadSettingBool(bumpMapLocalLightingCheckBox, "apply lighting to environment maps", "Shaders");
-        loadSettingBool(radialFogCheckBox, "radial fog", "Shaders");
+        loadSettingBool(radialFogCheckBox, "radial fog", "Fog");
         loadSettingBool(softParticlesCheckBox, "soft particles", "Shaders");
         loadSettingBool(antialiasAlphaTestCheckBox, "antialias alpha test", "Shaders");
         if (Settings::Manager::getInt("antialiasing", "Video") == 0) {
@@ -178,20 +178,6 @@ bool Launcher::AdvancedPage::loadSettings()
                 hrtfProfileSelectorComboBox->setCurrentIndex(hrtfProfileIndex);
             }
         }
-    }
-
-
-    // Camera
-    {
-        loadSettingBool(viewOverShoulderCheckBox, "view over shoulder", "Camera");
-        connect(viewOverShoulderCheckBox, SIGNAL(toggled(bool)), this, SLOT(slotViewOverShoulderToggled(bool)));
-        viewOverShoulderVerticalLayout->setEnabled(viewOverShoulderCheckBox->checkState());
-        loadSettingBool(autoSwitchShoulderCheckBox, "auto switch shoulder", "Camera");
-        loadSettingBool(previewIfStandStillCheckBox, "preview if stand still", "Camera");
-        loadSettingBool(deferredPreviewRotationCheckBox, "deferred preview rotation", "Camera");
-        loadSettingBool(headBobbingCheckBox, "head bobbing", "Camera");
-        defaultShoulderComboBox->setCurrentIndex(
-            Settings::Manager::getVector2("view over shoulder offset", "Camera").x() >= 0 ? 0 : 1);
     }
 
     // Interface Changes
@@ -279,7 +265,7 @@ void Launcher::AdvancedPage::saveSettings()
         saveSettingBool(autoUseTerrainNormalMapsCheckBox, "auto use terrain normal maps", "Shaders");
         saveSettingBool(autoUseTerrainSpecularMapsCheckBox, "auto use terrain specular maps", "Shaders");
         saveSettingBool(bumpMapLocalLightingCheckBox, "apply lighting to environment maps", "Shaders");
-        saveSettingBool(radialFogCheckBox, "radial fog", "Shaders");
+        saveSettingBool(radialFogCheckBox, "radial fog", "Fog");
         saveSettingBool(softParticlesCheckBox, "soft particles", "Shaders");
         saveSettingBool(antialiasAlphaTestCheckBox, "antialias alpha test", "Shaders");
         saveSettingBool(magicItemAnimationsCheckBox, "use magic item animations", "Game");
@@ -298,10 +284,10 @@ void Launcher::AdvancedPage::saveSettings()
         }
 
         saveSettingBool(activeGridObjectPagingCheckBox, "object paging active grid", "Terrain");
-        double viewingDistance = viewingDistanceComboBox->value();
-        if (viewingDistance != convertToCells(Settings::Manager::getInt("viewing distance", "Camera")))
+        int viewingDistance = convertToUnits(viewingDistanceComboBox->value());
+        if (viewingDistance != Settings::Manager::getInt("viewing distance", "Camera"))
         {
-            Settings::Manager::setInt("viewing distance", "Camera", convertToUnits(viewingDistance));
+            Settings::Manager::setInt("viewing distance", "Camera", viewingDistance);
         }
         double objectPagingMinSize = objectPagingMinSizeComboBox->value();
         if (objectPagingMinSize != Settings::Manager::getDouble("object paging min size", "Terrain"))
@@ -347,25 +333,6 @@ void Launcher::AdvancedPage::saveSettings()
         else if (!prevHRTFProfile.empty())
         {
             Settings::Manager::setString("hrtf", "Sound", {});
-        }
-    }
-
-    // Camera
-    {
-        saveSettingBool(viewOverShoulderCheckBox, "view over shoulder", "Camera");
-        saveSettingBool(autoSwitchShoulderCheckBox, "auto switch shoulder", "Camera");
-        saveSettingBool(previewIfStandStillCheckBox, "preview if stand still", "Camera");
-        saveSettingBool(deferredPreviewRotationCheckBox, "deferred preview rotation", "Camera");
-        saveSettingBool(headBobbingCheckBox, "head bobbing", "Camera");
-
-        osg::Vec2f shoulderOffset = Settings::Manager::getVector2("view over shoulder offset", "Camera");
-        if (defaultShoulderComboBox->currentIndex() != (shoulderOffset.x() >= 0 ? 0 : 1))
-        {
-            if (defaultShoulderComboBox->currentIndex() == 0)
-                shoulderOffset.x() = std::abs(shoulderOffset.x());
-            else
-                shoulderOffset.x() = -std::abs(shoulderOffset.x());
-            Settings::Manager::setVector2("view over shoulder offset", "Camera", shoulderOffset);
         }
     }
 
@@ -477,11 +444,6 @@ void Launcher::AdvancedPage::slotAnimSourcesToggled(bool checked)
         weaponSheathingCheckBox->setCheckState(Qt::Unchecked);
         shieldSheathingCheckBox->setCheckState(Qt::Unchecked);
     }
-}
-
-void Launcher::AdvancedPage::slotViewOverShoulderToggled(bool checked)
-{
-    viewOverShoulderVerticalLayout->setEnabled(viewOverShoulderCheckBox->checkState());
 }
 
 void Launcher::AdvancedPage::slotPostProcessToggled(bool checked)

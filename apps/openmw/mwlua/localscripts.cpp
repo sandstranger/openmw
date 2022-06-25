@@ -79,7 +79,7 @@ namespace MWLua
                 return LObject(getId(target), worldView->getObjectRegistry());
         });
         aiPackage["sideWithTarget"] = sol::readonly_property([](const AiPackage& p) { return p.sideWithTarget(); });
-        aiPackage["destination"] = sol::readonly_property([](const AiPackage& p) { return p.getDestination(); });
+        aiPackage["destPosition"] = sol::readonly_property([](const AiPackage& p) { return p.getDestination(); });
 
         selfAPI["_getActiveAiPackage"] = [](SelfObject& self) -> sol::optional<std::shared_ptr<AiPackage>>
         {
@@ -148,8 +148,8 @@ namespace MWLua
         };
     }
 
-    LocalScripts::LocalScripts(LuaUtil::LuaState* lua, const LObject& obj, ESM::LuaScriptCfg::Flags autoStartMode)
-        : LuaUtil::ScriptsContainer(lua, "L" + idToString(obj.id()), autoStartMode), mData(obj)
+    LocalScripts::LocalScripts(LuaUtil::LuaState* lua, const LObject& obj)
+        : LuaUtil::ScriptsContainer(lua, "L" + idToString(obj.id())), mData(obj)
     {
         this->addPackage("openmw.self", sol::make_object(lua->sol(), &mData));
         registerEngineHandlers({&mOnActiveHandlers, &mOnInactiveHandlers, &mOnConsumeHandlers, &mOnActivatedHandlers});
@@ -177,7 +177,7 @@ namespace MWLua
             else
             {
                 static_assert(std::is_same_v<EventT, OnConsume>);
-                callEngineHandlers(mOnConsumeHandlers, arg.mRecordId);
+                callEngineHandlers(mOnConsumeHandlers, arg.mConsumable);
             }
         }, event);
     }

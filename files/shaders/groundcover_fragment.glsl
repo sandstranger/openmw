@@ -16,7 +16,13 @@ varying vec4 passTangent;
 
 #include "vertexcolors.glsl"
 
+<<<<<<< HEAD
 varying float depth;
+=======
+varying float euclideanDepth;
+varying float linearDepth;
+uniform vec2 screenRes;
+>>>>>>> openmw/master
 
 #if PER_PIXEL_LIGHTING
 varying vec3 passNormal;
@@ -37,6 +43,7 @@ uniform mat3 grassData;
 #endif
 
 #include "alpha.glsl"
+#include "fog.glsl"
 
 void main()
 {
@@ -80,10 +87,14 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
 
     clampLightingResult(lighting);
     gl_FragData[0].xyz *= lighting;
+<<<<<<< HEAD
 
     highp float fogValue = clamp((depth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
 
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
+=======
+    gl_FragData[0] = applyFogAtDist(gl_FragData[0], euclideanDepth, linearDepth);
+>>>>>>> openmw/master
 
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
 

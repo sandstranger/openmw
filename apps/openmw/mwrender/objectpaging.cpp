@@ -25,6 +25,7 @@
 
 #include <components/sceneutil/lightmanager.hpp>
 #include <components/sceneutil/morphgeometry.hpp>
+#include <components/sceneutil/riggeometryosgaextension.hpp>
 #include <components/sceneutil/riggeometry.hpp>
 #include <components/settings/settings.hpp>
 #include <components/misc/rng.hpp>
@@ -32,6 +33,7 @@
 #include "apps/openmw/mwworld/esmstore.hpp"
 #include "apps/openmw/mwbase/environment.hpp"
 #include "apps/openmw/mwbase/world.hpp"
+#include "apps/openmw/mwbase/windowmanager.hpp"
 
 #include "vismask.hpp"
 
@@ -288,6 +290,8 @@ namespace MWRender
             if (dynamic_cast<const osgParticle::ParticleSystem*>(drawable))
                 return nullptr;
 
+            if (dynamic_cast<const SceneUtil::OsgaRigGeometry*>(drawable))
+                return nullptr;
             if (const SceneUtil::RigGeometry* rig = dynamic_cast<const SceneUtil::RigGeometry*>(drawable))
                 return operator()(rig->getSourceGeometry());
             if (const SceneUtil::MorphGeometry* morph = dynamic_cast<const SceneUtil::MorphGeometry*>(drawable))
@@ -601,8 +605,7 @@ namespace MWRender
             std::string model = getModel(type, ref.mRefID, store, isGroundCover);
             if (model.empty()) continue;
             if (mGroundcover != isGroundCover) continue;
-
-            model = "meshes/" + model;
+            model = MWBase::Environment::get().getWindowManager()->correctMeshPath(model);
 
             if (activeGrid && type != ESM::REC_STAT)
             {

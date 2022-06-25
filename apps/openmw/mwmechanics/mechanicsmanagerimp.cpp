@@ -1464,7 +1464,14 @@ namespace MWMechanics
                 }
 
                 if (!peaceful)
+                {
                     startCombat(target, attacker);
+                    // Force friendly actors into combat to prevent infighting between followers
+                    std::set<MWWorld::Ptr> followersTarget;
+                    getActorsSidingWith(target, followersTarget);
+                    for(const auto& follower : followersTarget)
+                        startCombat(follower, attacker);
+                }
             }
         }
 

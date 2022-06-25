@@ -51,7 +51,7 @@ namespace MWLua
         void registerObject(const MWWorld::Ptr& ptr) override;
         void deregisterObject(const MWWorld::Ptr& ptr) override;
         void inputEvent(const InputEvent& event) override { mInputEvents.push_back(event); }
-        void appliedToObject(const MWWorld::Ptr& toPtr, std::string_view recordId, const MWWorld::Ptr& fromPtr) override;
+        void itemConsumed(const MWWorld::Ptr& consumable, const MWWorld::Ptr& actor) override;
         void objectActivated(const MWWorld::Ptr& object, const MWWorld::Ptr& actor) override;
 
         MWBase::LuaManager::ActorControls* getActorControls(const MWWorld::Ptr&) const override;
@@ -123,7 +123,8 @@ namespace MWLua
 
     private:
         void initConfiguration();
-        LocalScripts* createLocalScripts(const MWWorld::Ptr& ptr, ESM::LuaScriptCfg::Flags);
+        LocalScripts* createLocalScripts(const MWWorld::Ptr& ptr,
+                                         std::optional<LuaUtil::ScriptIdsWithInitializationData> autoStartConf = std::nullopt);
 
         bool mInitialized = false;
         bool mGlobalScriptsStarted = false;
@@ -136,8 +137,6 @@ namespace MWLua
         sol::table mUserInterfacePackage;
         sol::table mCameraPackage;
         sol::table mInputPackage;
-        sol::table mLocalSettingsPackage;
-        sol::table mPlayerSettingsPackage;
         sol::table mLocalStoragePackage;
         sol::table mPlayerStoragePackage;
         sol::table mPostprocessingPackage;

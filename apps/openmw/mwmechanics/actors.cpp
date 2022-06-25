@@ -204,7 +204,9 @@ void soulTrap(const MWWorld::Ptr& creature)
             const ESM::Static* fx = world->getStore().get<ESM::Static>()
                     .search("VFX_Soul_Trap");
             if (fx)
-                world->spawnEffect("meshes\\" + fx->mModel, "", creature.getRefData().getPosition().asVec3());
+                world->spawnEffect(
+                    MWBase::Environment::get().getWindowManager()->correctMeshPath(fx->mModel),
+                    "", creature.getRefData().getPosition().asVec3());
 
             MWBase::Environment::get().getSoundManager()->playSound3D(creature.getRefData().getPosition().asVec3(), "conjuration hit", 1.f, 1.f);
             return; //remove to get vanilla behaviour
@@ -1759,7 +1761,8 @@ namespace MWMechanics
             const ESM::Static* fx = MWBase::Environment::get().getWorld()->getStore().get<ESM::Static>()
                     .search("VFX_Summon_End");
             if (fx)
-                MWBase::Environment::get().getWorld()->spawnEffect("meshes\\" + fx->mModel,
+                MWBase::Environment::get().getWorld()->spawnEffect(
+                    MWBase::Environment::get().getWindowManager()->correctMeshPath(fx->mModel),
                     "", ptr.getRefData().getPosition().asVec3());
 
             // Remove the summoned creature's summoned creatures as well
@@ -1991,7 +1994,7 @@ namespace MWMechanics
         return false;
     }
 
-    std::vector<MWWorld::Ptr> Actors::getActorsSidingWith(const MWWorld::Ptr& actorPtr)
+    std::vector<MWWorld::Ptr> Actors::getActorsSidingWith(const MWWorld::Ptr& actorPtr, bool excludeInfighting)
     {
         std::vector<MWWorld::Ptr> list;
         for (const Actor& actor : mActors)
@@ -2010,10 +2013,20 @@ namespace MWMechanics
             // Actors that are targeted by this actor's Follow or Escort packages also side with them
             for (const auto& package : stats.getAiSequence())
             {
+                if (excludeInfighting && !sameActor && package->getTypeId() == AiPackageTypeId::Combat && package->getTarget() == actorPtr)
+                    break;
                 if (package->sideWithTarget() && !package->getTarget().isEmpty())
                 {
                     if (sameActor)
                     {
+                        if(excludeInfighting)
+                        {
+                            MWWorld::Ptr ally = package->getTarget();
+                            std::vector<MWWorld::Ptr> enemies;
+                            if(ally.getClass().getCreatureStats(ally).getAiSequence().getCombatTargets(enemies)
+                                && std::find(enemies.begin(), enemies.end(), actorPtr) != enemies.end())
+                                break;
+                        }
                         list.push_back(package->getTarget());
                     }
                     else if (package->getTarget() == actorPtr)
@@ -2050,11 +2063,11 @@ namespace MWMechanics
                 getActorsFollowing(follower, out);
     }
 
-    void Actors::getActorsSidingWith(const MWWorld::Ptr &actor, std::set<MWWorld::Ptr>& out) {
-        auto followers = getActorsSidingWith(actor);
+    void Actors::getActorsSidingWith(const MWWorld::Ptr &actor, std::set<MWWorld::Ptr>& out, bool excludeInfighting) {
+        auto followers = getActorsSidingWith(actor, excludeInfighting);
         for(const MWWorld::Ptr &follower : followers)
             if (out.insert(follower).second)
-                getActorsSidingWith(follower, out);
+                getActorsSidingWith(follower, out, excludeInfighting);
     }
 
     void Actors::getActorsSidingWith(const MWWorld::Ptr &actor, std::set<MWWorld::Ptr>& out, std::map<const MWWorld::Ptr, const std::set<MWWorld::Ptr> >& cachedAllies) {
@@ -2064,7 +2077,7 @@ namespace MWMechanics
             out.insert(search->second.begin(), search->second.end());
         else
         {
-            auto followers = getActorsSidingWith(actor);
+            auto followers = getActorsSidingWith(actor, true);
             for (const MWWorld::Ptr &follower : followers)
                 if (out.insert(follower).second)
                     getActorsSidingWith(follower, out, cachedAllies);

@@ -20,7 +20,7 @@ ControllerFunction::ControllerFunction(const Nif::Controller *ctrl)
     , mPhase(ctrl->phase)
     , mStartTime(ctrl->timeStart)
     , mStopTime(ctrl->timeStop)
-    , mExtrapolationMode(static_cast<ExtrapolationMode>((ctrl->flags&0x6) >> 1))
+    , mExtrapolationMode(ctrl->extrapolationMode())
 {
 }
 
@@ -31,7 +31,7 @@ float ControllerFunction::calculate(float value) const
         return time;
     switch (mExtrapolationMode)
     {
-    case Cycle:
+    case Nif::Controller::ExtrapolationMode::Cycle:
     {
         float delta = mStopTime - mStartTime;
         if ( delta <= 0 )
@@ -40,7 +40,7 @@ float ControllerFunction::calculate(float value) const
         float remainder = ( cycles - std::floor( cycles ) ) * delta;
         return mStartTime + remainder;
     }
-    case Reverse:
+    case Nif::Controller::ExtrapolationMode::Reverse:
     {
         float delta = mStopTime - mStartTime;
         if ( delta <= 0 )
@@ -55,7 +55,7 @@ float ControllerFunction::calculate(float value) const
 
         return mStopTime - remainder;
     }
-    case Constant:
+    case Nif::Controller::ExtrapolationMode::Constant:
     default:
         return std::clamp(time, mStartTime, mStopTime);
     }
@@ -171,9 +171,12 @@ void KeyframeController::operator() (NifOsg::MatrixTransform* node, osg::NodeVis
             node->setRotation(mRotations.interpKey(time));
         else if (!mXRotations.empty() || !mYRotations.empty() || !mZRotations.empty())
             node->setRotation(getXYZRotation(time));
+        else
+            node->setRotation(node->mRotationScale);
 
         if (!mScales.empty())
             node->setScale(mScales.interpKey(time));
+
         if (!mTranslations.empty())
             node->setTranslation(mTranslations.interpKey(time));
     }

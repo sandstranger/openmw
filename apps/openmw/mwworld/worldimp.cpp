@@ -157,7 +157,7 @@ namespace MWWorld
         listener->loadingOn();
 
         loadContentFiles(fileCollections, contentFiles, encoder, listener);
-        loadGroundcoverFiles(fileCollections, groundcoverFiles, encoder);
+        loadGroundcoverFiles(fileCollections, groundcoverFiles, encoder, listener);
 
         listener->loadingOff();
 
@@ -881,7 +881,10 @@ namespace MWWorld
         }
 
         if(mWorldScene->getActiveCells().find (reference.getCell())!=mWorldScene->getActiveCells().end() && reference.getRefData().getCount())
+        {
             mWorldScene->removeObjectFromScene (reference);
+            mWorldScene->addPostponedPhysicsObjects();
+        }
     }
 
     void World::advanceTime (double hours, bool incremental)
@@ -1272,7 +1275,7 @@ namespace MWWorld
         if (!force && scale == ptr.getCellRef().getScale())
             return;
         if (mPhysics->getActor(ptr))
-            mNavigator->removeAgent(getPathfindingHalfExtents(ptr));
+            mNavigator->removeAgent(getPathfindingAgentBounds(ptr));
 
         ptr.getCellRef().setScale(scale);
         mRendering->pagingBlacklistObject(mStore.find(ptr.getCellRef().getRefId()), ptr);
@@ -1282,7 +1285,7 @@ namespace MWWorld
             mWorldScene->updateObjectScale(ptr);
 
         if (mPhysics->getActor(ptr))
-            mNavigator->addAgent(getPathfindingHalfExtents(ptr));
+            mNavigator->addAgent(getPathfindingAgentBounds(ptr));
         else if (const auto object = mPhysics->getObject(ptr))
             updateNavigatorObject(*object);
     }
@@ -2413,7 +2416,7 @@ namespace MWWorld
         {
             // Remove the old CharacterController
             MWBase::Environment::get().getMechanicsManager()->remove(getPlayerPtr(), true);
-            mNavigator->removeAgent(getPathfindingHalfExtents(getPlayerConstPtr()));
+            mNavigator->removeAgent(getPathfindingAgentBounds(getPlayerConstPtr()));
             mPhysics->remove(getPlayerPtr());
             mRendering->removePlayer(getPlayerPtr());
             MWBase::Environment::get().getLuaManager()->objectRemovedFromScene(getPlayerPtr());
@@ -2450,7 +2453,7 @@ namespace MWWorld
 
         applyLoopingParticles(player);
 
-        mNavigator->addAgent(getPathfindingHalfExtents(getPlayerConstPtr()));
+        mNavigator->addAgent(getPathfindingAgentBounds(getPlayerConstPtr()));
     }
 
     World::RestPermitted World::canRest () const
@@ -2948,13 +2951,14 @@ namespace MWWorld
             ensureNeededRecords(); // Insert records that may not be present in all versions of master files.
     }
 
-    void World::loadGroundcoverFiles(const Files::Collections& fileCollections, const std::vector<std::string>& groundcoverFiles, ToUTF8::Utf8Encoder* encoder)
+    void World::loadGroundcoverFiles(const Files::Collections& fileCollections,
+        const std::vector<std::string>& groundcoverFiles, ToUTF8::Utf8Encoder* encoder, Loading::Listener* listener)
     {
         if (!Settings::Manager::getBool("enabled", "Groundcover")) return;
 
         Log(Debug::Info) << "Loading groundcover:";
 
-        mGroundcoverStore.init(mStore.get<ESM::Static>(), fileCollections, groundcoverFiles, encoder);
+        mGroundcoverStore.init(mStore.get<ESM::Static>(), fileCollections, groundcoverFiles, encoder, listener);
     }
 
     bool World::startSpellCast(const Ptr &actor)
@@ -3691,7 +3695,8 @@ namespace MWWorld
         if (texture.empty())
             texture = Fallback::Map::getString("Blood_Texture_0");
 
-        std::string model = "meshes\\" + Fallback::Map::getString("Blood_Model_" + std::to_string(Misc::Rng::rollDice(3))); // [0, 2]
+        std::string model = MWBase::Environment::get().getWindowManager()->correctMeshPath(
+            Fallback::Map::getString("Blood_Model_" + std::to_string(Misc::Rng::rollDice(3)))); // [0, 2]
 
         mRendering->spawnEffect(model, texture, worldPosition, 1.0f, false);
     }
@@ -3730,11 +3735,15 @@ namespace MWWorld
             if (effectInfo.mArea <= 0)
             {
                 if (effectInfo.mRange == ESM::RT_Target)
-                    mRendering->spawnEffect("meshes\\" + areaStatic->mModel, texture, origin, 1.0f);
+                    mRendering->spawnEffect(
+                        MWBase::Environment::get().getWindowManager()->correctMeshPath(areaStatic->mModel),
+                        texture, origin, 1.0f);
                 continue;
             }
             else
-                mRendering->spawnEffect("meshes\\" + areaStatic->mModel, texture, origin, static_cast<float>(effectInfo.mArea * 2));
+                mRendering->spawnEffect(
+                    MWBase::Environment::get().getWindowManager()->correctMeshPath(areaStatic->mModel),
+                    texture, origin, static_cast<float>(effectInfo.mArea * 2));
 
             // Play explosion sound (make sure to use NoTrack, since we will delete the projectile now)
             static const std::string schools[] = {
@@ -3898,9 +3907,9 @@ namespace MWWorld
     }
 
     void World::updateActorPath(const MWWorld::ConstPtr& actor, const std::deque<osg::Vec3f>& path,
-            const osg::Vec3f& halfExtents, const osg::Vec3f& start, const osg::Vec3f& end) const
+        const DetourNavigator::AgentBounds& agentBounds, const osg::Vec3f& start, const osg::Vec3f& end) const
     {
-        mRendering->updateActorPath(actor, path, halfExtents, start, end);
+        mRendering->updateActorPath(actor, path, agentBounds, start, end);
     }
 
     void World::removeActorPath(const MWWorld::ConstPtr& actor) const
@@ -3913,12 +3922,13 @@ namespace MWWorld
         mRendering->setNavMeshNumber(value);
     }
 
-    osg::Vec3f World::getPathfindingHalfExtents(const MWWorld::ConstPtr& actor) const
+    DetourNavigator::AgentBounds World::getPathfindingAgentBounds(const MWWorld::ConstPtr& actor) const
     {
-        if (actor.isInCell() && actor.getCell()->isExterior())
-            return mDefaultHalfExtents; // Using default half extents for better performance
+        const MWPhysics::Actor* physicsActor = mPhysics->getActor(actor);
+        if (physicsActor == nullptr || (actor.isInCell() && actor.getCell()->isExterior()))
+            return DetourNavigator::AgentBounds {DetourNavigator::defaultCollisionShapeType, mDefaultHalfExtents};
         else
-            return getHalfExtents(actor);
+            return DetourNavigator::AgentBounds {physicsActor->getCollisionShapeType(), physicsActor->getHalfExtents()};
     }
 
     bool World::hasCollisionWithDoor(const MWWorld::ConstPtr& door, const osg::Vec3f& position, const osg::Vec3f& destination) const
