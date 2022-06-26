@@ -672,7 +672,7 @@ namespace MWRender
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isPlayer", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("skip", false));
 
-	mRadialFogUniform = new osg::Uniform("radialFog", Settings::Manager::getBool("radial fog", "Shaders"));
+	mRadialFogUniform = new osg::Uniform("radialFog", Settings::Manager::getBool("radial fog", "Fog"));
 	mClampLightingUniform = new osg::Uniform("clampLighting", Settings::Manager::getBool("clamp lighting", "Shaders"));
 	mUnderwaterFogUniform = new osg::Uniform("underwaterFog", Settings::Manager::getBool("underwater fog", "Water"));
 	mTonemaperUniform = new osg::Uniform("tonemaper", Settings::Manager::getInt("tonemaper", "Shaders"));
@@ -1483,9 +1483,9 @@ namespace MWRender
             	mGroundcoverPaging->clearCache();
                 mGroundcoverWorld->rebuildViews();
             }
-            else if (it->first == "Shaders" && it->second == "radial fog")
+            else if (it->first == "Fog" && it->second == "radial fog")
             {
-		mRadialFogUniform->set(Settings::Manager::getBool("radial fog", "Shaders"));
+		mRadialFogUniform->set(Settings::Manager::getBool("radial fog", "Fog"));
             }
             else if (it->first == "Shaders" && it->second == "clamp lighting")
             {
