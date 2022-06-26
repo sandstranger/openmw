@@ -24,10 +24,6 @@ varying float linearDepth;
 
 uniform highp mat4 osg_ViewMatrixInverse;
 
-#ifdef ANIMATED_HEIGHT_FOG
-uniform float osg_SimulationTime;
-#endif
-
 varying vec3 passViewPos;
 
 #if PER_PIXEL_LIGHTING
@@ -47,9 +43,7 @@ varying vec3 passNormal;
     #include "lighting.glsl"
 #endif
 
-#include "effects.glsl"
-#include "fog.glsl"
-#include "alpha.glsl"
+uniform vec2 screenRes;
 
 uniform highp mat3 grassData;
 
@@ -57,19 +51,18 @@ uniform bool radialFog;
 uniform bool underwaterFog;
 uniform float gamma;
 
+#include "effects.glsl"
+#include "fog.glsl"
+#include "alpha.glsl"
+
 void main()
 {
 
-float fogValue, underwaterFogValue;
+float underwaterFogValue;
 if(underwaterFog) {
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0;
     underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
 }
-
-    fogValue = getFogValue((radialFog) ? depth : linearDepth);
-
-if(underwaterFogValue != 1.0 && fogValue != 1.0)
-{
 
 #if !@grassDebugBatches
 if(grassData[2].y != grassData[2].x)
@@ -123,14 +116,12 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
    gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz, exposure);
 #endif
 
-}
-
 if(underwaterFog)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
 
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
 
-    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
+    gl_FragData[0] = applyFogAtDist(gl_FragData[0], depth, linearDepth);
 
     //gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
 

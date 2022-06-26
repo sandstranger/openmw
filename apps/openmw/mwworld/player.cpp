@@ -566,15 +566,14 @@ namespace MWWorld
         static MWRender::BobbingInfo bobbingInfo = {};
         MWBase::Environment::get().getMechanicsManager()->getBobbingInfo(player, bobbingInfo);
 
-        static const bool headbobEnabled = Settings::Manager::getBool("head bobbing", "Camera");
         static const bool exteriorsInertia = Settings::Manager::getBool("exteriors inertia", "Camera");
 
         float fpOffset = bobbingInfo.mSneakOffset;
-        if (headbobEnabled)
-             fpOffset += bobbingInfo.mLandingOffset;
 
         if (isFirstPerson && bobbingInfo.mHandBobEnabled)
         {
+
+            fpOffset += bobbingInfo.mLandingOffset;
 
             if (exteriorsInertia || (!exteriorsInertia && !player.getCell()->isExterior()))
             {

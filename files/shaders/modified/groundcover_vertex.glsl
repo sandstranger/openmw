@@ -15,10 +15,6 @@ varying vec4 passTangent;
 varying float depth;
 varying float linearDepth;
 
-#ifdef HEIGHT_FOG
-varying vec3 fogH;
-#endif
-
 varying vec3 passViewPos;
 
 #if PER_PIXEL_LIGHTING
@@ -151,10 +147,6 @@ void main(void)
 
 #if PER_PIXEL_LIGHTING
     passNormal = gl_Normal.xyz;
-#endif
-
-#ifdef HEIGHT_FOG
-    fogH = (osg_ViewMatrixInverse * viewPos).xyz;
 #endif
 
 #if (@shadows_enabled)

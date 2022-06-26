@@ -2272,11 +2272,10 @@ void CharacterController::update(float duration)
         { // First Person Head Bobbing
             static const float fSneakOffset = gmst.find("i1stPersonSneakDelta")->mValue.getFloat();
             static const bool isHandBobbing = Settings::Manager::getFloat("hand inertia", "Camera") == 0.0 ? false : true;
-            static const bool isHeadBobbing = Settings::Manager::getBool("head bobbing", "Camera");
 
             mBobbingInfo.mHandBobEnabled = isPlayer && isHandBobbing;
 
-            if (isPlayer && isHeadBobbing)
+            if (mBobbingInfo.mHandBobEnabled)
             {
                 // Smoothed Sneak Offset
                 if (sneak && !inwater && !flying)

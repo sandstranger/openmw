@@ -35,10 +35,6 @@ varying vec2 glossMapUV;
 varying vec3 passNormal;
 #endif
 
-#ifdef HEIGHT_FOG
-varying vec3 fogH;
-#endif
-
 uniform highp mat4 osg_ViewMatrixInverse;
 
 varying highp float depth;
@@ -51,6 +47,7 @@ uniform bool radialFog;
 #include "shadows_vertex.glsl"
 
 #if !PER_PIXEL_LIGHTING
+    uniform bool isInterior;
     centroid varying vec3 passLighting;
     centroid varying vec3 shadowDiffuseLighting;
     #include "lighting_util.glsl"
@@ -108,10 +105,6 @@ else
 
 #if PER_PIXEL_LIGHTING || @specularMap
     passNormal = gl_Normal.xyz;
-#endif
-
-#ifdef HEIGHT_FOG
-    fogH = (osg_ViewMatrixInverse * viewPos).xyz;
 #endif
 
 #if !PER_PIXEL_LIGHTING

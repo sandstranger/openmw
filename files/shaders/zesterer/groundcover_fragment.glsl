@@ -43,9 +43,12 @@ uniform mat4 osg_ViewMatrixInverse;
 uniform mat4 osg_ModelViewMatrix;
 uniform mat4 osg_ViewMatrix;
 
+uniform vec2 screenRes;
+
 #include "shadows_fragment.glsl"
 #include "lighting.glsl"
 #include "alpha.glsl"
+#include "fog.glsl"
 
 void main()
 {
@@ -128,12 +131,7 @@ if(grassData[2].y != grassData[2].x)
 
     clampLightingResult(gl_FragData[0].xyz);
 
-#if @radialFog
-    float fogValue = clamp((euclideanDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
-#else
-    float fogValue = clamp((linearDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
-#endif
-    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
+    gl_FragData[0] = applyFogAtDist(gl_FragData[0], euclideanDepth, linearDepth);
 
     applyShadowDebugOverlay();
 

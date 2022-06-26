@@ -150,6 +150,7 @@ vec3 GetWaterColor(float accumulatedWater, float depth, vec3 refractionValue, ve
 varying vec3 screenCoordsPassthrough;
 varying vec4 position;
 varying float linearDepth;
+uniform vec2 screenRes;
 
 uniform sampler2D normalMap;
 
@@ -162,7 +163,6 @@ uniform highp sampler2D refractionDepthMap;
 uniform float osg_SimulationTime;
 
 uniform float near;
-uniform float far;
 uniform vec3 nodePosition;
 
 uniform float rainIntensity;
@@ -187,13 +187,9 @@ void main(void)
 {
 	vec3 cameraPos = ( gl_ModelViewMatrixInverse * vec4(0.0,0.0,0.0,1.0)).xyz;
 
-float radialDepth, fogValue;
-if(radialFog){
+float radialDepth;
+if(radialFog)
     radialDepth = distance(position.xyz, cameraPos);
-    fogValue = getFogValue(radialDepth);
-}
-else
-    fogValue = getFogValue(linearDepth);
 
     frustumDepth = abs(far - near);
     vec3 worldPos = position.xyz + nodePosition.xyz;
@@ -358,9 +354,6 @@ else
    gl_FragData[0].xyz = mix( a, b ,  fresnel) + specular * lcalcDiffuse(0) * lcalcDiffuse(0) + clamp(dist/6000.0,0.0,0.2) * clamp(1.0 * vec3(rainRipple.w * (lcalcDiffuse(0) + gl_LightModel.ambient.xyz)), 0.0, 1.0);
    
    
-   
-   
-   
     gl_FragData[0].w = 1.0;
 #else
     gl_FragData[0].xyz = mix(reflection,  waterColor,  (1.0-fresnel)*0.5) + specular * lcalcSpecular(0).xyz + vec3(rainRipple.w * (lcalcDiffuse(0) + gl_LightModel.ambient.xyz)) * 0.7;
@@ -378,7 +371,7 @@ else
 
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
 
-    gl_FragData[0].xyz = mix(gl_FragData[0].xyz,  gl_Fog.color.xyz, fogValue);
+    gl_FragData[0] = applyFogAtDist(gl_FragData[0], radialDepth, linearDepth);
 
     //gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
 }

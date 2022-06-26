@@ -11,10 +11,6 @@ uniform sampler2D normalMap;
 uniform sampler2D blendMap;
 #endif
 
-#ifdef ANIMATED_HEIGHT_FOG
-uniform float osg_SimulationTime;
-#endif
-
 varying vec2 uv;
 uniform sampler2D diffuseMap;
 varying highp float depth;
@@ -22,6 +18,9 @@ uniform highp mat4 osg_ViewMatrixInverse;
 uniform bool skip;
 varying vec3 passViewPos;
 
+uniform vec2 screenRes;
+
+uniform bool radialFog;
 uniform bool parallaxShadows;
 uniform bool underwaterFog;
 uniform float gamma;
@@ -35,7 +34,7 @@ uniform float gamma;
 
 #include "shadows_fragment.glsl"
 
-#if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG))
+#if (PER_PIXEL_LIGHTING || @specularMap)
     varying vec3 passNormal;
 #endif
 
@@ -53,11 +52,6 @@ if(underwaterFog) {
     bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z >= -1.0 && !skip;
     underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
 }
-
-    float fogValue = getFogValue(depth);
-
-//if(fogValue != 1.0 && underwaterFogValue != 1.0)
-{
 
     float shadowpara = 1.0;
 
@@ -121,7 +115,7 @@ if(underwaterFog) {
     diffuseColor.rgb = colLoad(diffuseColor.rgb);
     gl_FragData[0].a *= diffuseColor.a;
 
-    float shadowing = unshadowedLightRatio(depth);
+    float shadowing = unshadowedLightRatio(passViewPos.z);
 	
 #if @parallax && @parallaxShadows
 	   shadowing *= shadowpara;
@@ -154,22 +148,13 @@ if(underwaterFog) {
       float exposure = getExposure(length(colLoad(lcalcDiffuse(0).xyz) + colLoad(gl_LightModel.ambient.xyz)) * 0.5);
       gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz, exposure);
 #endif
-}
-/*
-else
-{
-#if @blendMap // what?
-     gl_FragData[0].a = texture2D(blendMap, (gl_TextureMatrix[1] * vec4(uv, 0.0, 1.0)).xy).a;
-#endif
-}
-*/
 
     if(underwaterFog)
         gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
 
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0 / (@gamma + gamma - 1.0)));
 
-    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
+    gl_FragData[0] = applyFogAtDist(gl_FragData[0], depth, depth);
 
     //gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
 

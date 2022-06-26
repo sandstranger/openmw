@@ -9,15 +9,11 @@ uniform mat3 shaderSettings;
 #include "helpsettings.glsl"
 #include "vertexcolors.glsl"
 
-#ifdef HEIGHT_FOG
-varying vec3 fogH;
-#endif
-
 uniform highp mat4 osg_ViewMatrixInverse;
 
 varying vec3 passViewPos;
 
-#if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG))
+#if (PER_PIXEL_LIGHTING || @specularMap)
 varying vec3 passNormal;
 #endif
 
@@ -47,13 +43,10 @@ else
     passColor = gl_Color;
     passViewPos = viewPos.xyz;
 
-#if (PER_PIXEL_LIGHTING || @specularMap || defined(HEIGHT_FOG))
+#if (PER_PIXEL_LIGHTING || @specularMap)
     passNormal = gl_Normal.xyz;
 #endif
 
-#ifdef HEIGHT_FOG
-    fogH = (osg_ViewMatrixInverse * viewPos).xyz;
-#endif
     uv = gl_MultiTexCoord0.xy;
 
 #if (!PER_PIXEL_LIGHTING || @shadows_enabled)

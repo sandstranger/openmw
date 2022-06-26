@@ -84,6 +84,8 @@ namespace SceneUtil
 
         stateset->setRenderBinDetails(renderBin, "RenderBin");
 
+        stateset->addUniform(new osg::Uniform("simpleWater", true));
+
         return stateset;
     }
 }

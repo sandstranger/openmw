@@ -61,15 +61,48 @@ float getQuadratic(int lightIndex)
 #endif
 }
 
+
 float lcalcIllumination(int lightIndex, float lightDistance)
 {
-#if @lightingMethodFFP
+#if @linearLighting && defined(ATTEN_FIX)
+    float illumination = clamp(1.0 / (getConstant(lightIndex) * 0.1 + 0.01 * getLinear(lightIndex) * lightDistance * lightDistance) - 0.054, 0.0, 1.0);
+    return clamp(illumination * illumination, 0.0, 1.0);
+#elif @lightingMethodFFP
     return clamp(1.0 / (getConstant(lightIndex) + getLinear(lightIndex) * lightDistance + getQuadratic(lightIndex) * lightDistance * lightDistance), 0.0, 1.0);
 #else
     float illumination = clamp(1.0 / (getConstant(lightIndex) + getLinear(lightIndex) * lightDistance + getQuadratic(lightIndex) * lightDistance * lightDistance), 0.0, 1.0);
     return (illumination * (1.0 - quickstep((lightDistance / lcalcRadius(lightIndex)) - 1.0)));
 #endif
 }
+
+/*
+float lcalcIllumination(int lightIndex, float lightDistance)
+{
+#if @linearLighting && defined(ATTEN_FIX) && defined(OBJECT) && !@lightingMethodFFP
+if(isInterior)
+{
+    float illumination = clamp(1.0 / (getConstant(lightIndex) * 0.1 + 0.01 * getLinear(lightIndex) * lightDistance * lightDistance) - 0.054, 0.0, 1.0);
+    return clamp(illumination * illumination, 0.0, 1.0);
+}
+else
+{
+    float illumination = clamp(1.0 / (getConstant(lightIndex) + getLinear(lightIndex) * lightDistance + getQuadratic(lightIndex) * lightDistance * lightDistance), 0.0, 1.0);
+    return (illumination * (1.0 - quickstep((lightDistance / lcalcRadius(lightIndex)) - 1.0)));
+}
+#elif @linearLighting && !defined(ATTEN_FIX)
+    float illumination = clamp(1.0 / (getConstant(lightIndex) * 0.1 + 0.01 * getLinear(lightIndex) * lightDistance * lightDistance) - 0.054, 0.0, 1.0);
+    return clamp(illumination * illumination, 0.0, 1.0);
+#elif @lightingMethodFFP && @linearLighting && defined(ATTEN_FIX)
+    float illumination = clamp(1.0 / (getConstant(lightIndex) * 0.1 + 0.01 * getLinear(lightIndex) * lightDistance * lightDistance) - 0.054, 0.0, 1.0);
+    return clamp(illumination * illumination, 0.0, 1.0);
+#elif @lightingMethodFFP
+    return clamp(1.0 / (getConstant(lightIndex) + getLinear(lightIndex) * lightDistance + getQuadratic(lightIndex) * lightDistance * lightDistance), 0.0, 1.0);
+#else
+    float illumination = clamp(1.0 / (getConstant(lightIndex) + getLinear(lightIndex) * lightDistance + getQuadratic(lightIndex) * lightDistance * lightDistance), 0.0, 1.0);
+    return (illumination * (1.0 - quickstep((lightDistance / lcalcRadius(lightIndex)) - 1.0)));
+#endif
+}
+*/
 
 vec3 lcalcPosition(int lightIndex)
 {

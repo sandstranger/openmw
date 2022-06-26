@@ -62,13 +62,12 @@ varying vec3 passViewPos;
 varying highp float depth;
 uniform bool isInterior;
 
+uniform vec2 screenRes;
+
 uniform bool radialFog;
 uniform bool underwaterFog;
 uniform float gamma;
 
-#ifdef ANIMATED_HEIGHT_FOG
-uniform float osg_SimulationTime;
-#endif
 
 #if PER_PIXEL_LIGHTING || @specularMap
     varying vec3 passNormal;
@@ -96,17 +95,9 @@ void main()
 {
 float fogValue, underwaterFogValue;
 if(underwaterFog) {
-    bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 && !simpleWater && !skip && !isInterior && !isPlayer;
+    bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 /*&& !simpleWater*/ && !skip && !isInterior && !isPlayer;
     underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
 }
-
-if(radialFog)
-    fogValue = getFogValue((simpleWater) ? length(passViewPos) : depth);
-else
-    fogValue = getFogValue(depth);
-
-//if(fogValue != 1.0 && underwaterFogValue != 1.0)
-{
 
 float shadowpara = 1.0;
 
@@ -262,7 +253,7 @@ if(gl_FragData[0].a != 0.0)
 
 #endif
 
-    float shadowing = (simpleWater) ? 1.0 : unshadowedLightRatio(depth);
+    float shadowing = /*(simpleWater) ? 1.0 : */unshadowedLightRatio(passViewPos.z);
 #if @parallax && @parallaxShadows
 	   shadowing *= shadowpara;
 #endif
@@ -316,8 +307,6 @@ if(gl_FragData[0].a != 0.0)
 // having testing & blending isn't enough - we need to write an opaque pixel to be opaque
          gl_FragData[0].a = 1.0;
 #endif
- }
-//else gl_FragData[0].x = 1.0;
 
 if(underwaterFog)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
@@ -327,7 +316,7 @@ if(underwaterFog)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0 / (@gamma + gamma - 1.0)));
 #endif
 
-    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
+    gl_FragData[0] = gl_FragData[0] = applyFogAtPos(gl_FragData[0], passViewPos);
 
 #if !defined(FORCE_OPAQUE) && @softParticles && @isParticle
     gl_FragData[0].a *= calcSoftParticleFade();

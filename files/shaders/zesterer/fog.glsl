@@ -1,29 +1,17 @@
-uniform highp float far;
+uniform float far;
 
 #if @skyBlending
 uniform sampler2D sky;
 uniform float skyBlendingStart;
 #endif
 
-#if !defined(WATER)
-float getUnderwaterFogValue(float depth)
-{
-    float deepValue = abs((osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z);
-    float distFogValue = uwdistfog.z * smoothstep(uwdistfog.x, uwdistfog.y, depth);
-    float deepFogValue = uwdeepfog.z * clamp((deepValue - uwdeepfog.x) * (1.0/(uwdeepfog.y-uwdeepfog.x)) , 0.0, 1.0);
-    return clamp(deepFogValue + distFogValue, 0.0, 1.0);
-}
-#endif
-
 vec4 applyFogAtDist(vec4 color, float euclideanDist, float linearDist)
 {
-    float dist;
-
-    if(radialFog)
-        dist = euclideanDist;
-    else 
-        dist = abs(linearDist);
-
+#if @radialFog
+    float dist = euclideanDist;
+#else
+    float dist = abs(linearDist);
+#endif
 #if @exponentialFog
     float fogValue = 1.0 - exp(-2.0 * max(0.0, dist - gl_Fog.start/2.0) / (gl_Fog.end - gl_Fog.start/2.0));
 #else

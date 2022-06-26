@@ -219,12 +219,13 @@ uniform highp sampler2D refractionDepthMap;
 uniform float osg_SimulationTime;
 
 uniform float near;
-uniform float far;
 uniform vec3 nodePosition;
 
 uniform float rainIntensity;
 
 uniform vec2 screenRes;
+uniform bool radialFog;
+uniform float gamma;
 
 #define PER_PIXEL_LIGHTING 0
 
@@ -233,8 +234,6 @@ uniform vec2 screenRes;
 #include "fog.glsl"
 
 float frustumDepth;
-uniform bool radialFog;
-uniform float gamma;
 
 
 float linearizeDepth(float depth)
@@ -249,16 +248,9 @@ float linearizeDepth(float depth)
 
 void main(void)
 {
-float radialDepth, fogValue;
-if(radialFog){
+float radialDepth;
+if(radialFog)
     radialDepth = distance(position.xyz, (gl_ModelViewMatrixInverse * vec4(0,0,0,1)).xyz);
-    fogValue = getFogValue(radialDepth);
-}
-else
-    fogValue = getFogValue(linearDepth);
-
-if(fogValue != 1.0)
-{
 
     frustumDepth = abs(far - near);
     vec3 worldPos = position.xyz + nodePosition.xyz;
@@ -377,12 +369,9 @@ if(fogValue != 1.0)
     gl_FragData[0].w = clamp(fresnel*6.0 + specular * sunSpec.w, 0.0, 1.0);     //clamp(fresnel*2.0 + specular * gl_LightSource[0].specular.w, 0.0, 1.0);
 #endif
 
-}
-//else gl_FragData[0] = vec4(1.0,0.0,0.0,1.0);
-
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
 
-    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
+    gl_FragData[0] = applyFogAtDist(gl_FragData[0], radialDepth, linearDepth);
 
     //gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/ (@gamma + gamma - 1.0)));
 }
