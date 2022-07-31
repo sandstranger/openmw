@@ -19,6 +19,7 @@
 #include <components/config/gamesettings.hpp>
 #include <components/config/launchersettings.hpp>
 
+#include <components/settings/settings.hpp>
 #include <components/bsa/compressedbsafile.hpp>
 #include <components/navmeshtool/protocol.hpp>
 #include <components/vfs/bsaarchive.hpp>
@@ -759,13 +760,13 @@ void Launcher::DataFilesPage::slotAddonDataChanged()
 }
 
 // Mutex lock to run reloadCells synchronously.
-std::mutex _reloadCellsMutex;
+static std::mutex reloadCellsMutex;
 
 void Launcher::DataFilesPage::reloadCells(QStringList selectedFiles)
 {
     // Use a mutex lock so that we can prevent two threads from executing the rest of this code at the same time
     // Based on https://stackoverflow.com/a/5429695/531762
-    std::unique_lock<std::mutex> lock(_reloadCellsMutex);
+    std::unique_lock<std::mutex> lock(reloadCellsMutex);
 
     // The following code will run only if there is not another thread currently running it
     CellNameLoader cellNameLoader;

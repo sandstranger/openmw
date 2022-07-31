@@ -1,8 +1,10 @@
 #include "types.hpp"
 
 #include <components/lua/luastate.hpp>
+#include <components/detournavigator/agentbounds.hpp>
 
 #include <apps/openmw/mwmechanics/drawstate.hpp>
+#include <apps/openmw/mwmechanics/creaturestats.hpp>
 #include <apps/openmw/mwworld/inventorystore.hpp>
 #include <apps/openmw/mwworld/class.hpp>
 
@@ -113,10 +115,10 @@ namespace MWLua
 
     void addActorBindings(sol::table actor, const Context& context)
     {
-        actor["STANCE"] = LuaUtil::makeStrictReadOnly(context.mLua->tableFromPairs<std::string_view, int>({
-            {"Nothing", MWMechanics::DrawState_Nothing},
-            {"Weapon", MWMechanics::DrawState_Weapon},
-            {"Spell", MWMechanics::DrawState_Spell},
+        actor["STANCE"] = LuaUtil::makeStrictReadOnly(context.mLua->tableFromPairs<std::string_view, MWMechanics::DrawState>({
+            {"Nothing", MWMechanics::DrawState::Nothing},
+            {"Weapon", MWMechanics::DrawState::Weapon},
+            {"Spell", MWMechanics::DrawState::Spell},
         }));
         actor["EQUIPMENT_SLOT"] = LuaUtil::makeStrictReadOnly(context.mLua->tableFromPairs<std::string_view, int>({
             {"Helmet", MWWorld::InventoryStore::Slot_Helmet},
@@ -241,6 +243,14 @@ namespace MWLua
                     eqp[slot] = value.as<std::string>();
             }
             context.mLuaManager->addAction(std::make_unique<SetEquipmentAction>(context.mLua, obj.id(), std::move(eqp)));
+        };
+        actor["getPathfindingAgentBounds"] = [context](const LObject& o)
+        {
+            const DetourNavigator::AgentBounds agentBounds = MWBase::Environment::get().getWorld()->getPathfindingAgentBounds(o.ptr());
+            sol::table result = context.mLua->newTable();
+            result["shapeType"] = agentBounds.mShapeType;
+            result["halfExtents"] = agentBounds.mHalfExtents;
+            return result;
         };
 
         addActorStatsBindings(actor, context);

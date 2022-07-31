@@ -3,6 +3,7 @@
 #include <unicode/errorcode.h>
 
 #include <components/debug/debuglog.hpp>
+#include <components/vfs/manager.hpp>
 
 namespace sol
 {
@@ -16,6 +17,12 @@ namespace LuaUtil
     {
         sol::usertype<Context> ctx = mLua->sol().new_usertype<Context>("L10nContext");
         ctx[sol::meta_function::call] = &Context::translate;
+    }
+
+    std::string L10nManager::translate(const std::string& contextName, const std::string& key)
+    {
+        Context& ctx = getContext(contextName).as<Context>();
+        return ctx.translate(key, sol::nil);
     }
 
     void L10nManager::setPreferredLocales(const std::vector<std::string>& langs)
@@ -68,7 +75,8 @@ namespace LuaUtil
             }
 
             // Argument names
-            argNames.push_back(icu::UnicodeString::fromUTF8(key.as<std::string>()));
+            const auto str = key.as<std::string>();
+            argNames.push_back(icu::UnicodeString::fromUTF8(icu::StringPiece(str.data(), str.size())));
         }
         return std::make_pair(args, argNames);
     }

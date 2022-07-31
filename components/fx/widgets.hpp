@@ -66,8 +66,8 @@ namespace fx
             void initialiseOverride() override;
             void notifyMouseButtonClick(MyGUI::Widget* sender);
 
-            MyGUI::Button* mCheckbutton;
-            MyGUI::Widget* mFill;
+            MyGUI::Button* mCheckbutton{nullptr};
+            MyGUI::Widget* mFill{nullptr};
         };
 
         template <class T, class UType>
@@ -76,8 +76,6 @@ namespace fx
             MYGUI_RTTI_DERIVED(EditNumber)
 
         public:
-            EditNumber() : mLastPointerX(0) {}
-
             void setValue(T value)
             {
                 mValue = value;
@@ -236,14 +234,14 @@ namespace fx
                     increment(uniform->mStep);
             }
 
-            MyGUI::Button* mButtonDecrease;
-            MyGUI::Button* mButtonIncrease;
-            MyGUI::Widget* mDragger;
-            MyGUI::Widget* mFill;
-            MyGUI::TextBox* mValueLabel;
-            T mValue;
+            MyGUI::Button* mButtonDecrease{nullptr};
+            MyGUI::Button* mButtonIncrease{nullptr};
+            MyGUI::Widget* mDragger{nullptr};
+            MyGUI::Widget* mFill{nullptr};
+            MyGUI::TextBox* mValueLabel{nullptr};
+            T mValue{};
 
-            int mLastPointerX;
+            int mLastPointerX{0};
         };
 
         class EditNumberFloat4 : public EditNumber<float, osg::Vec4f> { MYGUI_RTTI_DERIVED(EditNumberFloat4) };
@@ -271,9 +269,9 @@ namespace fx
 
             void initialiseOverride() override;
 
-            Gui::AutoSizedButton* mReset;
-            Gui::AutoSizedTextBox* mLabel;
-            MyGUI::Widget* mClient;
+            Gui::AutoSizedButton* mReset{nullptr};
+            Gui::AutoSizedTextBox* mLabel{nullptr};
+            MyGUI::Widget* mClient{nullptr};
             std::vector<EditBase*> mBases;
         };
     }

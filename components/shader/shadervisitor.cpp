@@ -5,6 +5,7 @@
 #include <set>
 
 #include <osg/AlphaFunc>
+#include <osg/BlendFunc>
 #include <osg/Geometry>
 #include <osg/GLExtensions>
 #include <osg/Material>
@@ -21,6 +22,7 @@
 
 #include <components/debug/debuglog.hpp>
 #include <components/misc/stringops.hpp>
+#include <components/misc/osguservalues.hpp>
 #include <components/stereo/stereomanager.hpp>
 #include <components/resource/imagemanager.hpp>
 #include <components/vfs/manager.hpp>
@@ -32,50 +34,6 @@
 
 #include "removedalphafunc.hpp"
 #include "shadermanager.hpp"
-
-namespace
-{
-    class OpaqueDepthAttribute : public osg::StateAttribute
-    {
-    public:
-        OpaqueDepthAttribute() = default;
-
-        OpaqueDepthAttribute(const OpaqueDepthAttribute& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY)
-            : osg::StateAttribute(copy, copyop), mTextures(copy.mTextures), mUnit(copy.mUnit) {}
-
-        void setTexturesAndUnit(const std::array<osg::ref_ptr<osg::Texture>, 2>& textures, int unit)
-        {
-            mTextures = textures;
-            mUnit = unit;
-        }
-
-        META_StateAttribute(Shader, OpaqueDepthAttribute, osg::StateAttribute::TEXTURE)
-
-        int compare(const StateAttribute& sa) const override
-        {
-            COMPARE_StateAttribute_Types(OpaqueDepthAttribute, sa);
-
-            COMPARE_StateAttribute_Parameter(mTextures);
-
-            return 0;
-        }
-
-        void apply(osg::State& state) const override
-        {
-            auto index = state.getFrameStamp()->getFrameNumber() % 2;
-
-            if (!mTextures[index])
-                return;
-
-            state.setActiveTextureUnit(mUnit);
-            state.applyTextureAttribute(mUnit, mTextures[index]);
-        }
-
-    private:
-        mutable std::array<osg::ref_ptr<osg::Texture>, 2> mTextures;
-        int mUnit;
-    };
-}
 
 namespace Shader
 {
@@ -198,10 +156,11 @@ namespace Shader
         , mAlphaFunc(GL_ALWAYS)
         , mAlphaRef(1.0)
         , mAlphaBlend(false)
+        , mBlendFuncOverridden(false)
+        , mAdditiveBlending(false)
         , mNormalHeight(false)
         , mTexStageRequiringTangents(-1)
         , mSoftParticles(false)
-        , mSoftParticleSize(0.f)
         , mNode(nullptr)
     {
     }
@@ -310,6 +269,10 @@ namespace Shader
         bool shaderRequired = false;
         if (node.getUserValue("shaderRequired", shaderRequired) && shaderRequired)
             mRequirements.back().mShaderRequired = true;
+
+        bool softEffect = false;
+        if (node.getUserValue(Misc::OsgUserValues::sXSoftEffect, softEffect) && softEffect)
+            mRequirements.back().mSoftParticles = true;
 
         // Make sure to disregard any state that came from a previous call to createProgram
         osg::ref_ptr<AddedState> addedState = getAddedState(*stateset);
@@ -520,6 +483,18 @@ namespace Shader
                         mRequirements.back().mAlphaRef = alpha->getReferenceValue();
                     }
                 }
+                else if (it->first.first == osg::StateAttribute::BLENDFUNC)
+                {
+                    if (!mRequirements.back().mBlendFuncOverridden || it->second.second & osg::StateAttribute::PROTECTED)
+                    {
+                        if (it->second.second & osg::StateAttribute::OVERRIDE)
+                            mRequirements.back().mBlendFuncOverridden = true;
+
+                        const osg::BlendFunc* blend = static_cast<const osg::BlendFunc*>(it->second.first.get());
+                        mRequirements.back().mAdditiveBlending =
+                            blend->getSource() == osg::BlendFunc::SRC_ALPHA && blend->getDestination() == osg::BlendFunc::ONE;
+                    }
+                }
             }
         }
 
@@ -610,6 +585,8 @@ namespace Shader
 
         defineMap["alphaFunc"] = std::to_string(reqs.mAlphaFunc);
 
+        defineMap["additiveBlending"] = reqs.mAdditiveBlending ? "1" : "0";
+
         osg::ref_ptr<osg::StateSet> removedState;
         if ((removedState = getRemovedState(*writableStateSet)) && !mAllowedToModifyStateSets)
             removedState = new osg::StateSet(*removedState, osg::CopyOp::SHALLOW_COPY);
@@ -656,10 +633,10 @@ namespace Shader
         bool simpleLighting = false;
         node.getUserValue("simpleLighting", simpleLighting);
         if (simpleLighting)
-        {
-            defineMap["forcePPL"] = "1";
             defineMap["endLight"] = "0";
-        }
+
+        if (simpleLighting || dynamic_cast<osgParticle::ParticleSystem*>(&node))
+            defineMap["forcePPL"] = "0";
 
         if (reqs.mAlphaBlend && mSupportsNormalsRT)
         {
@@ -687,28 +664,7 @@ namespace Shader
             updateRemovedState(*writableUserData, removedState);
         }
 
-        if (reqs.mSoftParticles && mOpaqueDepthTex.front())
-        {
-            osg::ref_ptr<osg::Depth> depth = new SceneUtil::AutoDepth;
-            depth->setWriteMask(false);
-            writableStateSet->setAttributeAndModes(depth, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
-            addedState->setAttributeAndModes(depth);
-
-            writableStateSet->addUniform(new osg::Uniform("particleSize", reqs.mSoftParticleSize));
-            addedState->addUniform("particleSize");
-
-            constexpr int unit = 2;
-
-            writableStateSet->addUniform(new osg::Uniform("opaqueDepthTex", unit));
-            addedState->addUniform("opaqueDepthTex");
-
-            osg::ref_ptr<OpaqueDepthAttribute> opaqueDepthAttr = new OpaqueDepthAttribute;
-            opaqueDepthAttr->setTexturesAndUnit(mOpaqueDepthTex, unit);
-            writableStateSet->setAttributeAndModes(opaqueDepthAttr, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
-            addedState->setAttributeAndModes(opaqueDepthAttr);
-        }
-
-        defineMap["softParticles"] = reqs.mSoftParticles && mOpaqueDepthTex.front() ? "1" : "0";
+        defineMap["softParticles"] = reqs.mSoftParticles ? "1" : "0";
 
         Stereo::Manager::instance().shaderStereoDefines(defineMap);
 
@@ -899,19 +855,11 @@ namespace Shader
 
     void ShaderVisitor::apply(osg::Drawable& drawable)
     {
-        auto partsys = dynamic_cast<osgParticle::ParticleSystem*>(&drawable);
-
-        bool needPop = drawable.getStateSet() || partsys;
+        bool needPop = drawable.getStateSet();
 
         if (needPop)
         {
             pushRequirements(drawable);
-
-            if (partsys)
-            {
-                mRequirements.back().mSoftParticles = true;
-                mRequirements.back().mSoftParticleSize = partsys->getDefaultParticleTemplate().getSizeRange().maximum;
-            }
 
             if (drawable.getStateSet())
                 applyStateSet(drawable.getStateSet(), drawable);
@@ -991,11 +939,6 @@ namespace Shader
     void ShaderVisitor::setConvertAlphaTestToAlphaToCoverage(bool convert)
     {
         mConvertAlphaTestToAlphaToCoverage = convert;
-    }
-
-    void ShaderVisitor::setOpaqueDepthTex(osg::ref_ptr<osg::Texture> texturePing, osg::ref_ptr<osg::Texture> texturePong)
-    {
-        mOpaqueDepthTex = { texturePing, texturePong };
     }
 
     ReinstateRemovedStateVisitor::ReinstateRemovedStateVisitor(bool allowedToModifyStateSets)

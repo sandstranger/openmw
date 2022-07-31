@@ -21,6 +21,8 @@
 #include "../mwrender/objects.hpp"
 #include "../mwrender/renderinginterface.hpp"
 
+#include "classmodel.hpp"
+
 namespace MWClass
 {
     Miscellaneous::Miscellaneous()
@@ -46,13 +48,7 @@ namespace MWClass
 
     std::string Miscellaneous::getModel(const MWWorld::ConstPtr &ptr) const
     {
-        const MWWorld::LiveCellRef<ESM::Miscellaneous> *ref = ptr.get<ESM::Miscellaneous>();
-
-        const std::string &model = ref->mBase->mModel;
-        if (!model.empty()) {
-            return MWBase::Environment::get().getWindowManager()->correctMeshPath(model);
-        }
-        return "";
+        return getClassModel<ESM::Miscellaneous>(ptr);
     }
 
     std::string Miscellaneous::getName (const MWWorld::ConstPtr& ptr) const
@@ -207,9 +203,12 @@ namespace MWClass
 
     std::unique_ptr<MWWorld::Action> Miscellaneous::use (const MWWorld::Ptr& ptr, bool force) const
     {
-        if (ptr.getCellRef().getSoul().empty() || !MWBase::Environment::get().getWorld()->getStore().get<ESM::Creature>().search(ptr.getCellRef().getSoul()))
-            return std::make_unique<MWWorld::NullAction>();
-        return std::make_unique<MWWorld::ActionSoulgem>(ptr);
+        const std::string soulgemPrefix = "misc_soulgem";
+
+        if (::Misc::StringUtils::ciCompareLen(ptr.getCellRef().getRefId(), soulgemPrefix, soulgemPrefix.length()) == 0)
+            return std::make_unique<MWWorld::ActionSoulgem>(ptr);
+
+        return std::make_unique<MWWorld::NullAction>();
     }
 
     bool Miscellaneous::canSell (const MWWorld::ConstPtr& item, int npcServices) const

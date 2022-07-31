@@ -212,7 +212,7 @@ class CollectLowestTransformsVisitor : public BaseOptimizerVisitor
             traverse(node);
         }
 
-        void apply(osg::Geometry& geode) override
+        void apply(osg::Geometry& geometry) override
         {
         }
 
@@ -1616,9 +1616,6 @@ bool Optimizer::MergeGeometryVisitor::mergeGroup(osg::Group& group)
 
 
     }
-
-//    geode.dirtyBound();
-
 
     return false;
 }

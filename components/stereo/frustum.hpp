@@ -38,10 +38,7 @@ namespace SceneUtil
 
 namespace Stereo
 {
-#ifdef OSG_HAS_MULTIVIEW
     struct MultiviewFrustumCallback;
-#endif
-
     struct ShadowFrustumCallback;
 
     void joinBoundingBoxes(const osg::Matrix& masterProjection, const osg::Matrix& slaveProjection, osg::BoundingBoxd& bb);
@@ -67,9 +64,7 @@ namespace Stereo
         std::map< osgUtil::CullVisitor*, osgUtil::CullVisitor*> mSharedFrustums;
         osg::BoundingBoxd mBoundingBox;
 
-#ifdef OSG_HAS_MULTIVIEW
-        osg::ref_ptr<MultiviewFrustumCallback> mMultiviewFrustumCallback;
-#endif
+        std::unique_ptr<MultiviewFrustumCallback> mMultiviewFrustumCallback;
     };
 }
 

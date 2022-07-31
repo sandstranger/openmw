@@ -14,6 +14,7 @@
     Bug #3867: All followers attack player when one follower enters combat with player
     Bug #3905: Great House Dagoth issues
     Bug #4203: Resurrecting an actor doesn't close the loot GUI
+    Bug #4227: Spellcasting restrictions are checked before spellcasting animations are played
     Bug #4376: Moved actors don't respawn in their original cells
     Bug #4389: NPC's lips do not move if his head model has the NiBSAnimationNode root node
     Bug #4602: Robert's Bodies: crash inside createInstance()
@@ -28,7 +29,6 @@
     Bug #5207: Loose summons can be present in scene
     Bug #5279: Ingame console stops auto-scrolling after clicking output
     Bug #5318: Aiescort behaves differently from vanilla
-    Bug #5371: 'Dead' slaughterfish added by mod are animated/alive
     Bug #5377: Console does not appear after using menutest in inventory
     Bug #5379: Wandering NPCs falling through cantons
     Bug #5394: Windows snapping no longer works
@@ -47,9 +47,12 @@
     Bug #5863: GetEffect should return true after the player has teleported
     Bug #5913: Failed assertion during Ritual of Trees quest
     Bug #5937: Lights always need to be rotated by 90 degrees
+    Bug #5976: Invisibility is broken when the attack starts instead of when it ends
+    Bug #5978: NPCs and Creatures talk to and headtrack a player character with a 75% chameleon effect or more
     Bug #5989: Simple water isn't affected by texture filter settings
     Bug #6037: Launcher: Morrowind content language cannot be set to English
     Bug #6051: NaN water height in ESM file is not handled gracefully
+    Bug #6054: Hotkey items can be equipped while in ready to attack stance
     Bug #6066: Addtopic "return" does not work from within script. No errors thrown
     Bug #6067: ESP loader fails for certain subrecord orders
     Bug #6087: Bound items added directly to the inventory disappear if their corresponding spell effect ends
@@ -63,6 +66,7 @@
     Bug #6133: Cannot reliably sneak or steal in the sight of the NPCs siding with player
     Bug #6142: Groundcover plugins change cells flags
     Bug #6143: Capturing a screenshot renders the engine temporarily unresponsive
+    Bug #6154: Levitating player character is floating rather than on the floor when teleported back from Magas Volar
     Bug #6165: Paralyzed player character can pickup items when the inventory is open
     Bug #6168: Weather particles flicker for a frame at start of storms
     Bug #6172: Some creatures can't open doors
@@ -106,6 +110,7 @@
     Bug #6417: OpenMW doesn't always use the right node to accumulate movement
     Bug #6429: Wyrmhaven: Can't add AI packages to player
     Bug #6433: Items bound to Quick Keys sometimes do not appear until the Quick Key menu is opened
+    Bug #6435: Add support for MSVC 2022
     Bug #6451: Weapon summoned from Cast When Used item will have the name "None"
     Bug #6473: Strings from NIF should be parsed only to first null terminator
     Bug #6493: Unlocking owned but not locked or unlocked containers is considered a crime
@@ -124,6 +129,7 @@
     Bug #6680: object.cpp handles nodetree unsafely, memory access with dangling pointer
     Bug #6682: HitOnMe doesn't fire as intended
     Bug #6697: Shaders vertex lighting incorrectly clamped
+    Bug #6705: OpenMW CS: A typo in the Creature levelled list
     Bug #6711: Log time differs from real time
     Bug #6717: Broken script causes interpreter stack corruption
     Bug #6718: Throwable weapons cause arrow enchantment effect to be applied to the whole body
@@ -131,6 +137,13 @@
     Bug #6753: Info records without a DATA subrecords are loaded incorrectly
     Bug #6794: Light sources are attached to mesh bounds centers instead of mesh origins when AttachLight NiNode is missing
     Bug #6799: Game crashes if an NPC has no Class attached
+    Bug #6849: ImageButton texture is not scaled properly
+    Bug #6869: Hits queue stagger during swing animation
+    Bug #6895: Removing a negative number of items from a script, makes the script terminate with an error
+    Bug #6898: Accessing the Quick Inventory menu does not work while in menu mode
+    Bug #6901: Morrowind.exe soul gem usage discrepancy
+    Bug #6909: Using enchanted items has no animation
+    Bug #6910: Torches should not be extinguished when not being held
     Feature #890: OpenMW-CS: Column filtering
     Feature #1465: "Reset" argument for AI functions
     Feature #2491: Ability to make OpenMW "portable"
@@ -144,6 +157,8 @@
     Feature #4297: Implement APPLIED_ONCE flag for magic effects
     Feature #4414: Handle duration of EXTRA SPELL magic effect
     Feature #4595: Unique object identifier
+    Feature #4974: Overridable MyGUI layout
+    Feature #4975: Built-in TrueType fonts
     Feature #5198: Implement "Magic effect expired" event
     Feature #5454: Clear active spells from actor when he disappears from scene
     Feature #5489: MCP: Telekinesis fix for activators
@@ -177,6 +192,8 @@
     Feature #6700: Support windowed fullscreen
     Feature #6706: Save the size of the Options window
     Feature #6721: [OpenMW-CS] Add option to open records in new window
+    Feature #6867: Add a way to localize hardcoded strings in GUI
+    Feature #6888: Add switch for armor degradation fix.
     Task #6078: First person should not clear depth buffer
     Task #6161: Refactor Sky to use shaders and be GLES/GL3 friendly
     Task #6162: Refactor GUI to use shaders and to be GLES and GL3+ friendly

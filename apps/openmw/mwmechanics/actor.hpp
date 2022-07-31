@@ -3,8 +3,11 @@
 
 #include <memory>
 
-#include "actorutil.hpp"
 #include "character.hpp"
+#include "greetingstate.hpp"
+
+#include "../mwbase/environment.hpp"
+#include "../mwbase/world.hpp"
 
 #include <components/misc/timer.hpp>
 
@@ -34,6 +37,7 @@ namespace MWMechanics
         void updatePtr(const MWWorld::Ptr& newPtr) { mCharacterController.updatePtr(newPtr); }
 
         CharacterController& getCharacterController() { return mCharacterController; }
+        const CharacterController& getCharacterController() const { return mCharacterController; }
 
         int getGreetingTimer() const { return mGreetingTimer; }
         void setGreetingTimer(int timer) { mGreetingTimer = timer; }

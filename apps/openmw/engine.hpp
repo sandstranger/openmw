@@ -22,6 +22,7 @@ namespace SceneUtil
 {
     class WorkQueue;
     class AsyncScreenCaptureOperation;
+    class UnrefQueue;
 }
 
 namespace VFS
@@ -120,6 +121,7 @@ namespace OMW
             std::unique_ptr<VFS::Manager> mVFS;
             std::unique_ptr<Resource::ResourceSystem> mResourceSystem;
             osg::ref_ptr<SceneUtil::WorkQueue> mWorkQueue;
+            std::unique_ptr<SceneUtil::UnrefQueue> mUnrefQueue;
             std::unique_ptr<MWWorld::World> mWorld;
             std::unique_ptr<MWSound::SoundManager> mSoundManager;
             std::unique_ptr<MWScript::ScriptManager> mScriptManager;
@@ -160,7 +162,6 @@ namespace OMW
             // Grab mouse?
             bool mGrab;
 
-            bool mExportFonts;
             unsigned int mRandomSeed;
 
             Compiler::Extensions mExtensions;
@@ -253,8 +254,6 @@ namespace OMW
             void setScriptBlacklist (const std::vector<std::string>& list);
 
             void setScriptBlacklistUse (bool use);
-
-            void enableFontExport(bool exportFonts);
 
             /// Set the save game file to load after initialising the engine.
             void setSaveGameFile(const std::string& savegame);

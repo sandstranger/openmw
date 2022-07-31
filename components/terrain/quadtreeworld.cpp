@@ -19,6 +19,7 @@
 #include "chunkmanager.hpp"
 #include "compositemaprenderer.hpp"
 #include "terraindrawable.hpp"
+#include "heightcull.hpp"
 
 namespace
 {

@@ -12,6 +12,13 @@
 #include "../mwmechanics/disease.hpp"
 #include "../mwmechanics/spellcasting.hpp"
 #include "../mwmechanics/difficultyscaling.hpp"
+#include "../mwmechanics/npcstats.hpp"
+#include "../mwmechanics/combat.hpp"
+#include "../mwmechanics/actorutil.hpp"
+#include "../mwmechanics/creaturecustomdataresetter.hpp"
+#include "../mwmechanics/aisetting.hpp"
+#include "../mwmechanics/inventory.hpp"
+#include "../mwmechanics/setbaseaisetting.hpp"
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/mechanicsmanager.hpp"
@@ -27,17 +34,15 @@
 #include "../mwworld/containerstore.hpp"
 #include "../mwworld/cellstore.hpp"
 #include "../mwworld/localscripts.hpp"
+#include "../mwworld/inventorystore.hpp"
+#include "../mwworld/esmstore.hpp"
 
 #include "../mwrender/renderinginterface.hpp"
 #include "../mwrender/objects.hpp"
 
 #include "../mwgui/tooltips.hpp"
 
-#include "../mwworld/inventorystore.hpp"
-
-#include "../mwmechanics/npcstats.hpp"
-#include "../mwmechanics/combat.hpp"
-#include "../mwmechanics/actorutil.hpp"
+#include "classmodel.hpp"
 
 namespace
 {
@@ -117,7 +122,7 @@ namespace MWClass
         {
             auto tempData = std::make_unique<CreatureCustomData>();
             CreatureCustomData* data = tempData.get();
-            MWMechanics::CreatureCustomDataResetter resetter(ptr);
+            MWMechanics::CreatureCustomDataResetter resetter {ptr};
             ptr.getRefData().setCustomData(std::move(tempData));
 
             MWWorld::LiveCellRef<ESM::Creature> *ref = ptr.get<ESM::Creature>();
@@ -139,10 +144,10 @@ namespace MWClass
 
             data->mCreatureStats.getAiSequence().fill(ref->mBase->mAiPackage);
 
-            data->mCreatureStats.setAiSetting (MWMechanics::CreatureStats::AI_Hello, ref->mBase->mAiData.mHello);
-            data->mCreatureStats.setAiSetting (MWMechanics::CreatureStats::AI_Fight, ref->mBase->mAiData.mFight);
-            data->mCreatureStats.setAiSetting (MWMechanics::CreatureStats::AI_Flee, ref->mBase->mAiData.mFlee);
-            data->mCreatureStats.setAiSetting (MWMechanics::CreatureStats::AI_Alarm, ref->mBase->mAiData.mAlarm);
+            data->mCreatureStats.setAiSetting(MWMechanics::AiSetting::Hello, ref->mBase->mAiData.mHello);
+            data->mCreatureStats.setAiSetting(MWMechanics::AiSetting::Fight, ref->mBase->mAiData.mFight);
+            data->mCreatureStats.setAiSetting(MWMechanics::AiSetting::Flee, ref->mBase->mAiData.mFlee);
+            data->mCreatureStats.setAiSetting(MWMechanics::AiSetting::Alarm, ref->mBase->mAiData.mAlarm);
 
             // Persistent actors with 0 health do not play death animation
             if (data->mCreatureStats.isDead())
@@ -180,13 +185,7 @@ namespace MWClass
 
     std::string Creature::getModel(const MWWorld::ConstPtr &ptr) const
     {
-        const MWWorld::LiveCellRef<ESM::Creature> *ref = ptr.get<ESM::Creature>();
-
-        const std::string &model = ref->mBase->mModel;
-        if (!model.empty()) {
-            return MWBase::Environment::get().getWindowManager()->correctMeshPath(model);
-        }
-        return "";
+        return getClassModel<ESM::Creature>(ptr);
     }
 
     void Creature::getModelsToPreload(const MWWorld::Ptr &ptr, std::vector<std::string> &models) const
@@ -235,7 +234,7 @@ namespace MWClass
         const MWWorld::Store<ESM::GameSetting> &gmst = MWBase::Environment::get().getWorld()->getStore().get<ESM::GameSetting>();
         MWMechanics::CreatureStats &stats = getCreatureStats(ptr);
 
-        if (stats.getDrawState() != MWMechanics::DrawState_Weapon)
+        if (stats.getDrawState() != MWMechanics::DrawState::Weapon)
             return;
 
         // Get the weapon used (if hand-to-hand, weapon = inv.end())
@@ -623,11 +622,12 @@ namespace MWClass
             const std::string model = getModel(ptr);
             if (!model.empty())
             {
+                const VFS::Manager* const vfs = MWBase::Environment::get().getResourceSystem()->getVFS();
                 for (const ESM::Creature &creature : store.get<ESM::Creature>())
                 {
                     if (creature.mId != ourId && creature.mOriginal != ourId && !creature.mModel.empty()
                         && Misc::StringUtils::ciEqual(model,
-                            MWBase::Environment::get().getWindowManager()->correctMeshPath(creature.mModel)))
+                            Misc::ResourceHelpers::correctMeshPath(creature.mModel, vfs)))
                     {
                         const std::string& fallbackId = !creature.mOriginal.empty() ? creature.mOriginal : creature.mId;
                         sound = store.get<ESM::SoundGenerator>().begin();
@@ -864,7 +864,7 @@ namespace MWClass
         scale *= ref->mBase->mScale;
     }
 
-    void Creature::setBaseAISetting(const std::string& id, MWMechanics::CreatureStats::AiSetting setting, int value) const
+    void Creature::setBaseAISetting(const std::string& id, MWMechanics::AiSetting setting, int value) const
     {
         MWMechanics::setBaseAISetting<ESM::Creature>(id, setting, value);
     }

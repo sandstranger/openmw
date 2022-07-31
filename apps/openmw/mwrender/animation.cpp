@@ -527,23 +527,7 @@ namespace MWRender
         mLightListCallback = new SceneUtil::LightListCallback;
     }
 
-    Animation::~Animation()
-    {
-        Animation::setLightEffect(0.f);
-
-        if (mObjectRoot)
-            mInsert->removeChild(mObjectRoot);
-    }
-
-    MWWorld::ConstPtr Animation::getPtr() const
-    {
-        return mPtr;
-    }
-
-    MWWorld::Ptr Animation::getPtr()
-    {
-        return mPtr;
-    }
+    Animation::~Animation() = default;
 
     void Animation::setActive(int active)
     {
@@ -708,7 +692,7 @@ namespace MWRender
         mAnimVelocities.clear();
     }
 
-    bool Animation::hasAnimation(const std::string &anim) const
+    bool Animation::hasAnimation(std::string_view anim) const
     {
         AnimSourceList::const_iterator iter(mAnimSources.begin());
         for(;iter != mAnimSources.end();++iter)
@@ -1779,6 +1763,15 @@ namespace MWRender
         return mHeadYawRadians;
     }
 
+    void Animation::removeFromScene()
+    {
+        if (mGlowLight != nullptr)
+            mInsert->removeChild(mGlowLight);
+
+        if (mObjectRoot != nullptr)
+            mInsert->removeChild(mObjectRoot);
+    }
+
     // ------------------------------------------------------
 
     float Animation::AnimationTime::getValue(osg::NodeVisitor*)
@@ -1838,7 +1831,7 @@ namespace MWRender
             mObjectRoot->accept(visitor);
         }
 
-        if (ptr.getRefData().getCustomData() != nullptr && canBeHarvested())
+        if (ptr.getRefData().getCustomData() != nullptr && ObjectAnimation::canBeHarvested())
         {
             const MWWorld::ContainerStore& store = ptr.getClass().getContainerStore(ptr);
             if (!store.hasVisibleItems())

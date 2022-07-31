@@ -39,8 +39,11 @@
 #include <osg/TexEnv>
 #include <osg/TexEnvCombine>
 
-#include <components/nif/node.hpp>
+#include <components/nif/controlled.hpp>
 #include <components/nif/effect.hpp>
+#include <components/nif/extra.hpp>
+#include <components/nif/node.hpp>
+#include <components/nif/property.hpp>
 #include <components/sceneutil/skeleton.hpp>
 #include <components/sceneutil/riggeometry.hpp>
 #include <components/sceneutil/morphgeometry.hpp>
@@ -614,16 +617,23 @@ namespace NifOsg
                 else if(e->recType == Nif::RC_NiStringExtraData)
                 {
                     const Nif::NiStringExtraData *sd = static_cast<const Nif::NiStringExtraData*>(e.getPtr());
+
+                    constexpr std::string_view extraDataIdentifer = "omw:data";
+
                     // String markers may contain important information
                     // affecting the entire subtree of this obj
-                    if(sd->string == "MRK" && !Loader::getShowMarkers())
+                    if (sd->string == "MRK" && !Loader::getShowMarkers())
                     {
                         // Marker objects. These meshes are only visible in the editor.
                         hasMarkers = true;
                     }
-                    else if(sd->string == "BONE")
+                    else if (sd->string == "BONE")
                     {
                         node->getOrCreateUserDataContainer()->addDescription("CustomBone");
+                    }
+                    else if (sd->string.rfind(extraDataIdentifer, 0) == 0)
+                    {
+                        node->setUserValue(Misc::OsgUserValues::sExtraData, sd->string.substr(extraDataIdentifer.length()));
                     }
                 }
             }
@@ -1277,7 +1287,7 @@ namespace NifOsg
                     if (strip.size() < 3)
                         continue;
                     geometry->addPrimitiveSet(new osg::DrawElementsUShort(osg::PrimitiveSet::TRIANGLE_STRIP, strip.size(),
-                                                                            (unsigned short*)strip.data()));
+                                                                            reinterpret_cast<const unsigned short*>(strip.data())));
                     hasGeometry = true;
                 }
                 if (!hasGeometry)
@@ -1292,7 +1302,7 @@ namespace NifOsg
                 if (line.empty())
                     return;
                 geometry->addPrimitiveSet(new osg::DrawElementsUShort(osg::PrimitiveSet::LINES, line.size(),
-                                                                        (unsigned short*)line.data()));
+                                                                        reinterpret_cast<const unsigned short*>(line.data())));
             }
             handleNiGeometryData(geometry, niGeometryData, boundTextures, nifNode->name);
 

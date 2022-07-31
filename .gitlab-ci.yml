@@ -5,6 +5,7 @@ default:
 # See https://docs.gitlab.com/ee/ci/yaml/#needs
 stages:
   - build
+  - test
 
 # https://blog.nimbleways.com/let-s-make-faster-gitlab-ci-cd-pipelines/
 variables:
@@ -18,10 +19,9 @@ variables:
   tags:
     - docker
     - linux
-  image: ubuntu:focal
+  image: ubuntu:22.04
   rules:
     - if: $CI_PIPELINE_SOURCE == "push"
-  
 
 .Ubuntu:
   extends: .Ubuntu_Image
@@ -38,6 +38,11 @@ variables:
     - CI/before_script.linux.sh
     - cd build
     - cmake --build . -- -j $(nproc)
+    - df -h
+    - du -sh .
+    - find . | grep '\.o$' | xargs rm -f
+    - df -h
+    - du -sh .
     - cmake --install .
     - if [[ "${BUILD_TESTS_ONLY}" ]]; then ./openmw_test_suite --gtest_output="xml:tests.xml"; fi
     - if [[ "${BUILD_TESTS_ONLY}" && ! "${BUILD_WITH_CODE_COVERAGE}" ]]; then ./openmw_detournavigator_navmeshtilescache_benchmark; fi
@@ -54,26 +59,6 @@ variables:
   artifacts:
     paths:
       - build/install/
-
-Clang_Tidy:
-  extends: .Ubuntu_Image
-  stage: build
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-  before_script:
-    - CI/install_debian_deps.sh gcc openmw-deps openmw-deps-dynamic clang-tidy clang
-  script:
-    - CI/before_script.linux.sh
-    - cd build
-    - cmake --build . -- -j $(nproc) openmw esmtool bsatool niftest openmw-wizard openmw-launcher openmw-iniimporter openmw-essimporter
-  variables:
-    CC: clang
-    CXX: clang++
-    CI_CLANG_TIDY: 1
-  timeout: 8h
-  artifacts:
-    paths: []
-    expire_in: 1 minute
 
 Coverity:
   extends: .Ubuntu_Image
@@ -99,13 +84,13 @@ Coverity:
     CXX: clang++
     CXXFLAGS: -O0
   artifacts:
-    paths: 
+    paths:
       - /builds/OpenMW/openmw/cov-int/build-log.txt
 
 Ubuntu_GCC:
   extends: .Ubuntu
   cache:
-    key: Ubuntu_GCC.v3
+    key: Ubuntu_GCC.ubuntu_22.04.v1
   before_script:
     - CI/install_debian_deps.sh gcc openmw-deps openmw-deps-dynamic
   variables:
@@ -118,7 +103,7 @@ Ubuntu_GCC:
 .Ubuntu_GCC_tests:
   extends: Ubuntu_GCC
   cache:
-    key: Ubuntu_GCC_tests.v3
+    key: Ubuntu_GCC_tests.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -132,7 +117,7 @@ Ubuntu_GCC:
 .Ubuntu_GCC_tests_Debug:
   extends: Ubuntu_GCC
   cache:
-    key: Ubuntu_GCC_tests_Debug.v2
+    key: Ubuntu_GCC_tests_Debug.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -148,7 +133,7 @@ Ubuntu_GCC:
 .Ubuntu_GCC_tests_asan:
   extends: Ubuntu_GCC
   cache:
-    key: Ubuntu_GCC_asan.v1
+    key: Ubuntu_GCC_asan.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -166,7 +151,7 @@ Ubuntu_GCC:
 .Ubuntu_GCC_tests_ubsan:
   extends: Ubuntu_GCC
   cache:
-    key: Ubuntu_GCC_ubsan.v1
+    key: Ubuntu_GCC_ubsan.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -183,7 +168,7 @@ Ubuntu_GCC:
 .Ubuntu_GCC_tests_tsan:
   extends: Ubuntu_GCC
   cache:
-    key: Ubuntu_GCC_tsan.v1
+    key: Ubuntu_GCC_tsan.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -201,7 +186,7 @@ Ubuntu_GCC:
 .Ubuntu_GCC_tests_coverage:
   extends: .Ubuntu_GCC_tests_Debug
   cache:
-    key: Ubuntu_GCC_tests_coverage.v1
+    key: Ubuntu_GCC_tests_coverage.ubuntu_22.04.v1
   variables:
     BUILD_WITH_CODE_COVERAGE: 1
   before_script:
@@ -227,7 +212,7 @@ Ubuntu_GCC:
         - "CI/**/*"
         - ".gitlab-ci.yml"
   cache:
-    key: Ubuntu_Static_Deps.V1
+    key: Ubuntu_Static_Deps.ubuntu_22.04.v1
     paths:
       - apt-cache/
       - ccache/
@@ -244,7 +229,7 @@ Ubuntu_GCC:
 .Ubuntu_Static_Deps_tests:
   extends: .Ubuntu_Static_Deps
   cache:
-    key: Ubuntu_Static_Deps_tests.V1
+    key: Ubuntu_Static_Deps_tests.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -261,20 +246,21 @@ Ubuntu_GCC:
 Ubuntu_Clang:
   extends: .Ubuntu
   before_script:
-    - CI/install_debian_deps.sh clang openmw-deps openmw-deps-dynamic
+    - CI/install_debian_deps.sh clang clang-tidy openmw-deps openmw-deps-dynamic
   cache:
-    key: Ubuntu_Clang.v2
+    key: Ubuntu_Clang.ubuntu_22.04.v1
   variables:
     CC: clang
     CXX: clang++
+    CI_CLANG_TIDY: 1
     CCACHE_SIZE: 2G
   # When CCache doesn't exist (e.g. first build on a fork), build takes more than 1h, which is the default for forks.
-  timeout: 2h
+  timeout: 3h
 
 .Ubuntu_Clang_tests:
   extends: Ubuntu_Clang
   cache:
-    key: Ubuntu_Clang_tests.v3
+    key: Ubuntu_Clang_tests.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -288,7 +274,7 @@ Ubuntu_Clang:
 Ubuntu_Clang_tests_Debug:
   extends: Ubuntu_Clang
   cache:
-    key: Ubuntu_Clang_tests_Debug.v1
+    key: Ubuntu_Clang_tests_Debug.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -300,11 +286,32 @@ Ubuntu_Clang_tests_Debug:
     reports:
       junit: build/tests.xml
 
+Ubuntu_Clang_integration_tests:
+  extends: .Ubuntu_Image
+  stage: test
+  needs:
+    - Ubuntu_Clang
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  cache:
+    key: Ubuntu_Clang_integration_tests.ubuntu_22.04.v1
+    paths:
+      - .cache/pip
+      - apt-cache/
+  before_script:
+    - CI/install_debian_deps.sh openmw-integration-tests
+    - pip3 install --user numpy matplotlib termtables click
+  script:
+    - CI/run_integration_tests.sh
+
 .MacOS:
   image: macos-11-xcode-12
   tags:
     - shared-macos-amd64
   stage: build
+  only:
+    variables:
+      - $CI_PROJECT_ID == "7107382"
   cache:
     paths:
     - ccache/
@@ -369,7 +376,7 @@ macOS12_Xcode13:
     - $env:CCACHE_BASEDIR = Get-Location
     - $env:CCACHE_DIR = "$(Get-Location)\ccache"
     - New-Item -Type Directory -Force -Path $env:CCACHE_DIR
-    - sh CI/before_script.msvc.sh -c $config -p Win64 -v 2019 -k -V -N -b -t -C $multiview
+    - sh CI/before_script.msvc.sh -c $config -p Win64 -v 2019 -k -V -N -b -t -C $multiview -E
     - cd MSVC2019_64_Ninja
     - .\ActivateMSVC.ps1
     - cmake --build . --config $config
@@ -471,7 +478,7 @@ macOS12_Xcode13:
     - $env:CCACHE_BASEDIR = Get-Location
     - $env:CCACHE_DIR = "$(Get-Location)\ccache"
     - New-Item -Type Directory -Force -Path $env:CCACHE_DIR
-    - sh CI/before_script.msvc.sh -c $config -p Win64 -v 2019 -k -V -b -t -C $multiview
+    - sh CI/before_script.msvc.sh -c $config -p Win64 -v 2019 -k -V -b -t -C $multiview -E
     - cd MSVC2019_64
     - cmake --build . --config $config
     - ccache --show-stats
@@ -566,14 +573,14 @@ Ubuntu_AndroidNDK_arm64-v8a:
     - CI/before_script.android.sh
     - cd build
     - cmake --build . -- -j $(nproc)
-    - cmake --install .
+    # - cmake --install .  # no one uses builds anyway, disable until 'no space left' is resolved
     - ccache -s
     - df -h
     - ls | grep -v -e '^extern$' -e '^install$' | xargs -I '{}' rm -rf './{}'
     - cd ..
     - df -h
     - du -sh build/
-    - du -sh build/install/
+    # - du -sh build/install/ # no install dir because it's commented out above
     - du -sh apt-cache/
     - du -sh ccache/
     - du -sh build/extern/fetched/

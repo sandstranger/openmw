@@ -1,11 +1,15 @@
 #include "groundcoverstore.hpp"
 
 #include <components/esmloader/load.hpp>
+#include <components/esmloader/esmdata.hpp>
 #include <components/misc/stringops.hpp>
 #include <components/esm3/readerscache.hpp>
+#include <components/misc/resourcehelpers.hpp>
+#include <components/resource/resourcesystem.hpp>
 
 #include <apps/openmw/mwbase/environment.hpp>
-#include <apps/openmw/mwbase/windowmanager.hpp>
+
+#include "store.hpp"
 
 namespace MWWorld
 {
@@ -20,6 +24,8 @@ namespace MWWorld
         const ::EsmLoader::EsmData content = ::EsmLoader::loadEsmData(query, groundcoverFiles, fileCollections,
                                                                       readers, encoder, listener);
 
+        const VFS::Manager* const vfs = MWBase::Environment::get().getResourceSystem()->getVFS();
+
         static constexpr std::string_view prefix = "grass\\";
         for (const ESM::Static& stat : statics)
         {
@@ -28,7 +34,7 @@ namespace MWWorld
             std::replace(model.begin(), model.end(), '/', '\\');
             if (model.compare(0, prefix.size(), prefix) != 0)
                 continue;
-            mMeshCache[id] = MWBase::Environment::get().getWindowManager()->correctMeshPath(model);
+            mMeshCache[id] = Misc::ResourceHelpers::correctMeshPath(model, vfs);
         }
 
         for (const ESM::Static& stat : content.mStatics)
@@ -38,7 +44,7 @@ namespace MWWorld
             std::replace(model.begin(), model.end(), '/', '\\');
             if (model.compare(0, prefix.size(), prefix) != 0)
                 continue;
-            mMeshCache[id] = MWBase::Environment::get().getWindowManager()->correctMeshPath(model);
+            mMeshCache[id] = Misc::ResourceHelpers::correctMeshPath(model, vfs);
         }
 
         for (const ESM::Cell& cell : content.mCells)

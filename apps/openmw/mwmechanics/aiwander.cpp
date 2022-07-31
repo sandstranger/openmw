@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <osg/Matrixf>
+
 #include <components/debug/debuglog.hpp>
 #include <components/misc/rng.hpp>
 #include <components/esm3/aisequence.hpp>
@@ -194,7 +196,7 @@ namespace MWMechanics
 
         mRemainingDuration -= ((duration*MWBase::Environment::get().getWorld()->getTimeScaleFactor()) / 3600);
 
-        cStats.setDrawState(DrawState_Nothing);
+        cStats.setDrawState(DrawState::Nothing);
         cStats.setMovementFlag(CreatureStats::Flag_Run, false);
 
         ESM::Position pos = actor.getRefData().getPosition();
@@ -765,7 +767,7 @@ namespace MWMechanics
 
         ToWorldCoordinates(dest, actor.getCell()->getCell());
 
-        state.moveIn(new AiWanderStorage());
+        state.moveIn(std::make_unique<AiWanderStorage>());
 
         osg::Vec3f pos(static_cast<float>(dest.mX), static_cast<float>(dest.mY), static_cast<float>(dest.mZ));
         MWBase::Environment::get().getWorld()->moveObject(actor, pos);

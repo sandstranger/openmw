@@ -7,14 +7,22 @@
 
 #include <components/esm/records.hpp>
 #include <components/widgets/list.hpp>
+#include <components/misc/resourcehelpers.hpp>
+#include <components/resource/resourcesystem.hpp>
 
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/mechanicsmanager.hpp"
+#include "../mwbase/environment.hpp"
+#include "../mwbase/world.hpp"
 
 #include "../mwworld/containerstore.hpp"
 #include "../mwworld/class.hpp"
+#include "../mwworld/store.hpp"
+#include "../mwworld/esmstore.hpp"
 
 #include "../mwmechanics/spellutil.hpp"
+#include "../mwmechanics/actorutil.hpp"
+#include "../mwmechanics/creaturestats.hpp"
 
 #include "tooltips.hpp"
 #include "class.hpp"
@@ -182,7 +190,8 @@ namespace MWGui
 
     void EditEffectDialog::setMagicEffect (const ESM::MagicEffect *effect)
     {
-        mEffectImage->setImageTexture(MWBase::Environment::get().getWindowManager()->correctIconPath(effect->mIcon));
+        mEffectImage->setImageTexture(Misc::ResourceHelpers::correctIconPath(effect->mIcon,
+            MWBase::Environment::get().getResourceSystem()->getVFS()));
 
         mEffectName->setCaptionWithReplacing("#{"+ESM::MagicEffect::effectIdToString  (effect->mIndex)+"}");
 

@@ -404,12 +404,15 @@ namespace MWWorld
         land.load(esm, isDeleted);
 
         // Same area defined in multiple plugins? -> last plugin wins
-        auto [it, inserted] = mStatic.insert(std::move(land));
-        if (!inserted) {
+        auto it = mStatic.lower_bound(land);
+        if (it != mStatic.end() && (std::tie(it->mX, it->mY) == std::tie(land.mX, land.mY)))
+        {
             auto nh = mStatic.extract(it);
             nh.value() = std::move(land);
             mStatic.insert(std::move(nh));
         }
+        else
+            mStatic.insert(it, std::move(land));
 
         return RecordId("", isDeleted);
     }
@@ -525,6 +528,10 @@ namespace MWWorld
         newCell.mAmbi.mSunlight = 0;
         newCell.mAmbi.mFog = 0;
         newCell.mAmbi.mFogDensity = 0;
+        newCell.mCellId.mPaged = true;
+        newCell.mCellId.mIndex.mX = x;
+        newCell.mCellId.mIndex.mY = y;
+
         return &mExt.insert(std::make_pair(key, newCell)).first->second;
     }
     const ESM::Cell *Store<ESM::Cell>::find(const std::string &id) const

@@ -1,6 +1,7 @@
 #include "ripplesimulation.hpp"
 
 #include <iomanip>
+#include <sstream>
 
 #include <osg/PolygonOffset>
 #include <osg/Texture2D>
@@ -109,7 +110,7 @@ RippleSimulation::RippleSimulation(osg::Group *parent, Resource::ResourceSystem*
 
     createWaterRippleStateSet(resourceSystem, mParticleNode);
 
-    resourceSystem->getSceneManager()->recreateShaders(mParticleNode, "objects", false, nullptr, true);
+    resourceSystem->getSceneManager()->recreateShaders(mParticleNode);
 
     mParent->addChild(mParticleNode);
 }

@@ -28,7 +28,6 @@ declare -a CMAKE_CONF_OPTS=(
     -DBUILD_SHARED_LIBS=OFF
     -DUSE_SYSTEM_TINYXML=ON
     -DOPENMW_USE_SYSTEM_RECASTNAVIGATION=ON
-    -DCMAKE_INSTALL_PREFIX=install
     -DOPENMW_CXX_FLAGS="-Werror -Werror=implicit-fallthrough"  # flags specific to OpenMW project
 )
 
@@ -44,7 +43,7 @@ fi
 
 if [[ $CI_CLANG_TIDY ]]; then
 	CMAKE_CONF_OPTS+=(
-	      -DCMAKE_CXX_CLANG_TIDY="clang-tidy;-checks=-*,boost-*,clang-analyzer-*,concurrency-*,performance-*,-header-filter=.*,bugprone-*,misc-definitions-in-headers,misc-misplaced-const,misc-redundant-expression,-bugprone-narrowing-conversions"
+	      -DCMAKE_CXX_CLANG_TIDY="clang-tidy;--warnings-as-errors=*"
 	)
 fi
 

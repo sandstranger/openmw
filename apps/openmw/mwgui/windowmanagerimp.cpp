@@ -55,6 +55,7 @@
 #include <components/lua_ui/util.hpp>
 
 #include "../mwbase/inputmanager.hpp"
+#include "../mwbase/luamanager.hpp"
 #include "../mwbase/statemanager.hpp"
 #include "../mwbase/soundmanager.hpp"
 #include "../mwbase/world.hpp"
@@ -127,8 +128,8 @@ namespace MWGui
 {
     WindowManager::WindowManager(
             SDL_Window* window, osgViewer::Viewer* viewer, osg::Group* guiRoot, Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue,
-            const std::string& logpath, const std::string& resourcePath, bool consoleOnlyScripts, Translation::Storage& translationDataStorage,
-            ToUTF8::FromType encoding, bool exportFonts, const std::string& versionDescription, const std::string& userDataPath, bool useShaders)
+            const std::string& logpath, bool consoleOnlyScripts, Translation::Storage& translationDataStorage,
+            ToUTF8::FromType encoding, const std::string& versionDescription, bool useShaders)
       : mOldUpdateMask(0)
       , mOldCullMask(0)
       , mStore(nullptr)
@@ -193,8 +194,9 @@ namespace MWGui
       , mWindowVisible(true)
     {
         mScalingFactor = std::clamp(Settings::Manager::getFloat("scaling factor", "GUI"), 0.5f, 8.f);
-        mGuiPlatform = new osgMyGUI::Platform(viewer, guiRoot, resourceSystem->getImageManager(), mScalingFactor);
-        mGuiPlatform->initialise(resourcePath, (std::filesystem::path(logpath) / "MyGUI.log").generic_string());
+        mGuiPlatform = new osgMyGUI::Platform(viewer, guiRoot, resourceSystem->getImageManager(),
+            resourceSystem->getVFS(), mScalingFactor, "mygui",
+            (std::filesystem::path(logpath) / "MyGUI.log").generic_string());
 
         mGui = new MyGUI::Gui;
         mGui->initialise("");
@@ -204,8 +206,8 @@ namespace MWGui
         MyGUI::LanguageManager::getInstance().eventRequestTag = MyGUI::newDelegate(this, &WindowManager::onRetrieveTag);
 
         // Load fonts
-        mFontLoader = std::make_unique<Gui::FontLoader>(encoding, resourceSystem->getVFS(), userDataPath, mScalingFactor);
-        mFontLoader->loadBitmapFonts(exportFonts);
+        mFontLoader = std::make_unique<Gui::FontLoader>(encoding, resourceSystem->getVFS(), mScalingFactor);
+        mFontLoader->loadBitmapFonts();
 
         //Register own widgets with MyGUI
         MyGUI::FactoryManager::getInstance().registerFactory<MWGui::Widgets::MWSkill>("Widget");
@@ -233,7 +235,7 @@ namespace MWGui
         MyGUI::FactoryManager::getInstance().registerFactory<ResourceImageSetPointerFix>("Resource", "ResourceImageSetPointer");
         MyGUI::FactoryManager::getInstance().registerFactory<AutoSizedResourceSkin>("Resource", "AutoSizedResourceSkin");
         MyGUI::ResourceManager::getInstance().load("core.xml");
-        WindowManager::loadUserFonts();
+        mFontLoader->loadTrueTypeFonts();
 
         bool keyboardNav = Settings::Manager::getBool("keyboard navigation", "GUI");
         mKeyboardNavigation = std::make_unique<KeyboardNavigation>();
@@ -287,11 +289,6 @@ namespace MWGui
             mGuiPlatform->getRenderManagerPtr()->enableShaders(mResourceSystem->getSceneManager()->getShaderManager());
 
         mStatsWatcher = std::make_unique<StatsWatcher>();
-    }
-
-    void WindowManager::loadUserFonts()
-    {
-        mFontLoader->loadTrueTypeFonts();
     }
 
     void WindowManager::initUI()
@@ -1065,12 +1062,27 @@ namespace MWGui
         }
         else
         {
+            std::vector<std::string> split;
+            Misc::StringUtils::split(tag, split, ":");
+
+            // TODO: LocalizationManager should not be a part of lua
+            const auto& luaManager = MWBase::Environment::get().getLuaManager();
+
+            // If a key has a "Context:KeyName" format, use YAML to translate data
+            if (split.size() == 2 && luaManager != nullptr)
+            {
+                _result = luaManager->translate(split[0], split[1]);
+                return;
+            }
+
+            // If not, treat is as GMST name from legacy localization
             if (!mStore)
             {
                 Log(Debug::Error) << "Error: WindowManager::onRetrieveTag: no Store set up yet, can not replace '" << tag << "'";
+                _result = tag;
                 return;
             }
-            const ESM::GameSetting *setting = mStore->get<ESM::GameSetting>().find(tag);
+            const ESM::GameSetting *setting = mStore->get<ESM::GameSetting>().search(tag);
 
             if (setting && setting->mValue.getType()==ESM::VT_String)
                 _result = setting->mValue.getString();
@@ -1163,7 +1175,7 @@ namespace MWGui
             window->onResChange(x, y);
 
         // We should reload TrueType fonts to fit new resolution
-        loadUserFonts();
+        mFontLoader->loadTrueTypeFonts();
 
         // TODO: check if any windows are now off-screen and move them back if so
     }
@@ -1360,8 +1372,8 @@ namespace MWGui
         mHud->unsetSelectedSpell();
 
         MWWorld::Player* player = &MWBase::Environment::get().getWorld()->getPlayer();
-        if (player->getDrawState() == MWMechanics::DrawState_Spell)
-            player->setDrawState(MWMechanics::DrawState_Nothing);
+        if (player->getDrawState() == MWMechanics::DrawState::Spell)
+            player->setDrawState(MWMechanics::DrawState::Nothing);
 
         mSpellWindow->setTitle("#{sNone}");
     }
@@ -2098,7 +2110,7 @@ namespace MWGui
         if (soundId.empty())
             return;
 
-        MWBase::Environment::get().getSoundManager()->playSound(soundId, volume, pitch, MWSound::Type::Sfx, MWSound::PlayMode::NoEnv);
+        MWBase::Environment::get().getSoundManager()->playSound(soundId, volume, pitch, MWSound::Type::Sfx, MWSound::PlayMode::NoEnvNoScaling);
     }
 
     void WindowManager::updateSpellWindow()
@@ -2120,27 +2132,6 @@ namespace MWGui
     void WindowManager::setConsoleMode(const std::string& mode)
     {
         mConsole->setConsoleMode(mode);
-    }
-
-    std::string WindowManager::correctIconPath(const std::string& path)
-    {
-        return Misc::ResourceHelpers::correctIconPath(path, mResourceSystem->getVFS());
-    }
-
-    std::string WindowManager::correctTexturePath(const std::string& path)
-    {
-        return Misc::ResourceHelpers::correctTexturePath(path, mResourceSystem->getVFS());
-    }
-
-    std::string WindowManager::correctMeshPath(const std::string& path)
-    {
-        return Misc::ResourceHelpers::correctMeshPath(path, mResourceSystem->getVFS());
-    }
-
-    bool WindowManager::textureExists(const std::string &path)
-    {
-        std::string corrected = Misc::ResourceHelpers::correctTexturePath(path, mResourceSystem->getVFS());
-        return mResourceSystem->getVFS()->exists(corrected);
     }
 
     void WindowManager::createCursors()

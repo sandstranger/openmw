@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <map>
 #include <numeric>
+#include <sstream>
 
 #include <osg/Matrixf>
 
@@ -248,7 +249,7 @@ namespace MWSound
         mMusic->init([&] {
             SoundParams params;
             params.mBaseVolume = volumeFromType(Type::Music);
-            params.mFlags = PlayMode::NoEnv | Type::Music | Play_2D;
+            params.mFlags = PlayMode::NoEnvNoScaling | Type::Music | Play_2D;
             return params;
         } ());
         mOutput->streamSound(decoder, mMusic.get());
@@ -462,7 +463,7 @@ namespace MWSound
         track->init([&] {
             SoundParams params;
             params.mBaseVolume = volumeFromType(type);
-            params.mFlags = PlayMode::NoEnv | type | Play_2D;
+            params.mFlags = PlayMode::NoEnvNoScaling | type | Play_2D;
             return params;
         } ());
         if(!mOutput->streamSound(decoder, track.get()))
