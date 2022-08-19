@@ -138,10 +138,10 @@ set(BUILTIN_DATA_FILES
     mygui/openmw_scroll.layout
     mygui/openmw_scroll.skin.xml
     mygui/openmw_settings_window.layout
-    mygui/openmw_settings_window.layout
+    mygui/openmw_settings_window_shaders.layout
     mygui/openmw_settings.xml
     mygui/openmw_spell_window.layout
-    mygui/openmw_stats_window_shaders.layout
+    mygui/openmw_stats_window.layout
     mygui/openmw_text_input.layout
     mygui/openmw_text.skin.xml
     mygui/openmw_tooltips.layout
