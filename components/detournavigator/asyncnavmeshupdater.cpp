@@ -16,6 +16,7 @@
 #include <DetourNavMesh.h>
 
 #include <osg/Stats>
+#include <osg/io_utils>
 
 #include <algorithm>
 #include <numeric>
@@ -91,7 +92,7 @@ namespace DetourNavigator
         {
             if (db == nullptr)
                 return nullptr;
-            return std::make_unique<DbWorker>(updater, std::move(db), TileVersion(navMeshVersion),
+            return std::make_unique<DbWorker>(updater, std::move(db), TileVersion(navMeshFormatVersion),
                                               settings.mRecast, settings.mWriteToNavMeshDb);
         }
 
@@ -110,6 +111,17 @@ namespace DetourNavigator
             static std::atomic_size_t nextJobId {1};
             return nextJobId.fetch_add(1);
         }
+    }
+
+    std::ostream& operator<<(std::ostream& stream, JobStatus value)
+    {
+        switch (value)
+        {
+            case JobStatus::Done: return stream << "JobStatus::Done";
+            case JobStatus::Fail: return stream << "JobStatus::Fail";
+            case JobStatus::MemoryCacheMiss: return stream << "JobStatus::MemoryCacheMiss";
+        }
+        return stream << "JobStatus::" << static_cast<std::underlying_type_t<JobState>>(value);
     }
 
     Job::Job(const AgentBounds& agentBounds, std::weak_ptr<GuardedNavMeshCacheItem> navMeshCacheItem,
@@ -206,7 +218,7 @@ namespace DetourNavigator
     {
         if (mSettings.get().mWaitUntilMinDistanceToPlayer == 0)
             return;
-        listener.setLabel("Building navigation mesh");
+        listener.setLabel("#{Navigation:BuildingNavigationMesh}");
         const std::size_t initialJobsLeft = getTotalJobs();
         std::size_t maxProgress = initialJobsLeft + mThreads.size();
         listener.setProgressRange(maxProgress);
@@ -471,7 +483,7 @@ namespace DetourNavigator
         std::unique_ptr<PreparedNavMeshData> preparedNavMeshData;
         bool generatedNavMeshData = false;
 
-        if (job.mCachedTileData.has_value() && job.mCachedTileData->mVersion == navMeshVersion)
+        if (job.mCachedTileData.has_value() && job.mCachedTileData->mVersion == navMeshFormatVersion)
         {
             preparedNavMeshData = std::make_unique<PreparedNavMeshData>();
             if (deserialize(job.mCachedTileData->mData, *preparedNavMeshData))
@@ -499,6 +511,8 @@ namespace DetourNavigator
         const auto offMeshConnections = mOffMeshConnectionsManager.get().get(job.mChangedTile);
 
         const PreparedNavMeshData* preparedNavMeshDataPtr = cachedNavMeshData ? &cachedNavMeshData.get() : preparedNavMeshData.get();
+        assert (preparedNavMeshDataPtr != nullptr);
+
         const UpdateNavMeshStatus status = navMeshCacheItem.lock()->updateTile(job.mChangedTile, std::move(cachedNavMeshData),
             makeNavMeshTileData(*preparedNavMeshDataPtr, offMeshConnections, job.mAgentBounds, job.mChangedTile, mSettings.get().mRecast));
 

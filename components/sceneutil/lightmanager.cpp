@@ -8,7 +8,6 @@
 #include <osg/BufferObject>
 #include <osg/BufferIndexBinding>
 #include <osg/Endian>
-#include <osg/Version>
 #include <osg/ValueObject>
 
 #include <osgUtil/CullVisitor>
@@ -24,6 +23,10 @@
 
 namespace
 {
+    constexpr int maxLightsLowerLimit = 2;
+    constexpr int maxLightsUpperLimit = 64;
+    constexpr int ffpMaxLights = 8;
+
     bool sortLights(const SceneUtil::LightManager::LightSourceViewBound* left, const SceneUtil::LightManager::LightSourceViewBound* right)
     {
         static auto constexpr illuminationBias = 81.f;
@@ -70,6 +73,15 @@ namespace
 
 namespace SceneUtil
 {
+    namespace
+    {
+        const std::unordered_map<std::string, LightingMethod> lightingMethodSettingMap = {
+            {"legacy", LightingMethod::FFP},
+            {"shaders compatibility", LightingMethod::PerObjectUniform},
+            {"shaders", LightingMethod::SingleUBO},
+        };
+    }
+
     static int sLightId = 0;
 
     // Handles a GLSL shared layout by using configured offsets and strides to fill a continuous buffer, making the data upload to GPU simpler.
@@ -289,11 +301,7 @@ namespace SceneUtil
 
                 osg::ref_ptr<osg::UniformBufferObject> ubo = new osg::UniformBufferObject;
                 buffer->getData()->setBufferObject(ubo);
-#if OSG_VERSION_GREATER_OR_EQUAL(3,5,7)
                 osg::ref_ptr<osg::UniformBufferBinding> ubb = new osg::UniformBufferBinding(static_cast<int>(Resource::SceneManager::UBOBinding::LightBuffer), buffer->getData(), 0, buffer->getData()->getTotalDataSize());
-#else
-                osg::ref_ptr<osg::UniformBufferBinding> ubb = new osg::UniformBufferBinding(static_cast<int>(Resource::SceneManager::UBOBinding::LightBuffer), ubo, 0, buffer->getData()->getTotalDataSize());
-#endif
                 stateset->setAttributeAndModes(ubb, mode);
 
                 break;
@@ -463,16 +471,14 @@ namespace SceneUtil
         {
             osg::ref_ptr<osg::StateSet> stateset = new osg::StateSet;
 
-            osg::ref_ptr<osg::IntArray> indices = new osg::IntArray(mLightManager->getMaxLights());
-            osg::ref_ptr<osg::Uniform> indicesUni = new osg::Uniform(osg::Uniform::Type::INT, "PointLightIndex", indices->size());
+            osg::ref_ptr<osg::Uniform> indicesUni = new osg::Uniform(osg::Uniform::Type::INT, "PointLightIndex", mLightManager->getMaxLights());
             int pointCount = 0;
 
             for (size_t i = 0; i < lightList.size(); ++i)
             {
                 int bufIndex = mLightManager->getLightIndexMap(frameNum)[lightList[i]->mLightSource->getId()];
-                indices->at(pointCount++) = bufIndex;
+                indicesUni->setElement(pointCount++, bufIndex);
             }
-            indicesUni->setArray(indices);
             stateset->addUniform(indicesUni);
             stateset->addUniform(new osg::Uniform("PointLightCount", pointCount));
 
@@ -595,20 +601,28 @@ namespace SceneUtil
     class LightManagerCullCallback : public SceneUtil::NodeCallback<LightManagerCullCallback, LightManager*, osgUtil::CullVisitor*>
     {
     public:
+        LightManagerCullCallback(LightManager* lightManager)
+        {
+            if (!lightManager->getUBOManager())
+                return;
+
+            for (size_t i = 0; i < mStateSet.size(); ++i)
+            {
+                auto& buffer = lightManager->getUBOManager()->getLightBuffer(i);
+                osg::ref_ptr<osg::UniformBufferBinding> ubb = new osg::UniformBufferBinding(static_cast<int>(Resource::SceneManager::UBOBinding::LightBuffer), buffer->getData(), 0, buffer->getData()->getTotalDataSize());
+                mStateSet[i]->setAttributeAndModes(ubb, osg::StateAttribute::ON);
+            }
+        }
+
         void operator()(LightManager* node, osgUtil::CullVisitor* cv)
         {
-            osg::ref_ptr<osg::StateSet> stateset = new osg::StateSet;
+            const size_t frameId = cv->getTraversalNumber() % 2;
+
+            auto& stateset = mStateSet[frameId];
 
             if (node->getLightingMethod() == LightingMethod::SingleUBO)
             {
-                auto buffer = node->getUBOManager()->getLightBuffer(cv->getTraversalNumber());
-
-#if OSG_VERSION_GREATER_OR_EQUAL(3,5,7)
-                osg::ref_ptr<osg::UniformBufferBinding> ubb = new osg::UniformBufferBinding(static_cast<int>(Resource::SceneManager::UBOBinding::LightBuffer), buffer->getData(), 0, buffer->getData()->getTotalDataSize());
-#else
-                osg::ref_ptr<osg::UniformBufferBinding> ubb = new osg::UniformBufferBinding(static_cast<int>(Resource::SceneManager::UBOBinding::LightBuffer), buffer->getData()->getBufferObject(), 0, buffer->getData()->getTotalDataSize());
-#endif
-                stateset->setAttributeAndModes(ubb, osg::StateAttribute::ON);
+                auto& buffer = node->getUBOManager()->getLightBuffer(cv->getTraversalNumber());
 
                 if (auto sun = node->getSunlight())
                 {
@@ -639,6 +653,8 @@ namespace SceneUtil
             if (node->getPPLightsBuffer() && cv->getCurrentCamera()->getName() == Constants::SceneCamera)
                 node->getPPLightsBuffer()->updateCount(cv->getTraversalNumber());
         }
+
+        std::array<osg::ref_ptr<osg::StateSet>, 2> mStateSet = { new osg::StateSet, new osg::StateSet };
     };
 
     UBOManager::UBOManager(int lightCount)
@@ -756,16 +772,10 @@ namespace SceneUtil
         mTemplate->configureLayout(offsets[0], offsets[1], offsets[2], totalBlockSize, stride);
     }
 
-    const std::unordered_map<std::string, LightingMethod> LightManager::mLightingMethodSettingMap = {
-         {"legacy", LightingMethod::FFP}
-        ,{"shaders compatibility", LightingMethod::PerObjectUniform}
-        ,{"shaders", LightingMethod::SingleUBO}
-    };
-
     LightingMethod LightManager::getLightingMethodFromString(const std::string& value)
     {
-        auto it = LightManager::mLightingMethodSettingMap.find(value);
-        if (it != LightManager::mLightingMethodSettingMap.end())
+        auto it = lightingMethodSettingMap.find(value);
+        if (it != lightingMethodSettingMap.end())
             return it->second;
 
         constexpr const char* fallback = "shaders compatibility";
@@ -775,7 +785,7 @@ namespace SceneUtil
 
     std::string LightManager::getLightingMethodString(LightingMethod method)
     {
-        for (const auto& p : LightManager::mLightingMethodSettingMap)
+        for (const auto& p : lightingMethodSettingMap)
             if (p.second == method)
                 return p.first;
         return "";
@@ -801,7 +811,7 @@ namespace SceneUtil
 
         if (ffp)
         {
-            initFFP(mFFPMaxLights);
+            initFFP(ffpMaxLights);
             return;
         }
 
@@ -819,7 +829,8 @@ namespace SceneUtil
             hasLoggedWarnings = true;
         }
 
-        int targetLights = std::clamp(Settings::Manager::getInt("max lights", "Shaders"), mMaxLightsLowerLimit, mMaxLightsUpperLimit);
+        const int targetLights = std::clamp(Settings::Manager::getInt("max lights", "Shaders"),
+                                            maxLightsLowerLimit, maxLightsUpperLimit);
 
         if (!supportsUBO || !supportsGPU4 || lightingMethod == LightingMethod::PerObjectUniform)
             initPerObjectUniform(targetLights);
@@ -830,7 +841,7 @@ namespace SceneUtil
 
         getOrCreateStateSet()->addUniform(new osg::Uniform("PointLightCount", 0));
 
-        addCullCallback(new LightManagerCullCallback);
+        addCullCallback(new LightManagerCullCallback(this));
     }
 
     LightManager::LightManager(const LightManager &copy, const osg::CopyOp &copyop)
@@ -902,7 +913,7 @@ namespace SceneUtil
         if (usingFFP())
             return;
 
-        setMaxLights(std::clamp(Settings::Manager::getInt("max lights", "Shaders"), mMaxLightsLowerLimit, mMaxLightsUpperLimit));
+        setMaxLights(std::clamp(Settings::Manager::getInt("max lights", "Shaders"), maxLightsLowerLimit, maxLightsUpperLimit));
 
         if (getLightingMethod() == LightingMethod::PerObjectUniform)
         {

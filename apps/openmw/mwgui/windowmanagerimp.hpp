@@ -135,21 +135,20 @@ namespace MWGui
     typedef std::vector<Faction> FactionList;
 
     WindowManager(SDL_Window* window, osgViewer::Viewer* viewer, osg::Group* guiRoot, Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue,
-                  const std::string& logpath, const std::string& cacheDir, bool consoleOnlyScripts, Translation::Storage& translationDataStorage,
-                  ToUTF8::FromType encoding, bool exportFonts, const std::string& versionDescription, const std::string& localPath, bool useShaders);
+                  const std::string& logpath, bool consoleOnlyScripts, Translation::Storage& translationDataStorage,
+                  ToUTF8::FromType encoding, const std::string& versionDescription, bool useShaders);
     virtual ~WindowManager();
 
     /// Set the ESMStore to use for retrieving of GUI-related strings.
     void setStore (const MWWorld::ESMStore& store);
 
     void initUI();
-    void loadUserFonts();
 
     Loading::Listener* getLoadingScreen() override;
 
     /// @note This method will block until the video finishes playing
     /// (and will continually update the window while doing so)
-    void playVideo(const std::string& name, bool allowSkipping) override;
+    void playVideo(const std::string& name, bool allowSkipping, bool overrideSounds = true) override;
 
     /// Warning: do not use MyGUI::InputManager::setKeyFocusWidget directly. Instead use this.
     void setKeyFocusWidget (MyGUI::Widget* widget) override;
@@ -376,12 +375,6 @@ namespace MWGui
     void cycleWeapon(bool next) override;
 
     void playSound(const std::string& soundId, float volume = 1.f, float pitch = 1.f) override;
-
-    // In WindowManager for now since there isn't a VFS singleton
-    std::string correctIconPath(const std::string& path) override;
-    std::string correctTexturePath(const std::string& path) override;
-    std::string correctMeshPath(const std::string& path) override;
-    bool textureExists(const std::string& path) override;
 
     void addCell(MWWorld::CellStore* cell) override;
     void removeCell(MWWorld::CellStore* cell) override;

@@ -12,7 +12,6 @@
 #include <osg/ColorMask>
 #include <osg/BlendFunc>
 #include <osg/AlphaFunc>
-#include <osg/Version>
 #include <osg/observer_ptr>
 #include <osg/PositionAttitudeTransform>
 
@@ -615,9 +614,7 @@ namespace MWRender
     protected:
         void setDefaults(osg::StateSet* stateset) override
         {
-            if (Stereo::getMultiview())
-                stateset->addUniform(new osg::Uniform(osg::Uniform::FLOAT_MAT4, "projectionMatrixMultiView", 2), osg::StateAttribute::OVERRIDE);
-            else
+            if (!Stereo::getMultiview())
                 stateset->addUniform(new osg::Uniform(osg::Uniform::FLOAT_MAT4, "projectionMatrix"), osg::StateAttribute::OVERRIDE);
 
         }
@@ -626,7 +623,7 @@ namespace MWRender
         {
             if (Stereo::getMultiview())
             {
-                auto* projectionMatrixMultiViewUniform = stateset->getUniform("projectionMatrixMultiView");
+                std::array<osg::Matrix, 2> projectionMatrices;
                 auto& sm = Stereo::Manager::instance();
 
                 for (int view : {0, 1})
@@ -636,8 +633,10 @@ namespace MWRender
                     for (int col : {0, 1, 2})
                         viewOffsetMatrix(3, col) = 0;
 
-                    projectionMatrixMultiViewUniform->setElement(view, viewOffsetMatrix * projectionMatrix);
+                    projectionMatrices[view] = viewOffsetMatrix * projectionMatrix;
                 }
+
+                Stereo::setMultiviewMatrices(stateset, projectionMatrices);
             }
         }
         void applyLeft(osg::StateSet* stateset, osgUtil::CullVisitor* /*cv*/) override
@@ -855,12 +854,8 @@ namespace MWRender
         osg::ref_ptr<osg::OcclusionQueryNode> oqn = new osg::OcclusionQueryNode;
         oqn->setQueriesEnabled(true);
 
-#if OSG_VERSION_GREATER_OR_EQUAL(3, 6, 5)
         // With OSG 3.6.5, the method of providing user defined query geometry has been completely replaced
         osg::ref_ptr<osg::QueryGeometry> queryGeom = new osg::QueryGeometry(oqn->getName());
-#else
-        osg::ref_ptr<osg::QueryGeometry> queryGeom = oqn->getQueryGeometry();
-#endif
 
         // Make it fast! A DYNAMIC query geometry means we can't break frame until the flare is rendered (which is rendered after all the other geometry,
         // so that would be pretty bad). STATIC should be safe, since our node's local bounds are static, thus computeBounds() which modifies the queryGeometry
@@ -881,9 +876,7 @@ namespace MWRender
         // Still need a proper bounding sphere.
         oqn->setInitialBound(queryGeom->getBound());
 
-#if OSG_VERSION_GREATER_OR_EQUAL(3, 6, 5)
         oqn->setQueryGeometry(queryGeom.release());
-#endif
 
         osg::StateSet* queryStateSet = new osg::StateSet;
         if (queryVisible)

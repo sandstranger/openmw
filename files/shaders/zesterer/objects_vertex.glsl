@@ -53,7 +53,7 @@ varying vec2 glossMapUV;
 
 varying vec4 modelPos;
 
-#define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
+#define PER_PIXEL_LIGHTING 1// (@normalMap || @forcePPL)
 
 #if !PER_PIXEL_LIGHTING
 centroid varying vec3 passLighting;

@@ -22,8 +22,8 @@ add_openmw_dir (mwrender
     actors objects renderingmanager animation rotatecontroller sky skyutil npcanimation vismask
     creatureanimation effectmanager util renderinginterface pathgrid rendermode weaponanimation screenshotmanager
     bulletdebugdraw globalmap characterpreview camera localmap water terrainstorage ripplesimulation
-    renderbin actoranimation landmanager navmesh actorspaths recastmesh fogmanager objectpaging postprocessor
-    pingpongcull hdr pingpongcanvas transparentpass navmeshmode
+    renderbin actoranimation landmanager navmesh actorspaths recastmesh fogmanager objectpaging
+    postprocessor pingpongcull luminancecalculator pingpongcanvas transparentpass navmeshmode
     )
 
 add_openmw_dir (mwinput
@@ -62,7 +62,7 @@ add_openmw_dir (mwlua
     luamanagerimp object worldview userdataserializer eventqueue
     luabindings localscripts playerscripts objectbindings cellbindings asyncbindings
     camerabindings uibindings inputbindings nearbybindings postprocessingbindings stats debugbindings
-    types/types types/door types/actor types/container types/weapon types/npc types/creature types/activator types/book types/lockpick types/probe types/apparatus types/potion types/misc types/repair
+    types/types types/door types/actor types/container types/weapon types/npc types/creature types/activator types/book types/lockpick types/probe types/apparatus types/potion types/ingredient types/misc types/repair
     )
 
 add_openmw_dir (mwsound
@@ -161,9 +161,32 @@ target_link_libraries(openmw
     components
 )
 
-if (MSVC AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.16)
-    target_precompile_headers(openmw PRIVATE ${SOL_INCLUDE_DIR}/sol/sol.hpp)
-endif ()
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.16 AND MSVC)
+    target_precompile_headers(openmw PRIVATE
+        <boost/filesystem.hpp>
+        <boost/program_options/options_description.hpp>
+
+        <sol/sol.hpp>
+
+        <osg/StateSet>
+        <osg/Node>
+        <osg/Drawable>
+        <osg/Camera>
+
+        <osgViewer/Viewer>
+
+        <MyGUI_Widget.h>
+
+        <algorithm>
+        <filesystem>
+        <fstream>
+        <functional>
+        <memory>
+        <string>
+        <string_view>
+        <vector>
+    )
+endif()
 
 if (ANDROID)
     target_link_libraries(openmw EGL android log z)

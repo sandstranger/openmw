@@ -147,9 +147,11 @@ Controls whether the objects in the active cells use the mentioned paging algori
 Active grid paging significantly improves the framerate when your setup is CPU-limited.
 
 .. note::
-	Given that only 8 light sources may affect an object at a time at the moment,
-	lighting issues arising due to merged objects being considered a single object
-	may disrupt your gameplay experience.
+	There is a limit of light sources which may affect a rendering shape at the moment.
+	If this limit is too small, lighting issues arising due to merged objects
+	being considered a single object, and they may disrupt your gameplay experience.
+	Consider increasing the 'max lights' setting value in the 'Shaders' section to avoid this issue.
+	With the Legacy lighting mode this limit can not be increased (only 8 sources can be used).
 
 object paging merge factor
 --------------------------
@@ -157,14 +159,11 @@ object paging merge factor
 :Range:		>0
 :Default:	250.0
 
-Affects the likelyhood of objects being merged.
-Higher values improve the framerate at the cost of memory.
+Affects the likelyhood of more complex objects to get paged.
+Higher values improve visual fidelity at the cost of performance and RAM.
 
-Technically this is implemented as a multiplier to the merging benefit, and since
-an object has a lot of vertices, sometimes in terms of hundreds and thousands,
-and doesn't often need as much draw calls to be rendered (typically that number is in 1 or 2 digits)
-this value needs to be large enough, as this is what makes
-the merging cost and the merging benefit actually comparable for the sake of paging.
+Technically this factor is a multiplier of merging benefit and affects the decision
+whether displaying the object is cheap enough to justify the sacrifices.
 
 object paging min size
 ----------------------

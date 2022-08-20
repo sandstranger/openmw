@@ -61,7 +61,7 @@ add_component_dir (sceneutil
     clone attach visitor util statesetupdater controller skeleton riggeometry morphgeometry lightcontroller
     lightmanager lightutil positionattitudetransform workqueue pathgridutil waterutil writescene serialize optimizer
     actorutil detourdebugdraw navmesh agentpath shadow mwshadowtechnique recastmesh shadowsbin osgacontroller rtt
-    screencapture depth color riggeometryosgaextension
+    screencapture depth color riggeometryosgaextension extradata unrefqueue
     )
 
 add_component_dir (nif
@@ -214,7 +214,7 @@ IF(NOT WIN32 AND NOT APPLE)
 ENDIF()
 add_component_dir (files
     linuxpath androidpath windowspath macospath fixedpath multidircollection collections configurationmanager
-    lowlevelfile constrainedfilestream memorystream hash configfileparser openfile constrainedfilestreambuf
+    constrainedfilestream memorystream hash configfileparser openfile constrainedfilestreambuf
     )
 
 add_component_dir (compiler
@@ -234,7 +234,8 @@ add_component_dir (translation
     )
 
 add_component_dir (terrain
-    storage world buffercache defs terraingrid material terraindrawable texturemanager chunkmanager compositemaprenderer quadtreeworld quadtreenode viewdata cellborder
+    storage world buffercache defs terraingrid material terraindrawable texturemanager chunkmanager compositemaprenderer
+    quadtreeworld quadtreenode viewdata cellborder view heightcull
     )
 
 add_component_dir (loadinglistener
@@ -314,6 +315,7 @@ add_component_dir(detournavigator
     navmeshdbutils
     recast
     gettilespositions
+    collisionshapetype
     )
 
 add_component_dir(loadinglistener
@@ -337,7 +339,22 @@ add_component_dir(navmeshtool
 
 add_component_dir(platform
     platform
+    file
     )
+
+if (WIN32)
+    add_component_dir(platform
+        file.win32
+        )
+elseif (UNIX)
+    add_component_dir(platform
+        file.posix
+        )
+else ()
+    add_component_dir(platform
+        file.stdio
+        )
+endif()
 
 set (ESM_UI ${CMAKE_SOURCE_DIR}/files/ui/contentselector.ui
     )
@@ -498,6 +515,33 @@ if(USE_QT)
     set_property(TARGET components_qt PROPERTY AUTOMOC ON)
 endif(USE_QT)
 
-if (MSVC AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.16)
-    target_precompile_headers(components PRIVATE ${SOL_INCLUDE_DIR}/sol/sol.hpp)
-endif ()
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.16 AND MSVC)
+    target_precompile_headers(components PUBLIC
+        <sol/sol.hpp>
+
+        <osg/State>
+        <osg/StateSet>
+        <osg/Node>
+        <osg/Drawable>
+        <osg/Camera>
+
+        <MyGUI_Widget.h>
+
+        <boost/filesystem.hpp>
+
+        <algorithm>
+        <filesystem>
+        <fstream>
+        <functional>
+        <memory>
+        <ostream>
+        <string>
+        <vector>
+    )
+
+    target_precompile_headers(components PRIVATE
+        <osgViewer/Viewer>
+
+        <boost/program_options/options_description.hpp>
+    )
+endif()

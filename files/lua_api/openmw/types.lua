@@ -10,6 +10,12 @@
 -- @type Actor
 
 ---
+-- Agent bounds to be used for pathfinding functions.
+-- @function [parent=#Actor] getPathfindingAgentBounds
+-- @param openmw.core#GameObject actor
+-- @return #table with `shapeType` and `halfExtents`
+
+---
 -- Whether the object is an actor.
 -- @function [parent=#Actor] objectIsInstance
 -- @param openmw.core#GameObject object
@@ -617,6 +623,22 @@
 -- @function [parent=#Ingredient] objectIsInstance
 -- @param openmw.core#GameObject object
 -- @return #boolean
+
+---
+-- Returns the read-only @{#IngredientRecord} of a Ingredient
+-- @function [parent=#Ingredient] record
+-- @param #any objectOrRecordId
+-- @return #IngredientRecord
+
+---
+-- @type IngredientRecord
+-- @field #string id Record id
+-- @field #string name Human-readable name
+-- @field #string model VFS path to the model
+-- @field #string mwscript MWScript on this potion (can be empty)
+-- @field #string icon VFS path to the icon
+-- @field #number weight
+-- @field #number value
 
 
 

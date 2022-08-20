@@ -8,6 +8,7 @@
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/soundmanager.hpp"
+#include "../mwbase/world.hpp"
 
 #include "../mwmechanics/actorutil.hpp"
 
@@ -22,6 +23,8 @@
 
 #include <cmath>
 
+namespace MWWorld
+{
 namespace
 {
     static const int invalidWeatherID = -1;
@@ -52,8 +55,6 @@ namespace
     }
 }
 
-namespace MWWorld
-{
     template <typename T>
     T TimeOfDayInterpolator<T>::getValue(const float gameHour, const TimeOfDaySettings& timeSettings, const std::string& prefix) const
     {
@@ -285,8 +286,8 @@ namespace MWWorld
         mChances.push_back(region.mData.mThunder);
         mChances.push_back(region.mData.mAsh);
         mChances.push_back(region.mData.mBlight);
-        mChances.push_back(region.mData.mA);
-        mChances.push_back(region.mData.mB);
+        mChances.push_back(region.mData.mSnow);
+        mChances.push_back(region.mData.mBlizzard);
     }
 
     RegionWeather::RegionWeather(const ESM::RegionWeatherState& state)

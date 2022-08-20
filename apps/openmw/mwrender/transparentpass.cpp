@@ -3,16 +3,16 @@
 #include <osg/BlendFunc>
 #include <osg/Texture2D>
 #include <osg/Texture2DArray>
-
-#ifdef OSG_HAS_MULTIVIEW
-#include <osg/Texture2DMultisampleArray>
-#endif
+#include <osg/Material>
+#include <osg/AlphaFunc>
 
 #include <osgUtil/RenderStage>
 
 #include <components/shader/shadermanager.hpp>
 #include <components/stereo/multiview.hpp>
 #include <components/stereo/stereomanager.hpp>
+
+#include "vismask.hpp"
 
 namespace MWRender
 {
@@ -38,6 +38,7 @@ namespace MWRender
 
             mStateSet->setAttributeAndModes(new osg::BlendFunc, modeOff);
             mStateSet->setAttributeAndModes(shaderManager.getProgram(vertex, fragment), modeOn);
+            mStateSet->setAttributeAndModes(new SceneUtil::AutoDepth, modeOn);
 
             for (unsigned int unit = 1; unit < 8; ++unit)
                 mStateSet->setTextureMode(unit, GL_TEXTURE_2D, modeOff);
@@ -70,14 +71,11 @@ namespace MWRender
 
             if (Stereo::getMultiview())
             {
-                if (!mMultiviewDepthResolveLeftSource[frameId])
-                    setupMultiviewDepthResolveBuffers(frameId);
-                mMultiviewDepthResolveLeftTarget[frameId]->apply(state, osg::FrameBufferObject::BindTarget::DRAW_FRAMEBUFFER);
-                mMultiviewDepthResolveLeftSource[frameId]->apply(state, osg::FrameBufferObject::BindTarget::READ_FRAMEBUFFER);
-                ext->glBlitFramebuffer(0, 0, tex->getTextureWidth(), tex->getTextureHeight(), 0, 0, tex->getTextureWidth(), tex->getTextureHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-                mMultiviewDepthResolveRightTarget[frameId]->apply(state, osg::FrameBufferObject::BindTarget::DRAW_FRAMEBUFFER);
-                mMultiviewDepthResolveRightSource[frameId]->apply(state, osg::FrameBufferObject::BindTarget::READ_FRAMEBUFFER);
-                ext->glBlitFramebuffer(0, 0, tex->getTextureWidth(), tex->getTextureHeight(), 0, 0, tex->getTextureWidth(), tex->getTextureHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+                if (!mMultiviewResolve[frameId])
+                {
+                    mMultiviewResolve[frameId] = std::make_unique<Stereo::MultiviewFramebufferResolve>(msaaFbo ? msaaFbo : fbo, opaqueFbo, GL_DEPTH_BUFFER_BIT);
+                }
+                mMultiviewResolve[frameId]->resolveImplementation(state);
             }
             else
             {
@@ -95,11 +93,32 @@ namespace MWRender
 
             opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
 
-            osg::ref_ptr<osg::StateSet> restore = bin->getStateSet();
-            bin->setStateSet(mStateSet);
-            // draws transparent post-pass to populate a postprocess friendly depth texture with alpha-clipped geometry
-            bin->drawImplementation(renderInfo, previous);
-            bin->setStateSet(restore);
+            // draw transparent post-pass to populate a postprocess friendly depth texture with alpha-clipped geometry
+
+            unsigned int numToPop = previous ? osgUtil::StateGraph::numToPop(previous->_parent) : 0;
+            if (numToPop > 1)
+                 numToPop--;
+            unsigned int insertStateSetPosition = state.getStateSetStackSize() - numToPop;
+
+            state.insertStateSet(insertStateSetPosition, mStateSet);
+            for(auto rit = bin->getRenderLeafList().begin(); rit != bin->getRenderLeafList().end(); rit++)
+            {
+                osgUtil::RenderLeaf* rl = *rit;
+                const osg::StateSet* ss = rl->_parent->getStateSet();
+
+                if (rl->_drawable->getNodeMask() == Mask_ParticleSystem || rl->_drawable->getNodeMask() == Mask_Effect)
+                    continue;
+
+                if (ss->getAttribute(osg::StateAttribute::MATERIAL)) {
+                    const osg::Material* mat = static_cast<const osg::Material*>(ss->getAttribute(osg::StateAttribute::MATERIAL));
+                    if (mat->getDiffuse(osg::Material::FRONT).a() < 0.5)
+                        continue;
+                }
+
+                rl->render(renderInfo,previous);
+                previous = rl;
+            }
+            state.removeStateSet(insertStateSetPosition);
 
             msaaFbo ? msaaFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER) : fbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
             state.checkGLErrors("after TransparentDepthBinCallback::drawImplementation");
@@ -107,42 +126,8 @@ namespace MWRender
 
         void TransparentDepthBinCallback::dirtyFrame(int frameId)
         {
-            mMultiviewDepthResolveLeftSource[frameId] = mMultiviewDepthResolveRightSource[frameId] = nullptr;
-            mMultiviewDepthResolveLeftTarget[frameId] = mMultiviewDepthResolveRightTarget[frameId] = nullptr;
-        }
-
-        osg::FrameBufferAttachment makeSingleLayerAttachmentFromMultilayerAttachment(osg::FrameBufferAttachment attachment, int layer)
-        {
-            osg::Texture* tex = attachment.getTexture();
-
-            if (tex->getTextureTarget() == GL_TEXTURE_2D_ARRAY)
-                return osg::FrameBufferAttachment(static_cast<osg::Texture2DArray*>(tex), layer, 0);
-
-#ifdef OSG_HAS_MULTIVIEW
-            if (tex->getTextureTarget() == GL_TEXTURE_2D_MULTISAMPLE_ARRAY)
-                return osg::FrameBufferAttachment(static_cast<osg::Texture2DMultisampleArray*>(tex), layer, 0);
-#endif
-
-            Log(Debug::Error) << "Attempted to extract a layer from an unlayered texture";
-
-            return osg::FrameBufferAttachment();
-        }
-
-        void TransparentDepthBinCallback::setupMultiviewDepthResolveBuffers(int frameId)
-        {
-            const osg::FrameBufferObject::BufferComponent component = osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER;
-            const auto& sourceFbo = mMsaaFbo[frameId] ? mMsaaFbo[frameId] : mFbo[frameId];
-            const auto& sourceAttachment = sourceFbo->getAttachment(component);
-            mMultiviewDepthResolveLeftSource[frameId] = new osg::FrameBufferObject;
-            mMultiviewDepthResolveLeftSource[frameId]->setAttachment(component, makeSingleLayerAttachmentFromMultilayerAttachment(sourceAttachment, 0));
-            mMultiviewDepthResolveRightSource[frameId] = new osg::FrameBufferObject;
-            mMultiviewDepthResolveRightSource[frameId]->setAttachment(component, makeSingleLayerAttachmentFromMultilayerAttachment(sourceAttachment, 1));
-            const auto& targetFbo = mOpaqueFbo[frameId];
-            const auto& targetAttachment = targetFbo->getAttachment(component);
-            mMultiviewDepthResolveLeftTarget[frameId] = new osg::FrameBufferObject;
-            mMultiviewDepthResolveLeftTarget[frameId]->setAttachment(component, makeSingleLayerAttachmentFromMultilayerAttachment(targetAttachment, 0));
-            mMultiviewDepthResolveRightTarget[frameId] = new osg::FrameBufferObject;
-            mMultiviewDepthResolveRightTarget[frameId]->setAttachment(component, makeSingleLayerAttachmentFromMultilayerAttachment(targetAttachment, 1));
+            if (mMultiviewResolve[frameId])
+                mMultiviewResolve[frameId]->dirty();
         }
 
 }

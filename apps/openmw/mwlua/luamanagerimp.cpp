@@ -55,6 +55,12 @@ namespace MWLua
         mGlobalScripts.setAutoStartConf(mConfiguration.getGlobalConf());
     }
 
+    void LuaManager::initL10n()
+    {
+        mL10n.init();
+        mL10n.setPreferredLocales(Settings::Manager::getStringArray("preferred locales", "General"));
+    }
+
     void LuaManager::init()
     {
         Context context;
@@ -70,11 +76,6 @@ namespace MWLua
         Context localContext = context;
         localContext.mIsGlobal = false;
         localContext.mSerializer = mLocalSerializer.get();
-
-        mL10n.init();
-        std::vector<std::string> preferredLocales;
-        Misc::StringUtils::split(Settings::Manager::getString("preferred locales", "General"), preferredLocales, ", ");
-        mL10n.setPreferredLocales(preferredLocales);
 
         initObjectBindingsForGlobalScripts(context);
         initCellBindingsForGlobalScripts(context);
@@ -101,6 +102,11 @@ namespace MWLua
 
         initConfiguration();
         mInitialized = true;
+    }
+
+    std::string LuaManager::translate(const std::string& contextName, const std::string& key)
+    {
+        return mL10n.translate(contextName, key);
     }
 
     void LuaManager::loadPermanentStorage(const std::string& userConfigPath)
@@ -335,7 +341,7 @@ namespace MWLua
         if (!localScripts)
         {
             LuaUtil::ScriptIdsWithInitializationData autoStartConf =
-                mConfiguration.getLocalConf(ptr.getLuaType(), ptr.getCellRef().getRefId(), getId(ptr));
+                mConfiguration.getLocalConf(getLiveCellRefType(ptr.mRef), ptr.getCellRef().getRefId(), getId(ptr));
             if (!autoStartConf.empty())
             {
                 localScripts = createLocalScripts(ptr, std::move(autoStartConf));
@@ -411,7 +417,7 @@ namespace MWLua
     {
         assert(mInitialized);
         std::shared_ptr<LocalScripts> scripts;
-        uint32_t type = ptr.getLuaType();
+        const uint32_t type = getLiveCellRefType(ptr.mRef);
         if (type == ESM::REC_STAT)
             throw std::runtime_error("Lua scripts on static objects are not allowed");
         else if (type == ESM::REC_INTERNAL_PLAYER)

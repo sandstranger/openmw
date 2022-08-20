@@ -25,7 +25,7 @@ varying float linearDepth;
 
 uniform mat4 osg_ViewMatrixInverse;
 
-#define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
+#define PER_PIXEL_LIGHTING 1 //(@normalMap || @forcePPL)
 
 #if !PER_PIXEL_LIGHTING
 centroid varying vec3 passLighting;
@@ -60,7 +60,7 @@ void main()
     vec3 viewNormal = normalize(gl_NormalMatrix * (tbnTranspose * normalize((normalTex.xyz * 2.0 - 1.0) * normal_map_scale)));
 #endif
 
-#if (!@normalMap && (@parallax || @forcePPL))
+#if (!@normalMap && (@parallax || PER_PIXEL_LIGHTING == 1))
     vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
 #endif
 

@@ -53,14 +53,18 @@
 
 #include <components/detournavigator/navigator.hpp>
 
-#include "../mwbase/windowmanager.hpp"
 #include "../mwworld/cellstore.hpp"
 #include "../mwworld/class.hpp"
 #include "../mwworld/groundcoverstore.hpp"
+
 #include "../mwgui/loadingscreen.hpp"
 #include "../mwgui/postprocessorhud.hpp"
+
 #include "../mwmechanics/actorutil.hpp"
+
 #include "../mwbase/windowmanager.hpp"
+#include "../mwbase/environment.hpp"
+#include "../mwbase/world.hpp"
 
 #include "sky.hpp"
 #include "effectmanager.hpp"
@@ -109,8 +113,10 @@ namespace MWRender
     class PerViewUniformStateUpdater final : public SceneUtil::StateSetUpdater
     {
     public:
-        PerViewUniformStateUpdater()
+        PerViewUniformStateUpdater(Resource::SceneManager* sceneManager)
+            : mSceneManager(sceneManager)
         {
+            mOpaqueTextureUnit = mSceneManager->getShaderManager().reserveGlobalTextureUnits(Shader::ShaderManager::Slot::OpaqueDepthTexture);
         }
 
         void setDefaults(osg::StateSet* stateset) override
@@ -130,6 +136,8 @@ namespace MWRender
                 osg::Texture* skyTexture = mSkyRTT->getColorTexture(static_cast<osgUtil::CullVisitor*>(nv));
                 stateset->setTextureAttribute(mSkyTextureUnit, skyTexture, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
             }
+
+            stateset->setTextureAttribute(mOpaqueTextureUnit, mSceneManager->getOpaqueDepthTex(nv->getTraversalNumber()), osg::StateAttribute::ON);
         }
 
         void applyLeft(osg::StateSet* stateset, osgUtil::CullVisitor* nv) override
@@ -166,6 +174,9 @@ namespace MWRender
         osg::Matrixf mProjectionMatrix;
         int mSkyTextureUnit = -1;
         SceneUtil::RTTNode* mSkyRTT = nullptr;
+
+        Resource::SceneManager* mSceneManager;
+        int mOpaqueTextureUnit = -1;
     };
 
     class SharedUniformStateUpdater : public SceneUtil::StateSetUpdater
@@ -387,8 +398,9 @@ namespace MWRender
     };
 
     RenderingManager::RenderingManager(osgViewer::Viewer* viewer, osg::ref_ptr<osg::Group> rootNode,
-                                       Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue,
-                                       const std::string& resourcePath, DetourNavigator::Navigator& navigator, const MWWorld::GroundcoverStore& groundcoverStore)
+        Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue, const std::string& resourcePath,
+        DetourNavigator::Navigator& navigator, const MWWorld::GroundcoverStore& groundcoverStore,
+        SceneUtil::UnrefQueue& unrefQueue)
         : mSkyBlending(Settings::Manager::getBool("sky blending", "Fog"))
         , mViewer(viewer)
         , mRootNode(rootNode)
@@ -507,7 +519,7 @@ namespace MWRender
         mRecastMesh = std::make_unique<RecastMesh>(mRootNode, Settings::Manager::getBool("enable recast mesh render", "Navigator"));
         mPathgrid = std::make_unique<Pathgrid>(mRootNode);
 
-        mObjects = std::make_unique<Objects>(mResourceSystem, sceneRoot);
+        mObjects = std::make_unique<Objects>(mResourceSystem, sceneRoot, unrefQueue);
 
         if (getenv("OPENMW_DONT_PRECOMPILE") == nullptr)
         {
@@ -590,11 +602,12 @@ namespace MWRender
         mSharedUniformStateUpdater = new SharedUniformStateUpdater(groundcover);
         rootNode->addUpdateCallback(mSharedUniformStateUpdater);
 
-        mPerViewUniformStateUpdater = new PerViewUniformStateUpdater();
+        mPerViewUniformStateUpdater = new PerViewUniformStateUpdater(mResourceSystem->getSceneManager());
         rootNode->addCullCallback(mPerViewUniformStateUpdater);
 
         mPostProcessor = new PostProcessor(*this, viewer, mRootNode, resourceSystem->getVFS());
         resourceSystem->getSceneManager()->setOpaqueDepthTex(mPostProcessor->getTexture(PostProcessor::Tex_OpaqueDepth, 0), mPostProcessor->getTexture(PostProcessor::Tex_OpaqueDepth, 1));
+        resourceSystem->getSceneManager()->setSoftParticles(mPostProcessor->softParticlesEnabled());
         resourceSystem->getSceneManager()->setSupportsNormalsRT(mPostProcessor->getSupportsNormalsRT());
 
         // water goes after terrain for correct waterculling order
@@ -638,7 +651,7 @@ namespace MWRender
         mSky->setCamera(mViewer->getCamera());
         if (mSkyBlending)
         {
-            int skyTextureUnit = mResourceSystem->getSceneManager()->getShaderManager().reserveGlobalTextureUnits(1);
+            int skyTextureUnit = mResourceSystem->getSceneManager()->getShaderManager().reserveGlobalTextureUnits(Shader::ShaderManager::Slot::SkyTexture);
             Log(Debug::Info) << "Reserving texture unit for sky RTT: " << skyTextureUnit;
             mPerViewUniformStateUpdater->enableSkyRTT(skyTextureUnit, mSky->getSkyRTT());
         }
@@ -702,7 +715,6 @@ namespace MWRender
         updateProjectionMatrix();
 
         mViewer->getCamera()->setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-        mViewer->getUpdateVisitor()->setTraversalMode(osg::NodeVisitor::TRAVERSE_ACTIVE_CHILDREN);
     }
 
     RenderingManager::~RenderingManager()
@@ -1083,6 +1095,8 @@ namespace MWRender
     {
         mWater->setEnabled(enabled);
         mSky->setWaterEnabled(enabled);
+
+        mPostProcessor->getStateUpdater()->setIsWaterEnabled(enabled);
     }
 
     void RenderingManager::setWaterHeight(float height)
@@ -1742,7 +1756,7 @@ namespace MWRender
         }
         return result;
     }
-    void RenderingManager::getPagedRefnums(const osg::Vec4i &activeGrid, std::set<ESM::RefNum> &out)
+    void RenderingManager::getPagedRefnums(const osg::Vec4i &activeGrid, std::vector<ESM::RefNum>& out)
     {
         if (mObjectPaging)
             mObjectPaging->getPagedRefnums(activeGrid, out);

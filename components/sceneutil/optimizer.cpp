@@ -13,13 +13,8 @@
 
 /* Modified for OpenMW */
 
-#include <stdlib.h>
-#include <string.h>
-
 #include "optimizer.hpp"
 
-#include <osg/AlphaFunc>
-#include <osg/Version>
 #include <osg/Transform>
 #include <osg/MatrixTransform>
 #include <osg/PositionAttitudeTransform>
@@ -38,7 +33,6 @@
 #include <osgUtil/Statistics>
 #include <osgUtil/MeshOptimizers>
 
-#include <typeinfo>
 #include <algorithm>
 #include <numeric>
 
@@ -212,7 +206,7 @@ class CollectLowestTransformsVisitor : public BaseOptimizerVisitor
             traverse(node);
         }
 
-        void apply(osg::Geometry& geode) override
+        void apply(osg::Geometry& geometry) override
         {
         }
 
@@ -631,22 +625,11 @@ void Optimizer::FlattenStaticTransformsVisitor::apply(osg::Node& node)
     traverse(node);
 }
 
-bool needvbo(const osg::Geometry* geom)
-{
-#if OSG_MIN_VERSION_REQUIRED(3,5,6)
-    return true;
-#else
-    return geom->getUseVertexBufferObjects();
-#endif
-}
-
 osg::Array* cloneArray(osg::Array* array, osg::VertexBufferObject*& vbo, const osg::Geometry* geom)
 {
     array = static_cast<osg::Array*>(array->clone(osg::CopyOp::DEEP_COPY_ALL));
-    if (!vbo && needvbo(geom))
-        vbo = new osg::VertexBufferObject;
-    if (vbo)
-        array->setVertexBufferObject(vbo);
+    if (!vbo) vbo = new osg::VertexBufferObject;
+    array->setVertexBufferObject(vbo);
     return array;
 }
 
@@ -1201,10 +1184,8 @@ osg::PrimitiveSet* clonePrimitive(osg::PrimitiveSet* ps, osg::ElementBufferObjec
     osg::DrawElements* drawElements = ps->getDrawElements();
     if (!drawElements) return ps;
 
-    if (!ebo && needvbo(geom))
-        ebo = new osg::ElementBufferObject;
-    if (ebo)
-        drawElements->setElementBufferObject(ebo);
+    if (!ebo) ebo = new osg::ElementBufferObject;
+    drawElements->setElementBufferObject(ebo);
 
     return ps;
 }
@@ -1617,9 +1598,6 @@ bool Optimizer::MergeGeometryVisitor::mergeGroup(osg::Group& group)
 
     }
 
-//    geode.dirtyBound();
-
-
     return false;
 }
 
@@ -1813,11 +1791,8 @@ bool Optimizer::MergeGeometryVisitor::mergeGeometry(osg::Geometry& lhs,osg::Geom
                 {
                     // must promote to a DrawElementsUInt
                     osg::DrawElementsUInt* new_primitive = new osg::DrawElementsUInt(primitive->getMode());
-                    if (needvbo(&lhs))
-                    {
-                        if (!ebo) ebo = new osg::ElementBufferObject;
-                         new_primitive->setElementBufferObject(ebo);
-                    }
+                    if (!ebo) ebo = new osg::ElementBufferObject;
+                    new_primitive->setElementBufferObject(ebo);
                     std::copy(primitiveUByte->begin(),primitiveUByte->end(),std::back_inserter(*new_primitive));
                     new_primitive->offsetIndices(base);
                     (*primItr) = new_primitive;
@@ -1825,11 +1800,8 @@ bool Optimizer::MergeGeometryVisitor::mergeGeometry(osg::Geometry& lhs,osg::Geom
                 {
                     // must promote to a DrawElementsUShort
                     osg::DrawElementsUShort* new_primitive = new osg::DrawElementsUShort(primitive->getMode());
-                    if (needvbo(&lhs))
-                    {
-                        if (!ebo) ebo = new osg::ElementBufferObject;
-                         new_primitive->setElementBufferObject(ebo);
-                    }
+                    if (!ebo) ebo = new osg::ElementBufferObject;
+                    new_primitive->setElementBufferObject(ebo);
                     std::copy(primitiveUByte->begin(),primitiveUByte->end(),std::back_inserter(*new_primitive));
                     new_primitive->offsetIndices(base);
                     (*primItr) = new_primitive;
@@ -1856,11 +1828,8 @@ bool Optimizer::MergeGeometryVisitor::mergeGeometry(osg::Geometry& lhs,osg::Geom
                 {
                     // must promote to a DrawElementsUInt
                     osg::DrawElementsUInt* new_primitive = new osg::DrawElementsUInt(primitive->getMode());
-                    if (needvbo(&lhs))
-                    {
-                        if (!ebo) ebo = new osg::ElementBufferObject;
-                         new_primitive->setElementBufferObject(ebo);
-                    }
+                    if (!ebo) ebo = new osg::ElementBufferObject;
+                    new_primitive->setElementBufferObject(ebo);
                     std::copy(primitiveUShort->begin(),primitiveUShort->end(),std::back_inserter(*new_primitive));
                     new_primitive->offsetIndices(base);
                     (*primItr) = new_primitive;

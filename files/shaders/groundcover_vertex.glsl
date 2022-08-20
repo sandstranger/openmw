@@ -15,10 +15,13 @@ varying vec4 passTangent;
 #endif
 
 varying float depth;
+#if !@radialFog
+varying float linearDepth;
+#endif
 
 #if PER_PIXEL_LIGHTING
-varying vec3 passNormal;
 varying vec3 passViewPos;
+varying vec3 passNormal;
 #endif
 
 #if !PER_PIXEL_LIGHTING
@@ -128,6 +131,10 @@ vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
     passLighting = diffuseLight + ambientLight;
     clampLightingResult(passLighting);
     passLighting += shadowDiffuseLighting;
+#endif
+
+#if !@radialFog
+    linearDepth = viewPos.z;
 #endif
 
 #if PER_PIXEL_LIGHTING

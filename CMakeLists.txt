@@ -163,6 +163,7 @@ option(RECASTNAVIGATION_STATIC "Build recastnavigation static libraries" ${_reca
 option(OPENMW_USE_SYSTEM_SQLITE3 "Use system provided SQLite3 library" ON)
 
 option(OPENMW_USE_SYSTEM_BENCHMARK "Use system Google Benchmark library." OFF)
+option(OPENMW_USE_SYSTEM_GOOGLETEST "Use system Google Test library." OFF)
 
 option(OPENMW_UNITY_BUILD "Use fewer compilation units to speed up compile time" FALSE)
 option(OPENMW_LTO_BUILD "Build OpenMW with Link-Time Optimization (Needs ~2GB of RAM)" OFF)
@@ -346,7 +347,12 @@ if (WIN32)
     add_definitions(-DSDL_MAIN_HANDLED)
 
     # Get rid of useless crud from windows.h
-    add_definitions(-DNOMINMAX -DWIN32_LEAN_AND_MEAN)
+    add_definitions(
+        -DNOMINMAX # name conflict with std::min, std::max
+        -DWIN32_LEAN_AND_MEAN
+        -DNOMB # name conflict with MWGui::MessageBox
+        -DNOGDI # name conflict with osgAnimation::MorphGeometry::RELATIVE
+    )
 endif()
 
 if(OPENMW_USE_SYSTEM_BULLET)
@@ -401,10 +407,7 @@ if(NOT HAVE_STDINT_H)
 endif()
 
 if(OPENMW_USE_SYSTEM_OSG)
-    find_package(OpenSceneGraph 3.4.0 REQUIRED ${USED_OSG_COMPONENTS})
-    if (${OPENSCENEGRAPH_VERSION} VERSION_GREATER 3.6.2 AND ${OPENSCENEGRAPH_VERSION} VERSION_LESS 3.6.5)
-        message(FATAL_ERROR "OpenSceneGraph version ${OPENSCENEGRAPH_VERSION} has critical regressions which cause crashes. Please upgrade to 3.6.5 or later. We strongly recommend using the tip of the official 'OpenSceneGraph-3.6' branch or the tip of '3.6' OpenMW/osg (OSGoS).")
-    endif()
+    find_package(OpenSceneGraph 3.6.5 REQUIRED ${USED_OSG_COMPONENTS})  # Bump to 3.6.6 when released
 
     if(OSG_STATIC)
         find_package(OSGPlugins REQUIRED COMPONENTS ${USED_OSG_PLUGINS})
@@ -691,6 +694,7 @@ if (WIN32)
         4100 # Unreferenced formal parameter (-Wunused-parameter)
         4127 # Conditional expression is constant
         4996 # Function was declared deprecated
+        5054 # Deprecated operations between enumerations of different types caused by Qt headers
         )
     
     if( "${MyGUI_VERSION}" VERSION_LESS_EQUAL "3.4.0" )
@@ -708,6 +712,10 @@ if (WIN32)
     foreach(d ${WARNINGS_DISABLE})
         set(WARNINGS "${WARNINGS} /wd${d}")
     endforeach(d)
+
+    if(OPENMW_MSVC_WERROR)
+        set(WARNINGS "${WARNINGS} /WX")
+    endif()
 
     set_target_properties(components PROPERTIES COMPILE_FLAGS "${WARNINGS}")
     set_target_properties(osg-ffmpeg-videoplayer PROPERTIES COMPILE_FLAGS "${WARNINGS}")
@@ -761,7 +769,8 @@ if (WIN32)
     endif()
 
     if (BUILD_BULLETOBJECTTOOL)
-        set_target_properties(openmw-bulletobjecttool PROPERTIES COMPILE_FLAGS "${WARNINGS} ${MT_BUILD}")
+        set(WARNINGS "${WARNINGS} ${MT_BUILD}")
+        set_target_properties(openmw-bulletobjecttool PROPERTIES COMPILE_FLAGS "${WARNINGS}")
     endif()
   endif(MSVC)
 
@@ -910,7 +919,6 @@ elseif(NOT APPLE)
         INSTALL(FILES "${OpenMW_SOURCE_DIR}/CHANGELOG.md" DESTINATION "." RENAME "CHANGELOG.txt")
         INSTALL(FILES "${OpenMW_SOURCE_DIR}/README.md" DESTINATION "." RENAME "README.txt")
         INSTALL(FILES "${OpenMW_SOURCE_DIR}/LICENSE" DESTINATION "." RENAME "LICENSE.txt")
-        INSTALL(FILES "${OpenMW_SOURCE_DIR}/files/mygui/DejaVuFontLicense.txt" DESTINATION ".")
         INSTALL(FILES "${INSTALL_SOURCE}/defaults.bin" DESTINATION ".")
         INSTALL(FILES "${INSTALL_SOURCE}/gamecontrollerdb.txt" DESTINATION ".")
 
@@ -1011,9 +1019,6 @@ elseif(NOT APPLE)
         IF(BUILD_BULLETOBJECTTOOL)
             INSTALL(PROGRAMS "${INSTALL_SOURCE}/openmw-bulletobjecttool" DESTINATION "${BINDIR}" )
         ENDIF(BUILD_BULLETOBJECTTOOL)
-
-        # Install licenses
-        INSTALL(FILES "files/mygui/DejaVuFontLicense.txt" DESTINATION "${LICDIR}" )
 
         # Install icon and desktop file
         INSTALL(FILES "${OpenMW_BINARY_DIR}/org.openmw.launcher.desktop" DESTINATION "${DATAROOTDIR}/applications" COMPONENT "openmw")

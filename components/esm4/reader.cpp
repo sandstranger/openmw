@@ -49,6 +49,7 @@
 
 #include <components/bsa/memorystream.hpp>
 #include <components/misc/stringops.hpp>
+#include <components/files/constrainedfilestream.hpp>
 
 #include "formid.hpp"
 
@@ -56,11 +57,13 @@ namespace ESM4
 {
 
 ReaderContext::ReaderContext() : modIndex(0), recHeaderSize(sizeof(RecordHeader)),
-    filePos(0), recordRead(0), currWorld(0), currCell(0), cellGridValid(false)
+    filePos(0), fileRead(0), recordRead(0), currWorld(0), currCell(0), cellGridValid(false)
 {
     currCellGrid.cellId = 0;
     currCellGrid.grid.x = 0;
     currCellGrid.grid.y = 0;
+    subRecordHeader.typeId = 0;
+    subRecordHeader.dataSize = 0;
 }
 
 Reader::Reader(Files::IStreamPtr&& esmStream, const std::string& filename)
@@ -178,6 +181,16 @@ void Reader::open(Files::IStreamPtr&& stream, const std::string &filename)
     }
 
     throw std::runtime_error("Unknown file format"); // can't yet use fail() as mCtx is not setup
+}
+
+void Reader::openRaw(const std::string& filename)
+{
+    openRaw(Files::openConstrainedFileStream(filename), filename);
+}
+
+void Reader::open(const std::string& filename)
+{
+    open(Files::openConstrainedFileStream(filename), filename);
 }
 
 void Reader::setRecHeaderSize(const std::size_t size)

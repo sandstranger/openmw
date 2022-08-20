@@ -6,6 +6,7 @@
 
 #include <components/misc/rng.hpp>
 #include <components/misc/stringops.hpp>
+#include <components/misc/resourcehelpers.hpp>
 
 #include <components/esm3/loadmgef.hpp>
 
@@ -17,7 +18,6 @@
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/world.hpp"
-#include "../mwbase/windowmanager.hpp"
 
 #include "../mwrender/animation.hpp"
 
@@ -219,6 +219,9 @@ namespace MWMechanics
                         return params.mSlot == slotIndex && params.mType == ESM::ActiveSpells::Type_Enchantment && params.mId == slot->getCellRef().getRefId();
                     }) != mSpells.end())
                         continue;
+                    // world->breakInvisibility leads to a stack overflow as it calls this method so just break invisibility manually
+                    purgeEffect(ptr, ESM::MagicEffect::Invisibility);
+                    applyPurges(ptr);
                     const ActiveSpellParams& params = mSpells.emplace_back(ActiveSpellParams{*slot, enchantment, slotIndex, ptr});
                     for(const auto& effect : params.mEffects)
                         MWMechanics::playEffects(ptr, *world->getStore().get<ESM::MagicEffect>().find(effect.mEffectId), playNonLooping);
@@ -262,9 +265,12 @@ namespace MWMechanics
                 const ESM::Static* reflectStatic = MWBase::Environment::get().getWorld()->getStore().get<ESM::Static>().find("VFX_Reflect");
                 MWRender::Animation* animation = MWBase::Environment::get().getWorld()->getAnimation(ptr);
                 if(animation && !reflectStatic->mModel.empty())
+                {
+                    const VFS::Manager* const vfs = MWBase::Environment::get().getResourceSystem()->getVFS();
                     animation->addEffect(
-                        MWBase::Environment::get().getWindowManager()->correctMeshPath(reflectStatic->mModel),
+                        Misc::ResourceHelpers::correctMeshPath(reflectStatic->mModel, vfs),
                         ESM::MagicEffect::Reflect, false, std::string());
+                }
                 caster.getClass().getCreatureStats(caster).getActiveSpells().addSpell(*reflected);
             }
             if(removedSpell)

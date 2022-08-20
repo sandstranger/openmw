@@ -27,8 +27,8 @@ namespace MWRender
 
         addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::TRIANGLES, 0, 3));
 
-        mHDRDriver = HDRDriver(shaderManager);
-        mHDRDriver.disable();
+        mLuminanceCalculator = LuminanceCalculator(shaderManager);
+        mLuminanceCalculator.disable();
 
         Shader::ShaderManager::DefineMap defines;
         Stereo::Manager::instance().shaderStereoDefines(defines);
@@ -67,25 +67,8 @@ namespace MWRender
 
     static void attachCloneOfTemplate(osg::FrameBufferObject* fbo, osg::Camera::BufferComponent component, osg::Texture* tex)
     {
-        switch (tex->getTextureTarget())
-        {
-        case GL_TEXTURE_2D:
-        {
-            auto* tex2d = new osg::Texture2D(*static_cast<osg::Texture2D*>(tex));
-            fbo->setAttachment(component, osg::FrameBufferAttachment(tex2d));
-        }
-        break;
-        case GL_TEXTURE_2D_ARRAY:
-        {
-#ifdef OSG_HAS_MULTIVIEW
-            auto* tex2dArray = new osg::Texture2DArray(*static_cast<osg::Texture2DArray*>(tex));
-            fbo->setAttachment(component, osg::FrameBufferAttachment(tex2dArray, osg::Camera::FACE_CONTROLLED_BY_MULTIVIEW_SHADER, 0));
-#endif
-        }
-        break;
-        default:
-            throw std::logic_error("Invalid texture type received");
-        }
+        osg::ref_ptr<osg::Texture> clone = static_cast<osg::Texture*>(tex->clone(osg::CopyOp::SHALLOW_COPY));
+        fbo->setAttachment(component, Stereo::createMultiviewCompatibleAttachment(clone));
     }
 
     void PingPongCanvas::drawImplementation(osg::RenderInfo& renderInfo) const
@@ -117,24 +100,26 @@ namespace MWRender
 
         if (filtered.empty() || !bufferData.postprocessing)
         {
-            if (bufferData.postprocessing)
-            {
-                if (!mLoggedLastError)
-                {
-                    Log(Debug::Error) << "Critical error, postprocess shaders failed to compile. Using default shader.";
-                    mLoggedLastError = true;
-                }
-            }
-            else
-                mLoggedLastError = false;
-
             state.pushStateSet(mFallbackStateSet);
             state.apply();
+
+            if (Stereo::getMultiview())
+            {
+                state.pushStateSet(mMultiviewResolveStateSet);
+                state.apply();
+            }
+
             state.applyTextureAttribute(0, bufferData.sceneTex);
             resolveViewport->apply(state);
 
             drawGeometry(renderInfo);
             state.popStateSet();
+
+            if (Stereo::getMultiview())
+            {
+                state.popStateSet();
+            }
+
             return;
         }
 
@@ -162,7 +147,7 @@ namespace MWRender
                 mMultiviewResolveStateSet->setTextureAttribute(PostProcessor::Unit_LastShader, (osg::Texture*)mMultiviewResolveFramebuffer->getAttachment(osg::Camera::COLOR_BUFFER0).getTexture());
             }
 
-            mHDRDriver.dirty(bufferData.sceneTex->getTextureWidth(), bufferData.sceneTex->getTextureHeight());
+            mLuminanceCalculator.dirty(bufferData.sceneTex->getTextureWidth(), bufferData.sceneTex->getTextureHeight());
 
             if (Stereo::getStereo())
                 mRenderViewport = new osg::Viewport(0, 0, bufferData.sceneTex->getTextureWidth(), bufferData.sceneTex->getTextureHeight());
@@ -178,10 +163,10 @@ namespace MWRender
             {GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT}
         }};
 
-        (bufferData.hdr) ? mHDRDriver.enable() : mHDRDriver.disable();
+        (bufferData.hdr) ? mLuminanceCalculator.enable() : mLuminanceCalculator.disable();
 
         // A histogram based approach is superior way to calculate scene luminance. Using mipmaps is more broadly supported, so that's what we use for now.
-        mHDRDriver.draw(*this, renderInfo, state, ext, frameId);
+        mLuminanceCalculator.draw(*this, renderInfo, state, ext, frameId);
 
         auto buffer = buffers[0];
 
@@ -221,7 +206,7 @@ namespace MWRender
             node.mRootStateSet->setTextureAttribute(PostProcessor::Unit_Depth, bufferData.depthTex);
 
             if (bufferData.hdr)
-                node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_EyeAdaptation, mHDRDriver.getLuminanceTexture(frameId));
+                node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_EyeAdaptation, mLuminanceCalculator.getLuminanceTexture(frameId));
 
             if (bufferData.normalsTex)
                 node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_Normals, bufferData.normalsTex);
@@ -302,7 +287,7 @@ namespace MWRender
             state.popStateSet();
         }
 
-        if (Stereo::getMultiview() && mMultiviewResolveProgram)
+        if (Stereo::getMultiview())
         {
             ext->glBindFramebuffer(GL_DRAW_FRAMEBUFFER_EXT, 0);
             lastApplied = 0;

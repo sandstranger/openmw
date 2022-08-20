@@ -7,10 +7,10 @@
 #include <stdint.h>
 #include <stdexcept>
 #include <vector>
-#include <typeinfo>
 #include <type_traits>
+#include <istream>
 
-#include <components/files/constrainedfilestream.hpp>
+#include <components/files/istreamptr.hpp>
 #include <components/misc/endianness.hpp>
 
 #include <osg/Vec3f>

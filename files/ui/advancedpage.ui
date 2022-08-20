@@ -43,7 +43,7 @@
            </property>
           </widget>
          </item>
-         <item row="6" column="0">
+         <item row="5" column="1">
           <widget class="QCheckBox" name="avoidCollisionsCheckBox">
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If enabled NPCs apply evasion maneuver to avoid collisions with others.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -143,27 +143,27 @@
            </property>
           </widget>
          </item>
-         <item row="5" column="1">
-          <widget class="QCheckBox" name="stealingFromKnockedOutCheckBox">
-           <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Make stealing items from NPCs that were knocked down possible during combat.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-           <property name="text">
-            <string>Always allow stealing from knocked out actors</string>
-           </property>
-          </widget>
-         </item>
-         <item row="6" column="1">
-          <widget class="QCheckBox" name="allowNPCToFollowOverWaterSurfaceCheckBox">
-           <property name="toolTip">
-            <string>Give NPC an ability to swim over the water surface when they follow other actor independently from their ability to swim. Has effect only when nav mesh building is enabled.</string>
-           </property>
-           <property name="text">
-            <string>Always allow NPC to follow over water surface</string>
-           </property>
-          </widget>
-         </item>
         </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="stealingFromKnockedOutCheckBox">
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Make stealing items from NPCs that were knocked down possible during combat.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="text">
+          <string>Always allow stealing from knocked out actors</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="allowNPCToFollowOverWaterSurfaceCheckBox">
+         <property name="toolTip">
+          <string>Give NPC an ability to swim over the water surface when they follow other actor independently from their ability to swim. Has effect only when nav mesh building is enabled.</string>
+         </property>
+         <property name="text">
+          <string>Always allow NPC to follow over water surface</string>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="requireAppropriateAmmunitionCheckBox">
@@ -176,15 +176,25 @@
         </widget>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="horizontalUnarmedStrengthLayout">
-         <item>
+        <widget class="QCheckBox" name="unarmedCreatureAttacksDamageArmorCheckBox">
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Makes unarmed creature attacks able to reduce armor condition, just as attacks from NPCs and armed creatures.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="text">
+          <string>Unarmed creature attacks damage armor</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayoutGameMechanics2">
+         <item row="0" column="0">
           <widget class="QLabel" name="unarmedFactorsStrengthLabel">
            <property name="text">
             <string>Factor strength into hand-to-hand combat:</string>
            </property>
           </widget>
          </item>
-         <item>
+         <item row="0" column="1">
           <widget class="QComboBox" name="unarmedFactorsStrengthComboBox">
            <property name="currentIndex">
             <number>0</number>
@@ -206,53 +216,55 @@
            </item>
           </widget>
          </item>
-         <item>
-          <spacer name="horizontalSpacer_2">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalPhysicsThreadsLayout">
-         <item>
+         <item row="1" column="0">
           <widget class="QLabel" name="physicsThreadsLabel">
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;How many threads will be spawned to compute physics update in the background. A value of 0 means that the update will be performed in the main thread.&lt;/p&gt;&lt;p&gt;A value greater than 1 requires the Bullet library be compiled with multithreading support.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
-            <string>Background physics threads</string>
+            <string>Background physics threads:</string>
            </property>
           </widget>
          </item>
-         <item>
+         <item row="1" column="1">
           <widget class="QSpinBox" name="physicsThreadsSpinBox"/>
          </item>
-         <item>
-          <spacer name="horizontalSpacer_4">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+         <item row="2" column="0">
+          <widget class="QLabel" name="labelActorCollisionShapeType">
+           <property name="text">
+            <string>Actor collision shape type:</string>
            </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="actorCollisonShapeTypeComboBox">
+           <property name="toolTip">
+            <string>Collision is used for both physics simulation and navigation mesh generation for pathfinding. Cylinder gives the best consistency bewtween available navigation paths and ability to move by them. Changing this value affects navigation mesh generation therefore navigation mesh disk cache generated for one value will not be useful with another.</string>
            </property>
-          </spacer>
+           <property name="currentText">
+            <string>Axis-aligned bounding box</string>
+           </property>
+           <item>
+            <property name="text">
+             <string>Axis-aligned bounding box</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Rotating box</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Cylinder</string>
+            </property>
+           </item>
+          </widget>
          </item>
         </layout>
        </item>
        <item>
-        <spacer name="verticalSpacer_3">
+        <spacer name="verticalSpacerGameMechanics">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
@@ -434,17 +446,16 @@
                </widget>
               </item>
               <item row="2" column="1">
-               <widget class="QCheckBox" name="radialFogCheckBox">
-                <property name="toolTip">
-                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;By default, the fog becomes thicker proportionally to your distance from the clipping plane set at the clipping distance, which causes distortion at the edges of the screen.
-                  This setting makes the fog use the actual eye point distance (or so called Euclidean distance) to calculate the fog, which makes the fog look less artificial, especially if you have a wide FOV.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                </property>
-                <property name="text">
-                 <string>Radial fog</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0">
+                <widget class="QCheckBox" name="antialiasAlphaTestCheckBox">
+                 <property name="toolTip">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Allows MSAA to work with alpha-tested meshes, producing better-looking edges without pixelation. Can negatively impact performance.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
+                 <property name="text">
+                  <string>Use anti-alias alpha testing</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
                <widget class="QCheckBox" name="softParticlesCheckBox">
                 <property name="toolTip">
                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enables soft particles for particle effects. This technique softens the intersection between individual particles and other opaque geometry by blending between them.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -454,17 +465,79 @@
                 </property>
                </widget>
               </item>
-              <item row="3" column="1">
-               <widget class="QCheckBox" name="antialiasAlphaTestCheckBox">
-                <property name="toolTip">
-                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Allows MSAA to work with alpha-tested meshes, producing better-looking edges without pixelation. Can negatively impact performance.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                </property>
-                <property name="text">
-                 <string>Use anti-alias alpha testing</string>
-                </property>
-               </widget>
-              </item>
              </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="fogGroup">
+             <property name="title">
+              <string>Fog</string>
+             </property>
+             <layout class="QGridLayout" name="fogLayout">
+                <item row="0" column="0">
+                  <widget class="QCheckBox" name="radialFogCheckBox">
+                  <property name="toolTip">
+                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;By default, the fog becomes thicker proportionally to your distance from the clipping plane set at the clipping distance, which causes distortion at the edges of the screen.
+                    This setting makes the fog use the actual eye point distance (or so called Euclidean distance) to calculate the fog, which makes the fog look less artificial, especially if you have a wide FOV.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  </property>
+                  <property name="text">
+                    <string>Radial fog</string>
+                  </property>
+                  </widget>
+                </item>
+                <item row="0" column="1">
+                  <widget class="QCheckBox" name="exponentialFogCheckBox">
+                  <property name="toolTip">
+                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use exponential fog formula. By default, linear fog is used.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  </property>
+                  <property name="text">
+                    <string>Exponential fog</string>
+                  </property>
+                  </widget>
+                </item>
+                <item row="1" column="0">
+                  <widget class="QCheckBox" name="skyBlendingCheckBox">
+                    <property name="toolTip">
+                      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Reduce visibility of clipping plane by blending objects with the sky.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                    </property>
+                    <property name="text">
+                    <string>Sky blending</string>
+                    </property>
+                  </widget>
+                </item>
+                <item row="2" column="0">
+                  <widget class="QLabel" name="skyBlendingStartLabel">
+                    <property name="enabled">
+                      <bool>false</bool>
+                    </property>
+                    <property name="text">
+                      <string>Sky blending start</string>
+                    </property>
+                    <property name="toolTip">
+                      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The fraction of the maximum distance at which blending with the sky starts.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                    </property>
+                  </widget>
+                </item>
+                <item row="2" column="1">
+                  <widget class="QDoubleSpinBox" name="skyBlendingStartComboBox">
+                    <property name="enabled">
+                      <bool>false</bool>
+                    </property>
+                    <property name="decimals">
+                      <number>3</number>
+                    </property>
+                    <property name="minimum">
+                      <double>0.000000000000000</double>
+                    </property>
+                    <property name="maximum">
+                      <double>1.000000000000000</double>
+                    </property>
+                    <property name="singleStep">
+                      <double>0.005000000000000</double>
+                    </property>
+                  </widget>
+                </item>
+              </layout>
             </widget>
            </item>
            <item>
@@ -626,36 +699,36 @@
                   <item row="1" column="0">
                     <layout class="QHBoxLayout">
                       <item>
-                      <widget class="QLabel" name="postprocessHDRTimeLabel">
-                        <property name="enabled">
-                          <bool>false</bool>
-                        </property>
-                        <property name="toolTip">
-                        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Controls how much eye adaptation can change from frame to frame. Smaller values makes for slower transitions.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                        </property>
-                        <property name="text">
-                        <string>HDR exposure time</string>
-                        </property>
-                      </widget>
+                        <widget class="QLabel" name="postprocessHDRTimeLabel">
+                          <property name="enabled">
+                            <bool>false</bool>
+                          </property>
+                          <property name="toolTip">
+                            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Controls how much eye adaptation can change from frame to frame. Smaller values makes for slower transitions.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                          </property>
+                          <property name="text">
+                            <string>Auto exposure speed</string>
+                          </property>
+                        </widget>
                       </item>
                       <item>
-                      <widget class="QDoubleSpinBox" name="postprocessHDRTimeComboBox">
-                        <property name="enabled">
-                          <bool>false</bool>
-                        </property>
-                        <property name="decimals">
-                        <number>3</number>
-                        </property>
-                        <property name="minimum">
-                        <double>0.000000000000000</double>
-                        </property>
-                        <property name="maximum">
-                        <double>1.000000000000000</double>
-                        </property>
-                        <property name="singleStep">
-                        <double>0.001000000000000</double>
-                        </property>
-                      </widget>
+                        <widget class="QDoubleSpinBox" name="postprocessHDRTimeComboBox">
+                          <property name="enabled">
+                            <bool>false</bool>
+                          </property>
+                          <property name="decimals">
+                            <number>3</number>
+                          </property>
+                          <property name="minimum">
+                            <double>0.010000000000000</double>
+                          </property>
+                          <property name="maximum">
+                            <double>10.000000000000000</double>
+                          </property>
+                          <property name="singleStep">
+                            <double>0.001000000000000</double>
+                          </property>
+                        </widget>
                       </item>
                     </layout>
                   </item>
@@ -833,15 +906,8 @@
       </attribute>
       <layout class="QVBoxLayout">
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout">
-         <item alignment="Qt::AlignRight">
-          <widget class="QLabel" name="showOwnedLabel">
-           <property name="text">
-            <string>Show owned:</string>
-           </property>
-          </widget>
-         </item>
-         <item>
+        <layout class="QGridLayout" name="gridLayout">
+         <item row="0" column="1">
           <widget class="QComboBox" name="showOwnedComboBox">
            <property name="currentIndex">
             <number>1</number>
@@ -868,37 +934,7 @@
            </item>
           </widget>
          </item>
-         <item>
-          <spacer name="horizontalSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_2"/>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_3">
-         <item>
-          <widget class="QLabel" name="scalingLabel">
-           <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This setting scales GUI windows. A value of 1.0 results in the normal scale.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-           <property name="text">
-            <string>GUI scaling factor</string>
-           </property>
-          </widget>
-         </item>
-         <item>
+         <item row="1" column="1">
           <widget class="QDoubleSpinBox" name="scalingSpinBox">
            <property name="decimals">
             <number>2</number>
@@ -917,100 +953,157 @@
            </property>
           </widget>
          </item>
-         <item>
-          <spacer name="horizontalSpacer_5">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+         <item row="2" column="1">
+          <widget class="QSpinBox" name="fontSizeSpinBox">
+           <property name="minimum">
+            <number>12</number>
            </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
+           <property name="maximum">
+            <number>20</number>
            </property>
-          </spacer>
+           <property name="singleStep">
+            <number>1</number>
+           </property>
+           <property name="value">
+            <number>16</number>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="scalingLabel">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This setting scales GUI windows. A value of 1.0 results in the normal scale.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>GUI scaling factor</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QCheckBox" name="showEffectDurationCheckBox">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Show the remaining duration of magic effects and lights if this setting is true. The remaining duration is displayed in the tooltip by hovering over the magical effect. &lt;/p&gt;&lt;p&gt;The default value is false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>Show effect duration</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QCheckBox" name="changeDialogTopicsCheckBox">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If this setting is true, dialogue topics will have a different color if the topic is specific to the NPC you're talking to or the topic was previously seen. Color can be changed in settings.cfg.&lt;/p&gt;&lt;p&gt;The default value is false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>Change dialogue topic color</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="fontSizeLabel">
+           <property name="toolTip">
+            <string>Size of characters in game texts.</string>
+           </property>
+           <property name="text">
+            <string>Font size</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="0">
+          <widget class="QCheckBox" name="useZoomOnMapCheckBox">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable zooming on local and global maps.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>Can zoom on maps</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="1">
+          <widget class="QCheckBox" name="graphicHerbalismCheckBox">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If this setting is true, containers supporting graphic herbalism will do so instead of opening the menu.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>Enable graphic herbalism</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <widget class="QCheckBox" name="showProjectileDamageCheckBox">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If this setting is true, damage bonus of arrows and bolts will be shown on item tooltip.&lt;/p&gt;&lt;p&gt;The default value is false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>Show projectile damage</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QCheckBox" name="showMeleeInfoCheckBox">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If this setting is true, melee weapons reach and speed will be shown on item tooltip.&lt;/p&gt;&lt;p&gt;The default value is false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>Show melee info</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="1">
+          <widget class="QCheckBox" name="stretchBackgroundCheckBox">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Stretch menus, load screens, etc. to the window aspect ratio.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>Stretch menu background</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="showOwnedLabel">
+           <property name="text">
+            <string>Show owned objects</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QCheckBox" name="showEnchantChanceCheckBox">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Whether or not the chance of success will be displayed in the enchanting menu.&lt;/p&gt;&lt;p&gt;The default value is false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>Show enchant chance</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="ttfResolutionLabel">
+           <property name="toolTip">
+            <string>Resolution of TrueType fonts glyphs. Automatically takes in account UI scaling factor.
+Lower values make text more blurry, higher ones - more pixelated.</string>
+           </property>
+           <property name="text">
+            <string>TTF texture resolution</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QSpinBox" name="ttfResolutionSpinBox">
+           <property name="minimum">
+            <number>50</number>
+           </property>
+           <property name="maximum">
+            <number>125</number>
+           </property>
+           <property name="singleStep">
+            <number>5</number>
+           </property>
+           <property name="value">
+            <number>75</number>
+           </property>
+          </widget>
          </item>
         </layout>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="showEffectDurationCheckBox">
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Show the remaining duration of magic effects and lights if this setting is true. The remaining duration is displayed in the tooltip by hovering over the magical effect. &lt;/p&gt;&lt;p&gt;The default value is false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string>Show effect duration</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="showEnchantChanceCheckBox">
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Whether or not the chance of success will be displayed in the enchanting menu.&lt;/p&gt;&lt;p&gt;The default value is false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string>Show enchant chance</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="showMeleeInfoCheckBox">
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If this setting is true, melee weapons reach and speed will be shown on item tooltip.&lt;/p&gt;&lt;p&gt;The default value is false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string>Show melee info</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="showProjectileDamageCheckBox">
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If this setting is true, damage bonus of arrows and bolts will be shown on item tooltip.&lt;/p&gt;&lt;p&gt;The default value is false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string>Show projectile damage</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="changeDialogTopicsCheckBox">
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If this setting is true, dialogue topics will have a different color if the topic is specific to the NPC you're talking to or the topic was previously seen. Color can be changed in settings.cfg.&lt;/p&gt;&lt;p&gt;The default value is false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string>Change dialogue topic color</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="stretchBackgroundCheckBox">
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Stretch menus, load screens, etc. to the window aspect ratio.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string>Stretch menu background</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="useZoomOnMapCheckBox">
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable zooming on local and global maps.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string>Can zoom on maps</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="graphicHerbalismCheckBox">
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If this setting is true, containers supporting graphic herbalism will do so instead of opening the menu.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string>Enable graphic herbalism</string>
-         </property>
-        </widget>
        </item>
        <item>
         <spacer name="verticalSpacer_2">

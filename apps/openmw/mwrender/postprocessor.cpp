@@ -1,6 +1,8 @@
 #include "postprocessor.hpp"
 
 #include <algorithm>
+#include <chrono>
+#include <thread>
 #include <SDL_opengl_glext.h>
 
 #include <osg/Texture1D>
@@ -8,10 +10,6 @@
 #include <osg/Texture2DMultisample>
 #include <osg/Texture3D>
 #include <osg/Texture2DArray>
-
-#ifdef OSG_HAS_MULTIVIEW
-#include <osg/Texture2DMultisampleArray>
-#endif
 
 #include <components/settings/settings.hpp>
 #include <components/sceneutil/depth.hpp>
@@ -75,45 +73,6 @@ namespace
         }
     };
 
-
-    static void setTextureSize(osg::Texture* tex, int w, int h)
-    {
-        switch (tex->getTextureTarget())
-        {
-        case GL_TEXTURE_2D:
-            static_cast<osg::Texture2D*>(tex)->setTextureSize(w, h);
-            break;
-        case GL_TEXTURE_2D_ARRAY:
-            static_cast<osg::Texture2DArray*>(tex)->setTextureSize(w, h, 2);
-            break;
-        default:
-            throw std::logic_error("Invalid texture type received");
-        }
-    }
-
-    static void setAttachment(osg::FrameBufferObject* fbo, osg::Camera::BufferComponent component, osg::Texture* tex)
-    {
-        switch (tex->getTextureTarget())
-        {
-        case GL_TEXTURE_2D:
-        {
-            auto* tex2d = static_cast<osg::Texture2D*>(tex);
-            fbo->setAttachment(component, osg::FrameBufferAttachment(tex2d));
-        }
-        break;
-        case GL_TEXTURE_2D_ARRAY:
-        {
-#ifdef OSG_HAS_MULTIVIEW
-            auto* tex2dArray = static_cast<osg::Texture2DArray*>(tex);
-            fbo->setAttachment(component, osg::FrameBufferAttachment(tex2dArray, osg::Camera::FACE_CONTROLLED_BY_MULTIVIEW_SHADER, 0));
-#endif
-        }
-        break;
-        default:
-            throw std::logic_error("Invalid texture type received");
-        }
-    }
-
     enum class Usage
     {
         RENDER_BUFFER,
@@ -128,35 +87,7 @@ namespace
             return osg::FrameBufferAttachment(attachment);
         }
 
-        osg::FrameBufferAttachment attachment;
-
-#ifdef OSG_HAS_MULTIVIEW
-        if (Stereo::getMultiview())
-        {
-            if (samples > 1)
-            {
-                attachment = osg::FrameBufferAttachment(new osg::Texture2DMultisampleArray(), osg::Camera::FACE_CONTROLLED_BY_MULTIVIEW_SHADER, 0);
-            }
-            else
-            {
-                attachment = osg::FrameBufferAttachment(new osg::Texture2DArray(), osg::Camera::FACE_CONTROLLED_BY_MULTIVIEW_SHADER, 0);
-            }
-        }
-        else
-#endif
-        {
-            if (samples > 1)
-            {
-                attachment = osg::FrameBufferAttachment(new osg::Texture2DMultisample());
-            }
-            else
-            {
-                attachment =  osg::FrameBufferAttachment(new osg::Texture2D());
-            }
-        }
-
-        osg::Texture* texture = attachment.getTexture();
-        setTextureSize(texture, width, height);
+        auto texture = Stereo::createMultiviewCompatibleTexture(width, height, samples);
         texture->setSourceFormat(template_->getSourceFormat());
         texture->setSourceType(template_->getSourceType());
         texture->setInternalFormat(template_->getInternalFormat());
@@ -165,7 +96,7 @@ namespace
         texture->setWrap(osg::Texture::WRAP_S, template_->getWrap(osg::Texture2D::WRAP_S));
         texture->setWrap(osg::Texture::WRAP_T, template_->getWrap(osg::Texture2D::WRAP_T));
 
-        return attachment;
+        return Stereo::createMultiviewCompatibleAttachment(texture);
     }
 }
 
@@ -195,7 +126,6 @@ namespace MWRender
         , mNormalsSupported(false)
         , mPassLights(false)
         , mPrevPassLights(false)
-        , mMainTemplate(new osg::Texture2D)
     {
         mSoftParticles = Settings::Manager::getBool("soft particles", "Shaders");
         mUsePostProcessing = Settings::Manager::getBool("enabled", "Post Processing");
@@ -230,10 +160,10 @@ namespace MWRender
         }
 
         mGLSLVersion = ext->glslLanguageVersion * 100;
-        mUBO = ext && ext->isUniformBufferObjectSupported && mGLSLVersion >= 330;
+        mUBO = ext->isUniformBufferObjectSupported && mGLSLVersion >= 330;
         mStateUpdater = new fx::StateUpdater(mUBO);
 
-        if (!SceneUtil::AutoDepth::isReversed() && !mSoftParticles && !mUsePostProcessing)
+        if (!Stereo::getStereo() && !SceneUtil::AutoDepth::isReversed() && !mSoftParticles && !mUsePostProcessing)
             return;
 
         enable(mUsePostProcessing);
@@ -317,14 +247,6 @@ namespace MWRender
         {
             populateTechniqueFiles();
         }
-
-        mMainTemplate->setFilter(osg::Texture::MIN_FILTER, osg::Texture::LINEAR);
-        mMainTemplate->setFilter(osg::Texture::MAG_FILTER, osg::Texture::LINEAR);
-        mMainTemplate->setWrap(osg::Texture::WRAP_S, osg::Texture::CLAMP_TO_EDGE);
-        mMainTemplate->setWrap(osg::Texture::WRAP_T, osg::Texture::CLAMP_TO_EDGE);
-        mMainTemplate->setInternalFormat(GL_RGBA);
-        mMainTemplate->setSourceType(GL_UNSIGNED_BYTE);
-        mMainTemplate->setSourceFormat(GL_RGBA);
 
         createTexturesAndCamera(frame() % 2);
 
@@ -456,6 +378,10 @@ namespace MWRender
             if (!isDirty)
                 continue;
 
+            // TODO: Temporary workaround to avoid conflicts with external programs saving the file, especially problematic on Windows.
+            //       If we move to a file watcher using native APIs this should be removed.
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
             if (technique->compile())
                 Log(Debug::Info) << "Reloaded technique : " << mTechniqueFileMap[technique->getName()].string();
 
@@ -470,13 +396,8 @@ namespace MWRender
 
         mReload = false;
 
-        if (!mTechniques.empty())
-            reloadMainPass(*mTechniques[0]);
-
-        reloadTechniques();
-
-        if (!mUsePostProcessing)
-            resize();
+        loadChain();
+        resize();
     }
 
     void PostProcessor::update(size_t frameId)
@@ -539,24 +460,21 @@ namespace MWRender
             if (!tex)
                 continue;
 
-            setTextureSize(tex, width, height);
+            Stereo::setMultiviewCompatibleTextureSize(tex, width, height);
             tex->dirtyTextureObject();
         }
 
         fbos[FBO_Primary] = new osg::FrameBufferObject;
-        setAttachment(fbos[FBO_Primary], osg::Camera::COLOR_BUFFER0, textures[Tex_Scene]);
+        fbos[FBO_Primary]->setAttachment(osg::Camera::COLOR_BUFFER0, Stereo::createMultiviewCompatibleAttachment(textures[Tex_Scene]));
         if (mNormals && mNormalsSupported)
-            setAttachment(fbos[FBO_Primary], osg::Camera::COLOR_BUFFER1, textures[Tex_Normal]);
-        setAttachment(fbos[FBO_Primary], osg::Camera::PACKED_DEPTH_STENCIL_BUFFER, textures[Tex_Depth]);
+            fbos[FBO_Primary]->setAttachment(osg::Camera::COLOR_BUFFER1, Stereo::createMultiviewCompatibleAttachment(textures[Tex_Normal]));
+        fbos[FBO_Primary]->setAttachment(osg::Camera::PACKED_DEPTH_STENCIL_BUFFER, Stereo::createMultiviewCompatibleAttachment(textures[Tex_Depth]));
 
         fbos[FBO_FirstPerson] = new osg::FrameBufferObject;
 
         auto fpDepthRb = createFrameBufferAttachmentFromTemplate(Usage::RENDER_BUFFER, width, height, textures[Tex_Depth], mSamples);
         fbos[FBO_FirstPerson]->setAttachment(osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER, osg::FrameBufferAttachment(fpDepthRb));
 
-        // When MSAA is enabled we must first render to a render buffer, then
-        // blit the result to the FBO which is either passed to the main frame
-        // buffer for display or used as the entry point for a post process chain.
         if (mSamples > 1)
         {
             fbos[FBO_Multisample] = new osg::FrameBufferObject;
@@ -565,7 +483,6 @@ namespace MWRender
             {
                 auto normalRB = createFrameBufferAttachmentFromTemplate(Usage::RENDER_BUFFER, width, height, textures[Tex_Normal], mSamples);
                 fbos[FBO_Multisample]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER1, normalRB);
-                fbos[FBO_FirstPerson]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER1, normalRB);
             }
             auto depthRB = createFrameBufferAttachmentFromTemplate(Usage::RENDER_BUFFER, width, height, textures[Tex_Depth], mSamples);
             fbos[FBO_Multisample]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0, colorRB);
@@ -573,20 +490,20 @@ namespace MWRender
             fbos[FBO_FirstPerson]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0, colorRB);
 
             fbos[FBO_Intercept] = new osg::FrameBufferObject;
-            setAttachment(fbos[FBO_Intercept], osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0, textures[Tex_Scene]);
-            setAttachment(fbos[FBO_Intercept], osg::FrameBufferObject::BufferComponent::COLOR_BUFFER1, textures[Tex_Normal]);
+            fbos[FBO_Intercept]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0, Stereo::createMultiviewCompatibleAttachment(textures[Tex_Scene]));
+            fbos[FBO_Intercept]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER1, Stereo::createMultiviewCompatibleAttachment(textures[Tex_Normal]));
         }
         else
         {
-            setAttachment(fbos[FBO_FirstPerson], osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0, textures[Tex_Scene]);
+            fbos[FBO_FirstPerson]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0, Stereo::createMultiviewCompatibleAttachment(textures[Tex_Scene]));
             if (mNormals && mNormalsSupported)
-                setAttachment(fbos[FBO_FirstPerson], osg::FrameBufferObject::BufferComponent::COLOR_BUFFER1, textures[Tex_Normal]);
+                fbos[FBO_FirstPerson]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER1, Stereo::createMultiviewCompatibleAttachment(textures[Tex_Normal]));
         }
 
         if (textures[Tex_OpaqueDepth])
         {
             fbos[FBO_OpaqueDepth] = new osg::FrameBufferObject;
-            setAttachment(fbos[FBO_OpaqueDepth], osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER, textures[Tex_OpaqueDepth]);
+            fbos[FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER, Stereo::createMultiviewCompatibleAttachment(textures[Tex_OpaqueDepth]));
         }
 
 #ifdef __APPLE__
@@ -738,7 +655,7 @@ namespace MWRender
             return Status_Error;
         }
 
-        if (!technique || technique->getLocked() || (location.has_value() && location.value() <= 0))
+        if (!technique || technique->getLocked() || (location.has_value() && location.value() < 0))
             return Status_Error;
 
         disableTechnique(technique, false);
@@ -791,7 +708,7 @@ namespace MWRender
                 else
                     texture = new osg::Texture2D;
             }
-            setTextureSize(texture, width, height);
+            Stereo::setMultiviewCompatibleTextureSize(texture, width, height);
             texture->setSourceFormat(GL_RGBA);
             texture->setSourceType(GL_UNSIGNED_BYTE);
             texture->setInternalFormat(GL_RGBA);
@@ -804,17 +721,6 @@ namespace MWRender
 
         textures[Tex_Normal]->setSourceFormat(GL_RGB);
         textures[Tex_Normal]->setInternalFormat(GL_RGB);
-
-        if (mMainTemplate)
-        {
-            textures[Tex_Scene]->setSourceFormat(mMainTemplate->getSourceFormat());
-            textures[Tex_Scene]->setSourceType(mMainTemplate->getSourceType());
-            textures[Tex_Scene]->setInternalFormat(mMainTemplate->getInternalFormat());
-            textures[Tex_Scene]->setFilter(osg::Texture2D::MIN_FILTER, mMainTemplate->getFilter(osg::Texture2D::MIN_FILTER));
-            textures[Tex_Scene]->setFilter(osg::Texture2D::MAG_FILTER, mMainTemplate->getFilter(osg::Texture2D::MAG_FILTER));
-            textures[Tex_Scene]->setWrap(osg::Texture::WRAP_S, mMainTemplate->getWrap(osg::Texture2D::WRAP_S));
-            textures[Tex_Scene]->setWrap(osg::Texture::WRAP_T, mMainTemplate->getWrap(osg::Texture2D::WRAP_T));
-        }
 
         auto setupDepth = [] (osg::Texture* tex) {
             tex->setSourceFormat(GL_DEPTH_STENCIL_EXT);
@@ -887,37 +793,23 @@ namespace MWRender
             return technique;
         }
 
-        reloadMainPass(*technique);
-
         mTemplates.push_back(std::move(technique));
 
         return mTemplates.back();
     }
 
-    void PostProcessor::reloadTechniques()
+    void PostProcessor::loadChain()
     {
         if (!isEnabled())
             return;
 
         mTechniques.clear();
 
-        std::vector<std::string> techniqueStrings;
-        Misc::StringUtils::split(Settings::Manager::getString("chain", "Post Processing"), techniqueStrings, ",");
-
-        const std::string& mainIdentifier = "main";
-
-        auto main = loadTechnique(mainIdentifier);
-
-        if (main)
-            main->setLocked(true);
-
-        mTechniques.push_back(std::move(main));
+        std::vector<std::string> techniqueStrings = Settings::Manager::getStringArray("chain", "Post Processing");
 
         for (auto& techniqueName : techniqueStrings)
         {
-            Misc::StringUtils::trim(techniqueName);
-
-            if (techniqueName.empty() || Misc::StringUtils::ciEqual(techniqueName, mainIdentifier))
+            if (techniqueName.empty())
                 continue;
 
             mTechniques.push_back(loadTechnique(techniqueName));
@@ -926,14 +818,17 @@ namespace MWRender
         dirtyTechniques();
     }
 
-    void PostProcessor::reloadMainPass(fx::Technique& technique)
+    void PostProcessor::saveChain()
     {
-        if (!technique.getMainTemplate())
-            return;
+        std::vector<std::string> chain;
 
-        mMainTemplate = technique.getMainTemplate();
+        for (const auto& technique : mTechniques) {
+            if (!technique || technique->getDynamic())
+                continue;
+            chain.push_back(technique->getName());
+        }
 
-        resize();
+        Settings::Manager::setStringArray("chain", "Post Processing", chain);
     }
 
     void PostProcessor::toggleMode()

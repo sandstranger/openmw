@@ -12,10 +12,14 @@
 #include "engine.hpp"
 #include "options.hpp"
 
+#include <boost/program_options/variables_map.hpp>
+
 #if defined(_WIN32)
 #include <components/windows.hpp>
 // makes __argc and __argv available on windows
 #include <cstdlib>
+
+extern "C" __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001;
 #endif
 
 #include <filesystem>
@@ -153,7 +157,6 @@ bool parseOptions (int argc, char** argv, OMW::Engine& engine, Files::Configurat
     Fallback::Map::init(variables["fallback"].as<FallbackMap>().mMap);
     engine.setSoundUsage(!variables["no-sound"].as<bool>());
     engine.setActivationDistanceOverride (variables["activate-dist"].as<int>());
-    engine.enableFontExport(variables["export-fonts"].as<bool>());
     engine.setRandomSeed(variables["random-seed"].as<unsigned int>());
 
     return true;

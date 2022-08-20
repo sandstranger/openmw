@@ -3,7 +3,6 @@
 
 #include <array>
 #include <string>
-#include <sstream>
 #include <cstdint>
 #include <unordered_set>
 #include <optional>
@@ -67,7 +66,6 @@ namespace fx
         std::string mName;
         bool mLegacyGLSL;
         bool mUBO;
-        bool mSupportsNormals;
 
         std::array<std::string, 3> mRenderTargets;
 

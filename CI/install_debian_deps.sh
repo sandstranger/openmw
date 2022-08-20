@@ -9,8 +9,9 @@ print_help() {
 }
 
 declare -rA GROUPED_DEPS=(
-  [gcc]="binutils gcc build-essential cmake ccache curl unzip git pkg-config"
-  [clang]="binutils clang make cmake ccache curl unzip git pkg-config"
+  [gcc]="binutils gcc build-essential cmake ccache curl unzip git pkg-config mold"
+  [clang]="binutils clang make cmake ccache curl unzip git pkg-config mold"
+  [clang_ubuntu_20_04]="binutils clang make cmake ccache curl unzip git pkg-config"
 
   # Common dependencies for building OpenMW.
   [openmw-deps]="
@@ -42,6 +43,41 @@ declare -rA GROUPED_DEPS=(
   "
 
   [openmw-coverage]="gcovr"
+
+  [openmw-integration-tests]="
+    ca-certificates
+    git
+    git-lfs
+    libavcodec58
+    libavformat58
+    libavutil56
+    libboost-filesystem1.74.0
+    libboost-iostreams1.74.0
+    libboost-program-options1.74.0
+    libboost-system1.74.0
+    libbullet3.06
+    libcollada-dom2.5-dp0
+    libicu70
+    libjpeg8
+    libluajit-5.1-2
+    liblz4-1
+    libmyguiengine3debian1v5
+    libopenal1
+    libopenscenegraph161
+    libpng16-16
+    libqt5opengl5
+    librecast1
+    libsdl2-2.0-0
+    libsqlite3-0
+    libswresample3
+    libswscale5
+    libtinyxml2.6.2v5
+    libyaml-cpp0.7
+    python3-pip
+    xvfb
+  "
+
+  [android]="binutils build-essential cmake ccache curl unzip git pkg-config"
 )
 
 if [[ $# -eq 0 ]]; then
@@ -59,9 +95,10 @@ for group in "$@"; do
 done
 
 export APT_CACHE_DIR="${PWD}/apt-cache"
+export DEBIAN_FRONTEND=noninteractive
 set -x
 mkdir -pv "$APT_CACHE_DIR"
 apt-get update -yqq
-apt-get -qq -o dir::cache::archives="$APT_CACHE_DIR" install -y --no-install-recommends software-properties-common >/dev/null
+apt-get -qq -o dir::cache::archives="$APT_CACHE_DIR" install -y --no-install-recommends software-properties-common gnupg >/dev/null
 add-apt-repository -y ppa:openmw/openmw
 apt-get -qq -o dir::cache::archives="$APT_CACHE_DIR" install -y --no-install-recommends "${deps[@]}" >/dev/null

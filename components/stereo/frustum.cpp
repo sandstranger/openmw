@@ -13,7 +13,6 @@
 #include <osgViewer/Renderer>
 #include <osgViewer/Viewer>
 
-#include <iostream>
 #include <map>
 #include <string>
 
@@ -28,31 +27,32 @@
 
 #include <components/settings/settings.hpp>
 
+#include <components/stereo/multiview.hpp>
+
 #include <components/misc/stringops.hpp>
 #include "frustum.hpp"
 
 namespace Stereo
 {
-#ifdef OSG_HAS_MULTIVIEW
-    struct MultiviewFrustumCallback final : public osg::CullSettings::InitialFrustumCallback
+    struct MultiviewFrustumCallback final : public Stereo::InitialFrustumCallback
     {
-        MultiviewFrustumCallback(StereoFrustumManager* sfm)
-            : mSfm(sfm)
+        MultiviewFrustumCallback(StereoFrustumManager* sfm, osg::Camera* camera)
+            : Stereo::InitialFrustumCallback(camera)
+            , mSfm(sfm)
         {
 
         }
 
-        void setInitialFrustum(osg::CullStack& cullStack, osg::Polytope& frustum) const override
+        void setInitialFrustum(osg::CullStack& cullStack, osg::BoundingBoxd& bb, bool& nearCulling, bool& farCulling) const override
         {
             auto cm = cullStack.getCullingMode();
-            bool nearCulling = !!(cm & osg::CullSettings::NEAR_PLANE_CULLING);
-            bool farCulling = !!(cm & osg::CullSettings::FAR_PLANE_CULLING);
-            frustum.setToBoundingBox(mSfm->boundingBox(), nearCulling, farCulling);
+            nearCulling = !!(cm & osg::CullSettings::NEAR_PLANE_CULLING);
+            farCulling = !!(cm & osg::CullSettings::FAR_PLANE_CULLING);
+            bb = mSfm->boundingBox();
         }
 
         StereoFrustumManager* mSfm;
     };
-#endif
 
     struct ShadowFrustumCallback final : public SceneUtil::MWShadowTechnique::CustomFrustumCallback
     {
@@ -99,10 +99,7 @@ namespace Stereo
     {
         if (Stereo::getMultiview())
         {
-#ifdef OSG_HAS_MULTIVIEW
-            mMultiviewFrustumCallback = new MultiviewFrustumCallback(this);
-            mCamera->setInitialFrustumCallback(mMultiviewFrustumCallback);
-#endif
+            mMultiviewFrustumCallback = std::make_unique<MultiviewFrustumCallback>(this, camera);
         }
 
         if (Settings::Manager::getBool("shared shadow maps", "Stereo"))
@@ -118,13 +115,6 @@ namespace Stereo
 
     StereoFrustumManager::~StereoFrustumManager()
     {
-        if (Stereo::getMultiview())
-        {
-#ifdef OSG_HAS_MULTIVIEW
-            mCamera->setInitialFrustumCallback(nullptr);
-#endif
-        }
-
         if (mShadowTechnique)
             mShadowTechnique->setCustomFrustumCallback(nullptr);
     }

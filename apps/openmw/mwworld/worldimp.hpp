@@ -6,6 +6,7 @@
 #include <components/settings/settings.hpp>
 #include <components/misc/rng.hpp>
 #include <components/esm3/readerscache.hpp>
+#include <components/detournavigator/collisionshapetype.hpp>
 
 #include "../mwbase/world.hpp"
 
@@ -38,6 +39,7 @@ namespace Resource
 namespace SceneUtil
 {
     class WorkQueue;
+    class UnrefQueue;
 }
 
 namespace ESM
@@ -111,6 +113,7 @@ namespace MWWorld
             std::string mUserDataPath;
 
             osg::Vec3f mDefaultHalfExtents;
+            DetourNavigator::CollisionShapeType mDefaultActorCollisionShapeType;
             bool mShouldUpdateNavigator;
 
             int mActivationDistanceOverride;
@@ -134,6 +137,8 @@ namespace MWWorld
             ///< only holds doors that are currently moving. 1 = opening, 2 = closing
 
             uint32_t mRandomSeed{};
+
+            float mSimulationTimeScale = 1.0;
 
             // not implemented
             World (const World&);
@@ -191,6 +196,7 @@ namespace MWWorld
                 osgViewer::Viewer* viewer,
                 osg::ref_ptr<osg::Group> rootNode,
                 Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue,
+                SceneUtil::UnrefQueue& unrefQueue,
                 const Files::Collections& fileCollections,
                 const std::vector<std::string>& contentFiles,
                 const std::vector<std::string>& groundcoverFiles,
@@ -347,6 +353,10 @@ namespace MWWorld
             void modRegion(const std::string &regionid, const std::vector<char> &chances) override;
 
             float getTimeScaleFactor() const override;
+
+            float getSimulationTimeScale() const override { return mSimulationTimeScale; }
+
+            void setSimulationTimeScale(float scale) override;
 
             void changeToInteriorCell (const std::string& cellName, const ESM::Position& position, bool adjustPlayerPos, bool changeEvent = true) override;
             ///< Move to interior cell.
@@ -632,9 +642,9 @@ namespace MWWorld
             /**
              * @brief startSpellCast attempt to start casting a spell. Might fail immediately if conditions are not met.
              * @param actor
-             * @return true if the spell can be casted (i.e. the animation should start)
+             * @return Success or the failure condition.
              */
-            bool startSpellCast (const MWWorld::Ptr& actor) override;
+            MWWorld::SpellCastState startSpellCast (const MWWorld::Ptr& actor) override;
 
             /**
              * @brief Cast the actual spell, should be called mid-animation

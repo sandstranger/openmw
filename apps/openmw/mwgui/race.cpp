@@ -56,6 +56,8 @@ namespace MWGui
         setText("AppearanceT", MWBase::Environment::get().getWindowManager()->getGameSettingString("sRaceMenu1", "Appearance"));
         getWidget(mPreviewImage, "PreviewImage");
 
+        mPreviewImage->eventMouseWheel += MyGUI::newDelegate(this, &RaceDialog::onPreviewScroll);
+
         getWidget(mHeadRotate, "HeadRotate");
 
         mHeadRotate->setScrollRange(1000);
@@ -209,6 +211,19 @@ namespace MWGui
     void RaceDialog::onBackClicked(MyGUI::Widget* _sender)
     {
         eventBack();
+    }
+
+    void RaceDialog::onPreviewScroll(MyGUI::Widget*, int _delta)
+    {
+        size_t oldPos = mHeadRotate->getScrollPosition();
+        size_t maxPos = mHeadRotate->getScrollRange() - 1;
+        size_t scrollPage = mHeadRotate->getScrollWheelPage();
+        if (_delta < 0)
+            mHeadRotate->setScrollPosition(oldPos + std::min(maxPos - oldPos, scrollPage));
+        else
+            mHeadRotate->setScrollPosition(oldPos - std::min(oldPos, scrollPage));
+
+        onHeadRotate(mHeadRotate, mHeadRotate->getScrollPosition());
     }
 
     void RaceDialog::onHeadRotate(MyGUI::ScrollBar* scroll, size_t _position)
@@ -385,7 +400,7 @@ namespace MWGui
             return;
 
         Widgets::MWSkillPtr skillWidget;
-        const int lineHeight = 18;
+        const int lineHeight = MWBase::Environment::get().getWindowManager()->getFontHeight() + 2;
         MyGUI::IntCoord coord1(0, 0, mSkillList->getWidth(), 18);
 
         const MWWorld::ESMStore &store = MWBase::Environment::get().getWorld()->getStore();
@@ -421,8 +436,8 @@ namespace MWGui
         if (mCurrentRaceId.empty())
             return;
 
-        const int lineHeight = 18;
-        MyGUI::IntCoord coord(0, 0, mSpellPowerList->getWidth(), 18);
+        const int lineHeight = MWBase::Environment::get().getWindowManager()->getFontHeight() + 2;
+        MyGUI::IntCoord coord(0, 0, mSpellPowerList->getWidth(), lineHeight);
 
         const MWWorld::ESMStore &store = MWBase::Environment::get().getWorld()->getStore();
         const ESM::Race *race = store.get<ESM::Race>().find(mCurrentRaceId);

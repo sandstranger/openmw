@@ -14,7 +14,6 @@
 #include <components/resource/scenemanager.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
 #include <components/detournavigator/navigator.hpp>
-#include <components/detournavigator/debug.hpp>
 #include <components/misc/convert.hpp>
 #include <components/detournavigator/heightfieldshape.hpp>
 
@@ -100,8 +99,8 @@ namespace
         return model;
     }
 
-    void addObject(const MWWorld::Ptr& ptr, const MWWorld::World& world, MWPhysics::PhysicsSystem& physics,
-                   MWRender::RenderingManager& rendering, std::set<ESM::RefNum>& pagedRefs)
+    void addObject(const MWWorld::Ptr& ptr, const MWWorld::World& world, const std::vector<ESM::RefNum>& pagedRefs,
+        MWPhysics::PhysicsSystem& physics, MWRender::RenderingManager& rendering)
     {
         if (ptr.getRefData().getBaseNode() || physics.getActor(ptr))
         {
@@ -113,7 +112,7 @@ namespace
         const auto rotation = makeDirectNodeRotation(ptr);
 
         const ESM::RefNum& refnum = ptr.getCellRef().getRefNum();
-        if (!refnum.hasContentFile() || pagedRefs.find(refnum) == pagedRefs.end())
+        if (!refnum.hasContentFile() || !std::binary_search(pagedRefs.begin(), pagedRefs.end(), refnum))
             ptr.getClass().insertObjectRendering(ptr, model, rendering);
         else
             ptr.getRefData().setBaseNode(new SceneUtil::PositionAttitudeTransform); // FIXME remove this when physics code is fixed not to depend on basenode
@@ -256,6 +255,15 @@ namespace
         }
         return false;
     }
+
+    bool removeFromSorted(const ESM::RefNum& refNum, std::vector<ESM::RefNum>& pagedRefs)
+    {
+        const auto it = std::lower_bound(pagedRefs.begin(), pagedRefs.end(), refNum);
+        if (it == pagedRefs.end() || *it != refNum)
+            return false;
+        pagedRefs.erase(it);
+        return true;
+    }
 }
 
 
@@ -265,7 +273,7 @@ namespace MWWorld
     void Scene::removeFromPagedRefs(const Ptr &ptr)
     {
         const ESM::RefNum& refnum = ptr.getCellRef().getRefNum();
-        if (refnum.hasContentFile() && mPagedRefs.erase(refnum))
+        if (refnum.hasContentFile() && removeFromSorted(refnum, mPagedRefs))
         {
             if (!ptr.getRefData().getBaseNode()) return;
             ptr.getClass().insertObjectRendering(ptr, getModel(ptr, mRendering.getResourceSystem()->getVFS()), mRendering);
@@ -367,6 +375,9 @@ namespace MWWorld
 
         MWBase::Environment::get().getSoundManager()->stopSound (cell);
         mActiveCells.erase(cell);
+        // Clean up any effects that may have been spawned while unloading all cells
+        if(mActiveCells.empty())
+            mRendering.notifyWorldSpaceChanged();
     }
 
     void Scene::loadCell(CellStore *cell, Loading::Listener* loadingListener, bool respawn, const osg::Vec3f& position)
@@ -459,14 +470,6 @@ namespace MWWorld
         }
         else
             mPhysics->disableWater();
-
-        const auto player = mWorld.getPlayerPtr();
-
-        // The player is loaded before the scene and by default it is grounded, with the scene fully loaded, we validate and correct this.
-        if (player.mCell == cell) // Only run once, during initial cell load.
-        {
-            mPhysics->traceDown(player, player.getRefData().getPosition().asVec3(), 10.f);
-        }
 
         mNavigator.update(position);
 
@@ -747,6 +750,11 @@ namespace MWWorld
         MWWorld::Ptr player = mWorld.getPlayerPtr();
         mRendering.updatePlayerPtr(player);
 
+        // The player is loaded before the scene and by default it is grounded, with the scene fully loaded,
+        // we validate and correct this. Only run once, during initial cell load.
+        if (old.mCell == cell)
+            mPhysics->traceDown(player, player.getRefData().getPosition().asVec3(), 10.f);
+
         if (adjustPlayerPos)
         {
             mWorld.moveObject(player, pos.asVec3());
@@ -901,7 +909,7 @@ namespace MWWorld
     {
         InsertVisitor insertVisitor(cell, loadingListener);
         cell.forEach (insertVisitor);
-        insertVisitor.insert([&] (const MWWorld::Ptr& ptr) { addObject(ptr, mWorld, *mPhysics, mRendering, mPagedRefs); });
+        insertVisitor.insert([&] (const MWWorld::Ptr& ptr) { addObject(ptr, mWorld, mPagedRefs, *mPhysics, mRendering); });
         insertVisitor.insert([&] (const MWWorld::Ptr& ptr) { addObject(ptr, mWorld, *mPhysics, mNavigator); });
     }
 
@@ -909,7 +917,7 @@ namespace MWWorld
     {
         try
         {
-            addObject(ptr, mWorld, *mPhysics, mRendering, mPagedRefs);
+            addObject(ptr, mWorld, mPagedRefs, *mPhysics, mRendering);
             addObject(ptr, mWorld, *mPhysics, mNavigator);
             mWorld.scaleObject(ptr, ptr.getCellRef().getScale());
             if (mCurrentCell != nullptr)
@@ -927,7 +935,11 @@ namespace MWWorld
     void Scene::removeObjectFromScene (const Ptr& ptr, bool keepActive)
     {
         MWBase::Environment::get().getMechanicsManager()->remove (ptr, keepActive);
-        MWBase::Environment::get().getSoundManager()->stopSound3D (ptr);
+        // You'd expect the sounds attached to the object to be stopped here
+        // because the object is nowhere to be heard, but in Morrowind, they're not.
+        // They're still stopped when the cell is unloaded
+        // or if the player moves away far from the object's position.
+        // Todd Howard, Who art in Bethesda, hallowed be Thy name.
         MWBase::Environment::get().getLuaManager()->objectRemovedFromScene(ptr);
         if (const auto object = mPhysics->getObject(ptr))
         {

@@ -17,31 +17,6 @@
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
 
-namespace
-{
-    void saveChain()
-    {
-        auto* processor = MWBase::Environment::get().getWorld()->getPostProcessor();
-
-        std::ostringstream chain;
-
-        for (size_t i = 1; i < processor->getTechniques().size(); ++i)
-        {
-            auto technique = processor->getTechniques()[i];
-
-            if (!technique || technique->getDynamic())
-                continue;
-
-            chain << technique->getName();
-
-            if (i < processor-> getTechniques().size() - 1)
-                chain << ",";
-        }
-
-        Settings::Manager::setString("chain", "Post Processing", chain.str());
-    }
-}
-
 namespace MWGui
 {
     void PostProcessorHud::ListWrapper::onKeyButtonPressed(MyGUI::KeyCode key, MyGUI::Char ch)
@@ -148,7 +123,7 @@ namespace MWGui
                 processor->enableTechnique(technique);
             else
                 processor->disableTechnique(technique);
-            saveChain();
+            processor->saveChain();
         }
     }
 
@@ -181,7 +156,7 @@ namespace MWGui
                 return;
 
             if (processor->enableTechnique(technique, index) != MWRender::PostProcessor::Status_Error)
-                saveChain();
+                processor->saveChain();
         }
     }
 
@@ -316,7 +291,7 @@ namespace MWGui
 
         std::ostringstream ss;
 
-        const std::string NA = "NA";
+        const std::string NA = "#{Interface:NotAvailableShort}";
         const std::string endl = "\n";
 
         std::string author = technique->getAuthor().empty() ? NA : std::string(technique->getAuthor());
@@ -340,14 +315,14 @@ namespace MWGui
             case fx::Technique::Status::Uncompiled:
             {
                 if (technique->getDynamic())
-                    ss  << "#{fontcolourhtml=header}Locked:      #{fontcolourhtml=normal} Cannot be toggled or moved, controlled by external Lua script" << endl << endl;
-                ss  << "#{fontcolourhtml=header}Author:      #{fontcolourhtml=normal} " << author << endl << endl
-                    << "#{fontcolourhtml=header}Version:     #{fontcolourhtml=normal} " << version << endl << endl
-                    << "#{fontcolourhtml=header}Description: #{fontcolourhtml=normal} " << description << endl << endl
-                    << "#{fontcolourhtml=header}Interiors: #{fontcolourhtml=normal} " << flag_interior
-                    << "#{fontcolourhtml=header}   Exteriors: #{fontcolourhtml=normal} " << flag_exterior
-                    << "#{fontcolourhtml=header}   Underwater: #{fontcolourhtml=normal} " << flag_underwater
-                    << "#{fontcolourhtml=header}   Abovewater: #{fontcolourhtml=normal} " << flag_abovewater;
+                    ss  << "#{fontcolourhtml=header}#{PostProcessing:ShaderLocked}:      #{fontcolourhtml=normal} #{PostProcessing:ShaderLockedDescription}" << endl << endl;
+                ss  << "#{fontcolourhtml=header}#{PostProcessing:Author}:      #{fontcolourhtml=normal} " << author << endl << endl
+                    << "#{fontcolourhtml=header}#{PostProcessing:Version}:     #{fontcolourhtml=normal} " << version << endl << endl
+                    << "#{fontcolourhtml=header}#{PostProcessing:Description}: #{fontcolourhtml=normal} " << description << endl << endl
+                    << "#{fontcolourhtml=header}#{PostProcessing:InInteriors}: #{fontcolourhtml=normal} " << flag_interior
+                    << "#{fontcolourhtml=header}   #{PostProcessing:InExteriors}: #{fontcolourhtml=normal} " << flag_exterior
+                    << "#{fontcolourhtml=header}   #{PostProcessing:Underwater}: #{fontcolourhtml=normal} " << flag_underwater
+                    << "#{fontcolourhtml=header}   #{PostProcessing:Abovewater}: #{fontcolourhtml=normal} " << flag_abovewater;
                 break;
             }
             case fx::Technique::Status::Parse_Error:
@@ -365,7 +340,7 @@ namespace MWGui
             if (technique->getUniformMap().size() > 0)
             {
                 MyGUI::Button* resetButton = mConfigArea->createWidget<MyGUI::Button>("MW_Button", {0,0,0,24}, MyGUI::Align::Default);
-                resetButton->setCaption("Reset all to default");
+                resetButton->setCaptionWithReplacing("#{PostProcessing:ResetShader}");
                 resetButton->setTextAlign(MyGUI::Align::Center);
                 resetButton->eventMouseWheel += MyGUI::newDelegate(this, &PostProcessorHud::notifyMouseWheel);
                 resetButton->eventMouseButtonClick += MyGUI::newDelegate(this, &PostProcessorHud::notifyResetButtonClicked);
@@ -380,7 +355,7 @@ namespace MWGui
                 {
                     Gui::AutoSizedTextBox* divider = mConfigArea->createWidget<Gui::AutoSizedTextBox>("MW_UniformGroup", {0,0,0,34}, MyGUI::Align::Default);
                     divider->setNeedMouseFocus(false);
-                    divider->setCaption(uniform->mHeader);
+                    divider->setCaptionWithReplacing(uniform->mHeader);
                 }
 
                 fx::Widgets::UniformBase* uwidget = mConfigArea->createWidget<fx::Widgets::UniformBase>("MW_UniformEdit", {0,0,0,22}, MyGUI::Align::Default);

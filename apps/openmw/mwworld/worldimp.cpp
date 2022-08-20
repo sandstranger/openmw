@@ -6,6 +6,8 @@
 
 #include <MyGUI_TextIterator.h>
 
+#include <LinearMath/btAabbUtil2.h>
+
 #include <components/debug/debuglog.hpp>
 
 #include <components/esm3/esmreader.hpp>
@@ -26,6 +28,7 @@
 
 #include <components/sceneutil/positionattitudetransform.hpp>
 #include <components/sceneutil/lightmanager.hpp>
+#include <components/sceneutil/workqueue.hpp>
 
 #include <components/detournavigator/navigator.hpp>
 #include <components/detournavigator/settings.hpp>
@@ -47,6 +50,7 @@
 #include "../mwmechanics/combat.hpp"
 #include "../mwmechanics/aiavoiddoor.hpp" //Used to tell actors to avoid doors
 #include "../mwmechanics/summoning.hpp"
+#include "../mwmechanics/actorutil.hpp"
 
 #include "../mwrender/animation.hpp"
 #include "../mwrender/npcanimation.hpp"
@@ -136,6 +140,7 @@ namespace MWWorld
         osgViewer::Viewer* viewer,
         osg::ref_ptr<osg::Group> rootNode,
         Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue,
+        SceneUtil::UnrefQueue& unrefQueue,
         const Files::Collections& fileCollections,
         const std::vector<std::string>& contentFiles,
         const std::vector<std::string>& groundcoverFiles,
@@ -147,6 +152,7 @@ namespace MWWorld
       mGodMode(false), mScriptsEnabled(true), mDiscardMovements(true), mContentFiles (contentFiles),
       mUserDataPath(userDataPath),
       mDefaultHalfExtents(Settings::Manager::getVector3("default actor pathfind half extents", "Game")),
+      mDefaultActorCollisionShapeType(DetourNavigator::toCollisionShapeType(Settings::Manager::getInt("actor collision shape type", "Game"))),
       mShouldUpdateNavigator(false),
       mActivationDistanceOverride (activationDistanceOverride),
       mStartCell(startCell), mDistanceToFacedObject(-1.f), mTeleportEnabled(true),
@@ -184,7 +190,8 @@ namespace MWWorld
             mNavigator = DetourNavigator::makeNavigatorStub();
         }
 
-        mRendering = std::make_unique<MWRender::RenderingManager>(viewer, rootNode, resourceSystem, workQueue, resourcePath, *mNavigator, mGroundcoverStore);
+        mRendering = std::make_unique<MWRender::RenderingManager>(viewer, rootNode, resourceSystem, workQueue,
+            resourcePath, *mNavigator, mGroundcoverStore, unrefQueue);
         mProjectileManager = std::make_unique<ProjectileManager>(mRendering->getLightRoot()->asGroup(), resourceSystem, mRendering.get(), mPhysics.get());
         mRendering->preloadCommonAssets();
 
@@ -457,6 +464,7 @@ namespace MWWorld
                 ESM::GameSetting record;
                 record.mId = params.first;
                 record.mValue = params.second;
+                record.mRecordFlags = 0;
                 mStore.insertStatic(record);
             }
         }
@@ -487,6 +495,7 @@ namespace MWWorld
                 ESM::Global record;
                 record.mId = params.first;
                 record.mValue = params.second;
+                record.mRecordFlags = 0;
                 mStore.insertStatic(record);
             }
         }
@@ -506,6 +515,7 @@ namespace MWWorld
                 ESM::Static record;
                 record.mId = params.first;
                 record.mModel = params.second;
+                record.mRecordFlags = 0;
                 mStore.insertStatic(record);
             }
         }
@@ -520,6 +530,7 @@ namespace MWWorld
                 ESM::Door record;
                 record.mId = params.first;
                 record.mModel = params.second;
+                record.mRecordFlags = 0;
                 mStore.insertStatic(record);
             }
         }
@@ -916,6 +927,12 @@ namespace MWWorld
     float World::getTimeScaleFactor() const
     {
         return mCurrentDate->getTimeScaleFactor();
+    }
+
+    void World::setSimulationTimeScale(float scale)
+    {
+        mSimulationTimeScale = std::max(0.f, scale);
+        MWBase::Environment::get().getSoundManager()->setSimulationTimeScale(mSimulationTimeScale);
     }
 
     TimeStamp World::getTimeStamp() const
@@ -2961,12 +2978,12 @@ namespace MWWorld
         mGroundcoverStore.init(mStore.get<ESM::Static>(), fileCollections, groundcoverFiles, encoder, listener);
     }
 
-    bool World::startSpellCast(const Ptr &actor)
+    MWWorld::SpellCastState World::startSpellCast(const Ptr &actor)
     {
         MWMechanics::CreatureStats& stats = actor.getClass().getCreatureStats(actor);
 
         std::string message;
-        bool fail = false;
+        MWWorld::SpellCastState result = MWWorld::SpellCastState::Success;
         bool isPlayer = (actor == getPlayerPtr());
 
         std::string selectedSpell = stats.getSpells().getSelectedSpell();
@@ -2982,28 +2999,38 @@ namespace MWWorld
             if (spellCost > 0 && magicka.getCurrent() < spellCost && !godmode)
             {
                 message = "#{sMagicInsufficientSP}";
-                fail = true;
+                result = MWWorld::SpellCastState::InsufficientMagicka;
             }
 
             // If this is a power, check if it was already used in the last 24h
-            if (!fail && spell->mData.mType == ESM::Spell::ST_Power && !stats.getSpells().canUsePower(spell))
+            if (result == MWWorld::SpellCastState::Success && spell->mData.mType == ESM::Spell::ST_Power && !stats.getSpells().canUsePower(spell))
             {
                 message = "#{sPowerAlreadyUsed}";
-                fail = true;
+                result = MWWorld::SpellCastState::PowerAlreadyUsed;
             }
 
-            // Reduce mana
-            if (!fail && !godmode)
+            if (result ==  MWWorld::SpellCastState::Success && !godmode)
             {
+                // Reduce mana
                 magicka.setCurrent(magicka.getCurrent() - spellCost);
                 stats.setMagicka(magicka);
+
+                // Reduce fatigue (note that in the vanilla game, both GMSTs are 0, and there's no fatigue loss)
+                static const float fFatigueSpellBase = mStore.get<ESM::GameSetting>().find("fFatigueSpellBase")->mValue.getFloat();
+                static const float fFatigueSpellMult = mStore.get<ESM::GameSetting>().find("fFatigueSpellMult")->mValue.getFloat();
+                MWMechanics::DynamicStat<float> fatigue = stats.getFatigue();
+                const float normalizedEncumbrance = actor.getClass().getNormalizedEncumbrance(actor);
+
+                float fatigueLoss = spellCost * (fFatigueSpellBase + normalizedEncumbrance * fFatigueSpellMult);
+                fatigue.setCurrent(fatigue.getCurrent() - fatigueLoss);
+                stats.setFatigue(fatigue);
             }
         }
 
-        if (isPlayer && fail)
+        if (isPlayer && result != MWWorld::SpellCastState::Success)
             MWBase::Environment::get().getWindowManager()->messageBox(message);
 
-        return !fail;
+        return result;
     }
 
     void World::castSpell(const Ptr &actor, bool manualSpell)
@@ -3614,7 +3641,7 @@ namespace MWWorld
                 mPlayer->setAttackingOrSpell(false);
             }
 
-            mPlayer->setDrawState(MWMechanics::DrawState_Nothing);
+            mPlayer->setDrawState(MWMechanics::DrawState::Nothing);
             mGoToJail = false;
 
             MWBase::Environment::get().getWindowManager()->removeGuiMode(MWGui::GM_Dialogue);
@@ -3695,8 +3722,9 @@ namespace MWWorld
         if (texture.empty())
             texture = Fallback::Map::getString("Blood_Texture_0");
 
-        std::string model = MWBase::Environment::get().getWindowManager()->correctMeshPath(
-            Fallback::Map::getString("Blood_Model_" + std::to_string(Misc::Rng::rollDice(3)))); // [0, 2]
+        std::string model = Misc::ResourceHelpers::correctMeshPath(
+            Fallback::Map::getString("Blood_Model_" + std::to_string(Misc::Rng::rollDice(3))), // [0, 2]
+            mResourceSystem->getVFS());
 
         mRendering->spawnEffect(model, texture, worldPosition, 1.0f, false);
     }
@@ -3736,13 +3764,13 @@ namespace MWWorld
             {
                 if (effectInfo.mRange == ESM::RT_Target)
                     mRendering->spawnEffect(
-                        MWBase::Environment::get().getWindowManager()->correctMeshPath(areaStatic->mModel),
+                        Misc::ResourceHelpers::correctMeshPath(areaStatic->mModel, mResourceSystem->getVFS()),
                         texture, origin, 1.0f);
                 continue;
             }
             else
                 mRendering->spawnEffect(
-                    MWBase::Environment::get().getWindowManager()->correctMeshPath(areaStatic->mModel),
+                    Misc::ResourceHelpers::correctMeshPath(areaStatic->mModel, mResourceSystem->getVFS()),
                     texture, origin, static_cast<float>(effectInfo.mArea * 2));
 
             // Play explosion sound (make sure to use NoTrack, since we will delete the projectile now)
@@ -3925,8 +3953,8 @@ namespace MWWorld
     DetourNavigator::AgentBounds World::getPathfindingAgentBounds(const MWWorld::ConstPtr& actor) const
     {
         const MWPhysics::Actor* physicsActor = mPhysics->getActor(actor);
-        if (physicsActor == nullptr || (actor.isInCell() && actor.getCell()->isExterior()))
-            return DetourNavigator::AgentBounds {DetourNavigator::defaultCollisionShapeType, mDefaultHalfExtents};
+        if (physicsActor == nullptr || !actor.isInCell() || actor.getCell()->isExterior())
+            return DetourNavigator::AgentBounds {mDefaultActorCollisionShapeType, mDefaultHalfExtents};
         else
             return DetourNavigator::AgentBounds {physicsActor->getCollisionShapeType(), physicsActor->getHalfExtents()};
     }

@@ -17,6 +17,7 @@
 
 #include "../mwworld/ptr.hpp"
 #include "../mwworld/doorstate.hpp"
+#include "../mwworld/spellcaststate.hpp"
 
 #include "../mwrender/rendermode.hpp"
 
@@ -254,6 +255,10 @@ namespace MWBase
             virtual void modRegion(const std::string &regionid, const std::vector<char> &chances) = 0;
 
             virtual float getTimeScaleFactor() const = 0;
+
+            virtual float getSimulationTimeScale() const = 0;
+
+            virtual void setSimulationTimeScale(float scale) = 0;
 
             virtual void changeToInteriorCell (const std::string& cellName, const ESM::Position& position, bool adjustPlayerPos, bool changeEvent=true) = 0;
             ///< Move to interior cell.
@@ -537,9 +542,9 @@ namespace MWBase
             /**
              * @brief startSpellCast attempt to start casting a spell. Might fail immediately if conditions are not met.
              * @param actor
-             * @return true if the spell can be casted (i.e. the animation should start)
+             * @return Success or the failure condition.
              */
-            virtual bool startSpellCast (const MWWorld::Ptr& actor) = 0;
+            virtual MWWorld::SpellCastState startSpellCast (const MWWorld::Ptr& actor) = 0;
 
             virtual void castSpell (const MWWorld::Ptr& actor, bool manualSpell=false) = 0;
 

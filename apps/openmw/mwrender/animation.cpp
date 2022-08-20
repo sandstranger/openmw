@@ -51,6 +51,22 @@
 
 namespace
 {
+    class MarkDrawablesVisitor : public osg::NodeVisitor
+    {
+    public:
+        MarkDrawablesVisitor(osg::Node::NodeMask mask)
+            : osg::NodeVisitor(TRAVERSE_ALL_CHILDREN)
+            , mMask(mask)
+        { }
+
+        void apply(osg::Drawable& drawable) override
+        {
+            drawable.setNodeMask(mMask);
+        }
+
+    private:
+        osg::Node::NodeMask mMask = 0;
+    };
 
     /// Removes all particle systems and related nodes in a subgraph.
     class RemoveParticlesVisitor : public osg::NodeVisitor
@@ -527,23 +543,7 @@ namespace MWRender
         mLightListCallback = new SceneUtil::LightListCallback;
     }
 
-    Animation::~Animation()
-    {
-        Animation::setLightEffect(0.f);
-
-        if (mObjectRoot)
-            mInsert->removeChild(mObjectRoot);
-    }
-
-    MWWorld::ConstPtr Animation::getPtr() const
-    {
-        return mPtr;
-    }
-
-    MWWorld::Ptr Animation::getPtr()
-    {
-        return mPtr;
-    }
+    Animation::~Animation() = default;
 
     void Animation::setActive(int active)
     {
@@ -708,7 +708,7 @@ namespace MWRender
         mAnimVelocities.clear();
     }
 
-    bool Animation::hasAnimation(const std::string &anim) const
+    bool Animation::hasAnimation(std::string_view anim) const
     {
         AnimSourceList::const_iterator iter(mAnimSources.begin());
         for(;iter != mAnimSources.end();++iter)
@@ -1571,6 +1571,9 @@ namespace MWRender
 
         node->setNodeMask(Mask_Effect);
 
+        MarkDrawablesVisitor markVisitor(Mask_Effect);
+        node->accept(markVisitor);
+
         params.mMaxControllerLength = findMaxLengthVisitor.getMaxLength();
         params.mLoop = loop;
         params.mEffectId = effectId;
@@ -1779,6 +1782,15 @@ namespace MWRender
         return mHeadYawRadians;
     }
 
+    void Animation::removeFromScene()
+    {
+        if (mGlowLight != nullptr)
+            mInsert->removeChild(mGlowLight);
+
+        if (mObjectRoot != nullptr)
+            mInsert->removeChild(mObjectRoot);
+    }
+
     // ------------------------------------------------------
 
     float Animation::AnimationTime::getValue(osg::NodeVisitor*)
@@ -1838,7 +1850,7 @@ namespace MWRender
             mObjectRoot->accept(visitor);
         }
 
-        if (ptr.getRefData().getCustomData() != nullptr && canBeHarvested())
+        if (ptr.getRefData().getCustomData() != nullptr && ObjectAnimation::canBeHarvested())
         {
             const MWWorld::ContainerStore& store = ptr.getClass().getContainerStore(ptr);
             if (!store.hasVisibleItems())

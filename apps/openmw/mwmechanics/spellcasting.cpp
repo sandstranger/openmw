@@ -2,6 +2,7 @@
 
 #include <components/misc/constants.hpp>
 #include <components/misc/rng.hpp>
+#include <components/misc/resourcehelpers.hpp>
 
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/soundmanager.hpp"
@@ -312,8 +313,6 @@ namespace MWMechanics
         mSourceName = spell->mName;
         mId = spell->mId;
 
-        const MWWorld::ESMStore& store = MWBase::Environment::get().getWorld()->getStore();
-
         int school = 0;
 
         bool godmode = mCaster == MWMechanics::getPlayer() && MWBase::Environment::get().getWorld()->getGodModeState();
@@ -326,16 +325,6 @@ namespace MWMechanics
 
             if (!godmode)
             {
-                // Reduce fatigue (note that in the vanilla game, both GMSTs are 0, and there's no fatigue loss)
-                static const float fFatigueSpellBase = store.get<ESM::GameSetting>().find("fFatigueSpellBase")->mValue.getFloat();
-                static const float fFatigueSpellMult = store.get<ESM::GameSetting>().find("fFatigueSpellMult")->mValue.getFloat();
-                DynamicStat<float> fatigue = stats.getFatigue();
-                const float normalizedEncumbrance = mCaster.getClass().getNormalizedEncumbrance(mCaster);
-
-                float fatigueLoss = MWMechanics::calcSpellCost(*spell) * (fFatigueSpellBase + normalizedEncumbrance * fFatigueSpellMult);
-                fatigue.setCurrent(fatigue.getCurrent() - fatigueLoss); 
-                stats.setFatigue(fatigue);
-
                 bool fail = false;
 
                 // Check success
@@ -464,6 +453,8 @@ namespace MWMechanics
     {
         const MWWorld::ESMStore& store = MWBase::Environment::get().getWorld()->getStore();
         std::vector<std::string> addedEffects;
+        const VFS::Manager* const vfs = MWBase::Environment::get().getResourceSystem()->getVFS();
+
         for (const ESM::ENAMstruct& effectData : effects)
         {
             const auto effect = store.get<ESM::MagicEffect>().find(effectData.mEffectID);
@@ -477,7 +468,7 @@ namespace MWMechanics
 
             // check if the effect was already added
             if (std::find(addedEffects.begin(), addedEffects.end(),
-                MWBase::Environment::get().getWindowManager()->correctMeshPath(castStatic->mModel))
+                Misc::ResourceHelpers::correctMeshPath(castStatic->mModel, vfs))
                 != addedEffects.end())
                 continue;
 
@@ -485,7 +476,7 @@ namespace MWMechanics
             if (animation)
             {
                 animation->addEffect(
-                    MWBase::Environment::get().getWindowManager()->correctMeshPath(castStatic->mModel),
+                    Misc::ResourceHelpers::correctMeshPath(castStatic->mModel, vfs),
                     effect->mIndex, false, "", effect->mParticle);
             }
             else
@@ -516,7 +507,7 @@ namespace MWMechanics
                 }
                 scale = std::max(scale, 1.f);
                 MWBase::Environment::get().getWorld()->spawnEffect(
-                    MWBase::Environment::get().getWindowManager()->correctMeshPath(castStatic->mModel),
+                    Misc::ResourceHelpers::correctMeshPath(castStatic->mModel, vfs),
                     effect->mParticle, pos, scale);
             }
 
@@ -527,7 +518,7 @@ namespace MWMechanics
                 "alteration", "conjuration", "destruction", "illusion", "mysticism", "restoration"
             };
 
-            addedEffects.push_back(MWBase::Environment::get().getWindowManager()->correctMeshPath(castStatic->mModel));
+            addedEffects.push_back(Misc::ResourceHelpers::correctMeshPath(castStatic->mModel, vfs));
 
             MWBase::SoundManager *sndMgr = MWBase::Environment::get().getSoundManager();
             if(!effect->mCastSound.empty())
@@ -565,9 +556,12 @@ namespace MWMechanics
         {
             // Don't play particle VFX unless the effect is new or it should be looping.
             if (playNonLooping || loop)
+            {
+                const VFS::Manager* const vfs = MWBase::Environment::get().getResourceSystem()->getVFS();
                 anim->addEffect(
-                    MWBase::Environment::get().getWindowManager()->correctMeshPath(castStatic->mModel),
+                    Misc::ResourceHelpers::correctMeshPath(castStatic->mModel, vfs),
                     magicEffect.mIndex, loop, "", magicEffect.mParticle);
+            }
         }
     }
 }

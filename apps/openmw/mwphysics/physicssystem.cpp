@@ -26,7 +26,7 @@
 #include <components/esm3/loadgmst.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
 #include <components/misc/convert.hpp>
-
+#include <components/settings/settings.hpp>
 #include <components/nifosg/particle.hpp> // FindRecIndexVisitor
 
 #include "../mwbase/world.hpp"
@@ -104,6 +104,7 @@ namespace MWPhysics
         , mWaterEnabled(false)
         , mParentNode(parentNode)
         , mPhysicsDt(1.f / 60.f)
+        , mActorCollisionShapeType(DetourNavigator::toCollisionShapeType(Settings::Manager::getInt("actor collision shape type", "Game")))
     {
         mResourceSystem->addResourceManager(mShapeManager.get());
 
@@ -646,8 +647,8 @@ namespace MWPhysics
         const MWMechanics::MagicEffects& effects = ptr.getClass().getCreatureStats(ptr).getMagicEffects();
         const bool canWaterWalk = effects.get(ESM::MagicEffect::WaterWalking).getMagnitude() > 0;
 
-        auto actor = std::make_shared<Actor>(ptr, shape, mTaskScheduler.get(), canWaterWalk);
-        
+        auto actor = std::make_shared<Actor>(ptr, shape, mTaskScheduler.get(), canWaterWalk, mActorCollisionShapeType);
+
         mActors.emplace(ptr.mRef, std::move(actor));
     }
 
@@ -699,7 +700,10 @@ namespace MWPhysics
     void PhysicsSystem::clearQueuedMovement()
     {
         for (const auto& [_, actor] : mActors)
+        {
             actor->setVelocity(osg::Vec3f());
+            actor->setInertialForce(osg::Vec3f());
+        }
     }
 
     std::vector<Simulation> PhysicsSystem::prepareSimulation(bool willSimulate)

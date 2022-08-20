@@ -61,6 +61,7 @@ namespace SceneUtil
     class ShadowManager;
     class WorkQueue;
     class LightManager;
+    class UnrefQueue;
 }
 
 namespace DetourNavigator
@@ -100,9 +101,10 @@ namespace MWRender
     class RenderingManager : public MWRender::RenderingInterface
     {
     public:
-        RenderingManager(osgViewer::Viewer* viewer, osg::ref_ptr<osg::Group> rootNode, 
-                         Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue,
-                         const std::string& resourcePath, DetourNavigator::Navigator& navigator, const MWWorld::GroundcoverStore& groundcoverStore);
+        RenderingManager(osgViewer::Viewer* viewer, osg::ref_ptr<osg::Group> rootNode,
+            Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue, const std::string& resourcePath,
+            DetourNavigator::Navigator& navigator, const MWWorld::GroundcoverStore& groundcoverStore,
+            SceneUtil::UnrefQueue& unrefQueue);
         ~RenderingManager();
 
         osgUtil::IncrementalCompileOperation* getIncrementalCompileOperation();
@@ -248,7 +250,7 @@ namespace MWRender
         bool pagingEnableObject(int type, const MWWorld::ConstPtr& ptr, bool enabled);
         void pagingBlacklistObject(int type, const MWWorld::ConstPtr &ptr);
         bool pagingUnlockCache();
-        void getPagedRefnums(const osg::Vec4i &activeGrid, std::set<ESM::RefNum> &out);
+        void getPagedRefnums(const osg::Vec4i &activeGrid, std::vector<ESM::RefNum>& out);
 
         void updateProjectionMatrix();
 

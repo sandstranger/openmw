@@ -17,11 +17,16 @@ varying vec4 passTangent;
 #include "vertexcolors.glsl"
 
 varying float depth;
+
+#if !@radialFog
+varying float linearDepth;
+#endif
+
 uniform vec2 screenRes;
 
 #if PER_PIXEL_LIGHTING
-varying vec3 passNormal;
 varying vec3 passViewPos;
+varying vec3 passNormal;
 #endif
 
 #if @grassDebugBatches
@@ -83,7 +88,11 @@ vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.
     clampLightingResult(lighting);
     gl_FragData[0].xyz *= lighting;
 
-    gl_FragData[0] = applyFogAtDist(gl_FragData[0], depth, depth);
+#if @radialFog
+    gl_FragData[0] = applyFogAtDist(gl_FragData[0], depth, 0.0);
+#else
+    gl_FragData[0] = applyFogAtDist(gl_FragData[0], 0.0, linearDepth);
+#endif
 
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
 

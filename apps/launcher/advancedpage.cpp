@@ -11,6 +11,7 @@
 #include <components/config/gamesettings.hpp>
 #include <components/contentselector/view/contentselector.hpp>
 #include <components/contentselector/model/esmfile.hpp>
+#include <components/detournavigator/collisionshapetype.hpp>
 
 #include "utils/openalutil.hpp"
 
@@ -108,6 +109,10 @@ bool Launcher::AdvancedPage::loadSettings()
         if (numPhysicsThreads >= 0)
             physicsThreadsSpinBox->setValue(numPhysicsThreads);
         loadSettingBool(allowNPCToFollowOverWaterSurfaceCheckBox, "allow actors to follow over water surface", "Game");
+        loadSettingBool(unarmedCreatureAttacksDamageArmorCheckBox, "unarmed creature attacks damage armor", "Game");
+        const int actorCollisionShapeType = Settings::Manager::getInt("actor collision shape type", "Game");
+        if (0 <= actorCollisionShapeType && actorCollisionShapeType < actorCollisonShapeTypeComboBox->count())
+            actorCollisonShapeTypeComboBox->setCurrentIndex(actorCollisionShapeType);
     }
 
     // Visuals
@@ -117,7 +122,6 @@ bool Launcher::AdvancedPage::loadSettings()
         loadSettingBool(autoUseTerrainNormalMapsCheckBox, "auto use terrain normal maps", "Shaders");
         loadSettingBool(autoUseTerrainSpecularMapsCheckBox, "auto use terrain specular maps", "Shaders");
         loadSettingBool(bumpMapLocalLightingCheckBox, "apply lighting to environment maps", "Shaders");
-        loadSettingBool(radialFogCheckBox, "radial fog", "Fog");
         loadSettingBool(softParticlesCheckBox, "soft particles", "Shaders");
         loadSettingBool(antialiasAlphaTestCheckBox, "antialias alpha test", "Shaders");
         if (Settings::Manager::getInt("antialiasing", "Video") == 0) {
@@ -150,7 +154,13 @@ bool Launcher::AdvancedPage::loadSettings()
         loadSettingBool(postprocessEnabledCheckBox, "enabled", "Post Processing");
         loadSettingBool(postprocessLiveReloadCheckBox, "live reload", "Post Processing");
         loadSettingBool(postprocessTransparentPostpassCheckBox, "transparent postpass", "Post Processing");
-        postprocessHDRTimeComboBox->setValue(Settings::Manager::getDouble("hdr exposure time", "Post Processing"));
+        postprocessHDRTimeComboBox->setValue(Settings::Manager::getDouble("auto exposure speed", "Post Processing"));
+
+        connect(skyBlendingCheckBox, SIGNAL(toggled(bool)), this, SLOT(slotSkyBlendingToggled(bool)));
+        loadSettingBool(radialFogCheckBox, "radial fog", "Fog");
+        loadSettingBool(exponentialFogCheckBox, "exponential fog", "Fog");
+        loadSettingBool(skyBlendingCheckBox, "sky blending", "Fog");
+        skyBlendingStartComboBox->setValue(Settings::Manager::getDouble("sky blending start", "Fog"));
     }
 
     // Audio
@@ -195,6 +205,8 @@ bool Launcher::AdvancedPage::loadSettings()
         loadSettingBool(useZoomOnMapCheckBox, "allow zooming", "Map");
         loadSettingBool(graphicHerbalismCheckBox, "graphic herbalism", "Game");
         scalingSpinBox->setValue(Settings::Manager::getFloat("scaling factor", "GUI"));
+        fontSizeSpinBox->setValue(Settings::Manager::getInt("font size", "GUI"));
+        ttfResolutionSpinBox->setValue(Settings::Manager::getInt("ttf resolution", "GUI"));
     }
 
     // Bug fixes
@@ -256,6 +268,9 @@ void Launcher::AdvancedPage::saveSettings()
         saveSettingBool(stealingFromKnockedOutCheckBox, "always allow stealing from knocked out actors", "Game");
         saveSettingBool(enableNavigatorCheckBox, "enable", "Navigator");
         saveSettingInt(physicsThreadsSpinBox, "async num threads", "Physics");
+        saveSettingBool(allowNPCToFollowOverWaterSurfaceCheckBox, "allow actors to follow over water surface", "Game");
+        saveSettingBool(unarmedCreatureAttacksDamageArmorCheckBox, "unarmed creature attacks damage armor", "Game");
+        saveSettingInt(actorCollisonShapeTypeComboBox, "actor collision shape type", "Game");
     }
 
     // Visuals
@@ -299,8 +314,13 @@ void Launcher::AdvancedPage::saveSettings()
         saveSettingBool(postprocessLiveReloadCheckBox, "live reload", "Post Processing");
         saveSettingBool(postprocessTransparentPostpassCheckBox, "transparent postpass", "Post Processing");
         double hdrExposureTime = postprocessHDRTimeComboBox->value();
-        if (hdrExposureTime != Settings::Manager::getDouble("hdr exposure time", "Post Processing"))
-            Settings::Manager::setDouble("hdr exposure time", "Post Processing", hdrExposureTime);
+        if (hdrExposureTime != Settings::Manager::getDouble("auto exposure speed", "Post Processing"))
+            Settings::Manager::setDouble("auto exposure speed", "Post Processing", hdrExposureTime);
+
+        saveSettingBool(radialFogCheckBox, "radial fog", "Fog");
+        saveSettingBool(exponentialFogCheckBox, "exponential fog", "Fog");
+        saveSettingBool(skyBlendingCheckBox, "sky blending", "Fog");
+        Settings::Manager::setDouble("sky blending start", "Fog", skyBlendingStartComboBox->value());
     }
     
     // Audio
@@ -347,9 +367,18 @@ void Launcher::AdvancedPage::saveSettings()
         saveSettingBool(stretchBackgroundCheckBox, "stretch menu background", "GUI");
         saveSettingBool(useZoomOnMapCheckBox, "allow zooming", "Map");
         saveSettingBool(graphicHerbalismCheckBox, "graphic herbalism", "Game");
+
         float uiScalingFactor = scalingSpinBox->value();
         if (uiScalingFactor != Settings::Manager::getFloat("scaling factor", "GUI"))
             Settings::Manager::setFloat("scaling factor", "GUI", uiScalingFactor);
+
+        int fontSize = fontSizeSpinBox->value();
+        if (fontSize != Settings::Manager::getInt("font size", "GUI"))
+            Settings::Manager::setInt("font size", "GUI", fontSize);
+
+        int ttfResolution = ttfResolutionSpinBox->value();
+        if (ttfResolution != Settings::Manager::getInt("ttf resolution", "GUI"))
+            Settings::Manager::setInt("ttf resolution", "GUI", ttfResolution);
     }
 
     // Bug fixes
@@ -452,4 +481,10 @@ void Launcher::AdvancedPage::slotPostProcessToggled(bool checked)
     postprocessTransparentPostpassCheckBox->setEnabled(checked);
     postprocessHDRTimeComboBox->setEnabled(checked);
     postprocessHDRTimeLabel->setEnabled(checked);
+}
+
+void Launcher::AdvancedPage::slotSkyBlendingToggled(bool checked)
+{
+    skyBlendingStartComboBox->setEnabled(checked);
+    skyBlendingStartLabel->setEnabled(checked);
 }

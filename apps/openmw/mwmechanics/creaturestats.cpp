@@ -1,6 +1,7 @@
 #include "creaturestats.hpp"
 
 #include <algorithm>
+#include <type_traits>
 
 #include <components/esm3/creaturestats.hpp>
 #include <components/esm3/esmreader.hpp>
@@ -18,7 +19,7 @@ namespace MWMechanics
     int CreatureStats::sActorId = 0;
 
     CreatureStats::CreatureStats()
-        : mDrawState (DrawState_Nothing), mDead (false), mDeathAnimationFinished(false), mDied (false), mMurdered(false), mFriendlyHits (0),
+        : mDrawState (DrawState::Nothing), mDead (false), mDeathAnimationFinished(false), mDied (false), mMurdered(false), mFriendlyHits (0),
           mTalkedTo (false), mAlarmed (false), mAttacked (false),
           mKnockdown(false), mKnockdownOneFrame(false), mKnockdownOverOneFrame(false),
           mHitRecovery(false), mBlock(false), mMovementFlags(0),
@@ -99,7 +100,7 @@ namespace MWMechanics
 
     Stat<int> CreatureStats::getAiSetting (AiSetting index) const
     {
-        return mAiSettings[index];
+        return mAiSettings[static_cast<std::underlying_type_t<AiSetting>>(index)];
     }
 
     const DynamicStat<float> &CreatureStats::getDynamic(int index) const
@@ -212,7 +213,7 @@ namespace MWMechanics
 
     void CreatureStats::setAiSetting (AiSetting index, Stat<int> value)
     {
-        mAiSettings[index] = value;
+        mAiSettings[static_cast<std::underlying_type_t<AiSetting>>(index)] = value;
     }
 
     void CreatureStats::setAiSetting (AiSetting index, int base)
@@ -498,12 +499,12 @@ namespace MWMechanics
         }
     }
 
-    DrawState_ CreatureStats::getDrawState() const
+    DrawState CreatureStats::getDrawState() const
     {
         return mDrawState;
     }
 
-    void CreatureStats::setDrawState(DrawState_ state)
+    void CreatureStats::setDrawState(DrawState state)
     {
         mDrawState = state;
     }
@@ -541,7 +542,7 @@ namespace MWMechanics
         state.mLastHitObject = mLastHitObject;
         state.mLastHitAttemptObject = mLastHitAttemptObject;
         state.mRecalcDynamicStats = false;
-        state.mDrawState = mDrawState;
+        state.mDrawState = static_cast<int>(mDrawState);
         state.mLevel = mLevel;
         state.mActorId = mActorId;
         state.mDeathAnimation = mDeathAnimation;
@@ -595,7 +596,7 @@ namespace MWMechanics
         mFallHeight = state.mFallHeight;
         mLastHitObject = state.mLastHitObject;
         mLastHitAttemptObject = state.mLastHitAttemptObject;
-        mDrawState = DrawState_(state.mDrawState);
+        mDrawState = DrawState(state.mDrawState);
         mLevel = state.mLevel;
         mActorId = state.mActorId;
         mDeathAnimation = state.mDeathAnimation;

@@ -5,6 +5,7 @@ default:
 # See https://docs.gitlab.com/ee/ci/yaml/#needs
 stages:
   - build
+  - test
 
 # https://blog.nimbleways.com/let-s-make-faster-gitlab-ci-cd-pipelines/
 variables:
@@ -18,10 +19,9 @@ variables:
   tags:
     - docker
     - linux
-  image: ubuntu:focal
+  image: ubuntu:22.04
   rules:
     - if: $CI_PIPELINE_SOURCE == "push"
-  
 
 .Ubuntu:
   extends: .Ubuntu_Image
@@ -30,6 +30,8 @@ variables:
     - apt-cache/
     - ccache/
   stage: build
+  variables:
+    CMAKE_EXE_LINKER_FLAGS: -fuse-ld=mold
   script:
     - df -h
     - export CCACHE_BASEDIR="`pwd`"
@@ -38,6 +40,11 @@ variables:
     - CI/before_script.linux.sh
     - cd build
     - cmake --build . -- -j $(nproc)
+    - df -h
+    - du -sh .
+    - find . | grep '\.o$' | xargs rm -f
+    - df -h
+    - du -sh .
     - cmake --install .
     - if [[ "${BUILD_TESTS_ONLY}" ]]; then ./openmw_test_suite --gtest_output="xml:tests.xml"; fi
     - if [[ "${BUILD_TESTS_ONLY}" && ! "${BUILD_WITH_CODE_COVERAGE}" ]]; then ./openmw_detournavigator_navmeshtilescache_benchmark; fi
@@ -55,57 +62,54 @@ variables:
     paths:
       - build/install/
 
-Clang_Tidy:
-  extends: .Ubuntu_Image
-  stage: build
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-  before_script:
-    - CI/install_debian_deps.sh gcc openmw-deps openmw-deps-dynamic clang-tidy clang
-  script:
-    - CI/before_script.linux.sh
-    - cd build
-    - cmake --build . -- -j $(nproc) openmw esmtool bsatool niftest openmw-wizard openmw-launcher openmw-iniimporter openmw-essimporter
-  variables:
-    CC: clang
-    CXX: clang++
-    CI_CLANG_TIDY: 1
-  timeout: 8h
-  artifacts:
-    paths: []
-    expire_in: 1 minute
-
 Coverity:
-  extends: .Ubuntu_Image
+  tags:
+    - docker
+    - linux
+  image: ubuntu:20.04
   stage: build
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
+  cache:
+    key: Coverity.ubuntu_20.04.v1
+    paths:
+    - apt-cache/
+    - ccache/
+  variables:
+    CCACHE_SIZE: 2G
+    CC: clang
+    CXX: clang++
+    CMAKE_BUILD_TYPE: Debug
+    CMAKE_CXX_FLAGS_DEBUG: -O0
   before_script:
-    - CI/install_debian_deps.sh clang openmw-deps openmw-deps-dynamic
-    - curl -o /tmp/cov-analysis-linux64.tgz https://scan.coverity.com/download/linux64 --form project=$COVERITY_SCAN_PROJECT_NAME --form token=$COVERITY_SCAN_TOKEN
+    - CI/install_debian_deps.sh clang_ubuntu_20_04 openmw-deps openmw-deps-dynamic
+    - curl -o /tmp/cov-analysis-linux64.tgz https://scan.coverity.com/download/linux64
+      --form project=$COVERITY_SCAN_PROJECT_NAME --form token=$COVERITY_SCAN_TOKEN
     - tar xfz /tmp/cov-analysis-linux64.tgz
   script:
+    - export CCACHE_BASEDIR="$(pwd)"
+    - export CCACHE_DIR="$(pwd)/ccache"
+    - mkdir -pv "${CCACHE_DIR}"
+    - ccache -z -M "${CCACHE_SIZE}"
     - CI/before_script.linux.sh
+    - cov-analysis-linux64-*/bin/cov-configure --template --comptype prefix --compiler ccache
     # Remove the specific targets and build everything once we can do it under 3h
-    - cov-analysis-linux64-*/bin/cov-build --dir cov-int cmake --build build -- -j $(nproc) openmw esmtool bsatool niftest openmw-wizard openmw-launcher openmw-iniimporter openmw-essimporter openmw-navmeshtool openmw-cs
+    - cov-analysis-linux64-*/bin/cov-build --dir cov-int cmake --build build -- -j $(nproc)
+    - ccache -s
   after_script:
     - tar cfz cov-int.tar.gz cov-int
     - curl https://scan.coverity.com/builds?project=$COVERITY_SCAN_PROJECT_NAME
       --form token=$COVERITY_SCAN_TOKEN --form email=$GITLAB_USER_EMAIL
       --form file=@cov-int.tar.gz --form version="$CI_COMMIT_REF_NAME:$CI_COMMIT_SHORT_SHA"
       --form description="CI_COMMIT_SHORT_SHA / $CI_COMMIT_TITLE / $CI_COMMIT_REF_NAME:$CI_PIPELINE_ID"
-  variables:
-    CC: clang
-    CXX: clang++
-    CXXFLAGS: -O0
   artifacts:
-    paths: 
+    paths:
       - /builds/OpenMW/openmw/cov-int/build-log.txt
 
 Ubuntu_GCC:
   extends: .Ubuntu
   cache:
-    key: Ubuntu_GCC.v3
+    key: Ubuntu_GCC.ubuntu_22.04.v1
   before_script:
     - CI/install_debian_deps.sh gcc openmw-deps openmw-deps-dynamic
   variables:
@@ -115,10 +119,25 @@ Ubuntu_GCC:
   # When CCache doesn't exist (e.g. first build on a fork), build takes more than 1h, which is the default for forks.
   timeout: 2h
 
-.Ubuntu_GCC_tests:
+Ubuntu_GCC_Debug:
+  extends: .Ubuntu
+  cache:
+    key: Ubuntu_GCC_Debug.ubuntu_22.04.v1
+  before_script:
+    - CI/install_debian_deps.sh gcc openmw-deps openmw-deps-dynamic
+  variables:
+    CC: gcc
+    CXX: g++
+    CCACHE_SIZE: 4G
+    CMAKE_BUILD_TYPE: Debug
+    CMAKE_CXX_FLAGS_DEBUG: -O0
+  # When CCache doesn't exist (e.g. first build on a fork), build takes more than 1h, which is the default for forks.
+  timeout: 2h
+
+Ubuntu_GCC_tests:
   extends: Ubuntu_GCC
   cache:
-    key: Ubuntu_GCC_tests.v3
+    key: Ubuntu_GCC_tests.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -132,7 +151,7 @@ Ubuntu_GCC:
 .Ubuntu_GCC_tests_Debug:
   extends: Ubuntu_GCC
   cache:
-    key: Ubuntu_GCC_tests_Debug.v2
+    key: Ubuntu_GCC_tests_Debug.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -145,16 +164,16 @@ Ubuntu_GCC:
     reports:
       junit: build/tests.xml
 
-.Ubuntu_GCC_tests_asan:
+Ubuntu_GCC_tests_asan:
   extends: Ubuntu_GCC
   cache:
-    key: Ubuntu_GCC_asan.v1
+    key: Ubuntu_GCC_asan.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
     CMAKE_BUILD_TYPE: Debug
     CMAKE_CXX_FLAGS_DEBUG: -g -O1 -fno-omit-frame-pointer -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=leak
-    CMAKE_EXE_LINKER_FLAGS: -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=leak
+    CMAKE_EXE_LINKER_FLAGS: -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=leak -fuse-ld=mold
     ASAN_OPTIONS: halt_on_error=1:strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1
   artifacts:
     paths: []
@@ -163,10 +182,10 @@ Ubuntu_GCC:
     reports:
       junit: build/tests.xml
 
-.Ubuntu_GCC_tests_ubsan:
+Ubuntu_GCC_tests_ubsan:
   extends: Ubuntu_GCC
   cache:
-    key: Ubuntu_GCC_ubsan.v1
+    key: Ubuntu_GCC_ubsan.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -183,13 +202,13 @@ Ubuntu_GCC:
 .Ubuntu_GCC_tests_tsan:
   extends: Ubuntu_GCC
   cache:
-    key: Ubuntu_GCC_tsan.v1
+    key: Ubuntu_GCC_tsan.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
     CMAKE_BUILD_TYPE: Debug
     CMAKE_CXX_FLAGS_DEBUG: -g -O2 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize=thread -fPIE
-    CMAKE_EXE_LINKER_FLAGS: -pthread -pie -fsanitize=thread
+    CMAKE_EXE_LINKER_FLAGS: -pthread -pie -fsanitize=thread -fuse-ld=mold
     TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1
   artifacts:
     paths: []
@@ -198,10 +217,10 @@ Ubuntu_GCC:
     reports:
       junit: build/tests.xml
 
-.Ubuntu_GCC_tests_coverage:
+Ubuntu_GCC_tests_coverage:
   extends: .Ubuntu_GCC_tests_Debug
   cache:
-    key: Ubuntu_GCC_tests_coverage.v1
+    key: Ubuntu_GCC_tests_coverage.ubuntu_22.04.v1
   variables:
     BUILD_WITH_CODE_COVERAGE: 1
   before_script:
@@ -227,7 +246,7 @@ Ubuntu_GCC:
         - "CI/**/*"
         - ".gitlab-ci.yml"
   cache:
-    key: Ubuntu_Static_Deps.V1
+    key: Ubuntu_Static_Deps.ubuntu_22.04.v1
     paths:
       - apt-cache/
       - ccache/
@@ -244,7 +263,7 @@ Ubuntu_GCC:
 .Ubuntu_Static_Deps_tests:
   extends: .Ubuntu_Static_Deps
   cache:
-    key: Ubuntu_Static_Deps_tests.V1
+    key: Ubuntu_Static_Deps_tests.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -263,18 +282,31 @@ Ubuntu_Clang:
   before_script:
     - CI/install_debian_deps.sh clang openmw-deps openmw-deps-dynamic
   cache:
-    key: Ubuntu_Clang.v2
+    key: Ubuntu_Clang.ubuntu_22.04.v2
   variables:
     CC: clang
     CXX: clang++
     CCACHE_SIZE: 2G
   # When CCache doesn't exist (e.g. first build on a fork), build takes more than 1h, which is the default for forks.
-  timeout: 2h
+  timeout: 3h
+
+Ubuntu_Clang_Tidy:
+  extends: Ubuntu_Clang
+  before_script:
+    - CI/install_debian_deps.sh clang clang-tidy openmw-deps openmw-deps-dynamic
+  cache:
+    key: Ubuntu_Clang_Tidy.ubuntu_22.04.v1
+  variables:
+    CMAKE_BUILD_TYPE: Debug
+    CMAKE_CXX_FLAGS_DEBUG: -O0
+    CI_CLANG_TIDY: 1
+  # When CCache doesn't exist (e.g. first build on a fork), build takes more than 1h, which is the default for forks.
+  timeout: 3h
 
 .Ubuntu_Clang_tests:
   extends: Ubuntu_Clang
   cache:
-    key: Ubuntu_Clang_tests.v3
+    key: Ubuntu_Clang_tests.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -288,7 +320,7 @@ Ubuntu_Clang:
 Ubuntu_Clang_tests_Debug:
   extends: Ubuntu_Clang
   cache:
-    key: Ubuntu_Clang_tests_Debug.v1
+    key: Ubuntu_Clang_tests_Debug.ubuntu_22.04.v1
   variables:
     CCACHE_SIZE: 1G
     BUILD_TESTS_ONLY: 1
@@ -300,11 +332,32 @@ Ubuntu_Clang_tests_Debug:
     reports:
       junit: build/tests.xml
 
+Ubuntu_Clang_integration_tests:
+  extends: .Ubuntu_Image
+  stage: test
+  needs:
+    - Ubuntu_Clang
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  cache:
+    key: Ubuntu_Clang_integration_tests.ubuntu_22.04.v1
+    paths:
+      - .cache/pip
+      - apt-cache/
+  before_script:
+    - CI/install_debian_deps.sh openmw-integration-tests
+    - pip3 install --user numpy matplotlib termtables click
+  script:
+    - CI/run_integration_tests.sh
+
 .MacOS:
   image: macos-11-xcode-12
   tags:
     - shared-macos-amd64
   stage: build
+  only:
+    variables:
+      - $CI_PROJECT_ID == "7107382"
   cache:
     paths:
     - ccache/
@@ -369,7 +422,7 @@ macOS12_Xcode13:
     - $env:CCACHE_BASEDIR = Get-Location
     - $env:CCACHE_DIR = "$(Get-Location)\ccache"
     - New-Item -Type Directory -Force -Path $env:CCACHE_DIR
-    - sh CI/before_script.msvc.sh -c $config -p Win64 -v 2019 -k -V -N -b -t -C $multiview
+    - sh CI/before_script.msvc.sh -c $config -p Win64 -v 2019 -k -V -N -b -t -C $multiview -E
     - cd MSVC2019_64_Ninja
     - .\ActivateMSVC.ps1
     - cmake --build . --config $config
@@ -387,7 +440,7 @@ macOS12_Xcode13:
   after_script:
     - Copy-Item C:\ProgramData\chocolatey\logs\chocolatey.log
   cache:
-    key: ninja-v3
+    key: ninja-v4
     paths:
     - ccache
     - deps
@@ -471,7 +524,7 @@ macOS12_Xcode13:
     - $env:CCACHE_BASEDIR = Get-Location
     - $env:CCACHE_DIR = "$(Get-Location)\ccache"
     - New-Item -Type Directory -Force -Path $env:CCACHE_DIR
-    - sh CI/before_script.msvc.sh -c $config -p Win64 -v 2019 -k -V -b -t -C $multiview
+    - sh CI/before_script.msvc.sh -c $config -p Win64 -v 2019 -k -V -b -t -C $multiview -E
     - cd MSVC2019_64
     - cmake --build . --config $config
     - ccache --show-stats
@@ -488,7 +541,7 @@ macOS12_Xcode13:
   after_script:
     - Copy-Item C:\ProgramData\chocolatey\logs\chocolatey.log
   cache:
-    key: msbuild-v3
+    key: msbuild-v4
     paths:
     - ccache
     - deps
@@ -555,7 +608,7 @@ Ubuntu_AndroidNDK_arm64-v8a:
       - ccache/
       - build/extern/fetched/
   before_script:
-    - CI/install_debian_deps.sh gcc
+    - CI/install_debian_deps.sh android
   stage: build
   script:
     - df -h
@@ -566,14 +619,14 @@ Ubuntu_AndroidNDK_arm64-v8a:
     - CI/before_script.android.sh
     - cd build
     - cmake --build . -- -j $(nproc)
-    - cmake --install .
+    # - cmake --install .  # no one uses builds anyway, disable until 'no space left' is resolved
     - ccache -s
     - df -h
     - ls | grep -v -e '^extern$' -e '^install$' | xargs -I '{}' rm -rf './{}'
     - cd ..
     - df -h
     - du -sh build/
-    - du -sh build/install/
+    # - du -sh build/install/ # no install dir because it's commented out above
     - du -sh apt-cache/
     - du -sh ccache/
     - du -sh build/extern/fetched/
@@ -598,3 +651,23 @@ Ubuntu_AndroidNDK_arm64-v8a:
     - pip3 install --user requests click discord_webhook
   script:
     - scripts/find_missing_merge_requests.py --project_id=$CI_PROJECT_ID --ignored_mrs_path=$CI_PROJECT_DIR/.resubmitted_merge_requests.txt
+
+.flatpak:
+    image: 'docker.io/bilelmoussaoui/flatpak-github-actions'
+    stage: build
+    script:
+      - flatpak install -y flathub org.kde.Platform/x86_64/5.15-21.08
+      - flatpak install -y flathub org.kde.Sdk/x86_64/5.15-21.08
+      - flatpak-builder --ccache --force-clean --repo=repo build CI/org.openmw.OpenMW.devel.yaml
+      - flatpak build-bundle ./repo openmw.flatpak org.openmw.OpenMW.devel
+    cache:
+      key: flatpak
+      paths: 
+        - ".flatpak-builder"
+    artifacts:
+      untracked: false
+      paths:
+        - "openmw.flatpak"
+    # When CCache doesn't exist (e.g. first build on a fork), build takes more than 1h, which is the default for forks.
+    # Flatpak Builds compile all dependencies aswell so need more time. Build results of libraries are cached
+    timeout: 4h
