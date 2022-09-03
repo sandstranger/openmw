@@ -671,19 +671,6 @@
                     <number>20</number>
                   </property>
                   <item>
-                    <widget class="QCheckBox" name="postprocessLiveReloadCheckBox">
-                      <property name="enabled">
-                        <bool>false</bool>
-                      </property>
-                      <property name="toolTip">
-                        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Debug Mode. Automatically reload active shaders when they are modified on filesystem.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                      </property>
-                      <property name="text">
-                        <string>Live reload</string>
-                      </property>
-                    </widget>
-                  </item>
-                  <item>
                     <widget class="QCheckBox" name="postprocessTransparentPostpassCheckBox">
                       <property name="enabled">
                         <bool>false</bool>
@@ -959,7 +946,7 @@
             <number>12</number>
            </property>
            <property name="maximum">
-            <number>20</number>
+            <number>18</number>
            </property>
            <property name="singleStep">
             <number>1</number>
@@ -1073,33 +1060,6 @@
            </property>
            <property name="text">
             <string>Show enchant chance</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="0">
-          <widget class="QLabel" name="ttfResolutionLabel">
-           <property name="toolTip">
-            <string>Resolution of TrueType fonts glyphs. Automatically takes in account UI scaling factor.
-Lower values make text more blurry, higher ones - more pixelated.</string>
-           </property>
-           <property name="text">
-            <string>TTF texture resolution</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1">
-          <widget class="QSpinBox" name="ttfResolutionSpinBox">
-           <property name="minimum">
-            <number>50</number>
-           </property>
-           <property name="maximum">
-            <number>125</number>
-           </property>
-           <property name="singleStep">
-            <number>5</number>
-           </property>
-           <property name="value">
-            <number>75</number>
            </property>
           </widget>
          </item>

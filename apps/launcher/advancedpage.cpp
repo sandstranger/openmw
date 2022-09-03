@@ -152,7 +152,6 @@ bool Launcher::AdvancedPage::loadSettings()
 
         connect(postprocessEnabledCheckBox, SIGNAL(toggled(bool)), this, SLOT(slotPostProcessToggled(bool)));
         loadSettingBool(postprocessEnabledCheckBox, "enabled", "Post Processing");
-        loadSettingBool(postprocessLiveReloadCheckBox, "live reload", "Post Processing");
         loadSettingBool(postprocessTransparentPostpassCheckBox, "transparent postpass", "Post Processing");
         postprocessHDRTimeComboBox->setValue(Settings::Manager::getDouble("auto exposure speed", "Post Processing"));
 
@@ -206,7 +205,6 @@ bool Launcher::AdvancedPage::loadSettings()
         loadSettingBool(graphicHerbalismCheckBox, "graphic herbalism", "Game");
         scalingSpinBox->setValue(Settings::Manager::getFloat("scaling factor", "GUI"));
         fontSizeSpinBox->setValue(Settings::Manager::getInt("font size", "GUI"));
-        ttfResolutionSpinBox->setValue(Settings::Manager::getInt("ttf resolution", "GUI"));
     }
 
     // Bug fixes
@@ -311,7 +309,6 @@ void Launcher::AdvancedPage::saveSettings()
         saveSettingBool(nightDaySwitchesCheckBox, "day night switches", "Game");
 
         saveSettingBool(postprocessEnabledCheckBox, "enabled", "Post Processing");
-        saveSettingBool(postprocessLiveReloadCheckBox, "live reload", "Post Processing");
         saveSettingBool(postprocessTransparentPostpassCheckBox, "transparent postpass", "Post Processing");
         double hdrExposureTime = postprocessHDRTimeComboBox->value();
         if (hdrExposureTime != Settings::Manager::getDouble("auto exposure speed", "Post Processing"))
@@ -375,10 +372,6 @@ void Launcher::AdvancedPage::saveSettings()
         int fontSize = fontSizeSpinBox->value();
         if (fontSize != Settings::Manager::getInt("font size", "GUI"))
             Settings::Manager::setInt("font size", "GUI", fontSize);
-
-        int ttfResolution = ttfResolutionSpinBox->value();
-        if (ttfResolution != Settings::Manager::getInt("ttf resolution", "GUI"))
-            Settings::Manager::setInt("ttf resolution", "GUI", ttfResolution);
     }
 
     // Bug fixes
@@ -477,7 +470,6 @@ void Launcher::AdvancedPage::slotAnimSourcesToggled(bool checked)
 
 void Launcher::AdvancedPage::slotPostProcessToggled(bool checked)
 {
-    postprocessLiveReloadCheckBox->setEnabled(checked);
     postprocessTransparentPostpassCheckBox->setEnabled(checked);
     postprocessHDRTimeComboBox->setEnabled(checked);
     postprocessHDRTimeLabel->setEnabled(checked);
