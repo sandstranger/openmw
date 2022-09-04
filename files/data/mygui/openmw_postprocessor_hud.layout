@@ -2,13 +2,8 @@
 <MyGUI type="Layout">
   <Widget type="Window" skin="MW_Window" position="0 0 500 500" layer="Debug" name="_Main" align="Stretch">
     <Property key="Visible" value="false"/>
-<<<<<<< HEAD:files/mygui/openmw_postprocessor_hud.layout
-    <Property key="Caption" value="Postprocess HUD"/>
-	<Property key="MinSize" value="600 400"/>
-=======
     <Property key="Caption" value="#{PostProcessing:PostProcessHUD}"/>
-	<Property key="MinSize" value="600 600"/>
->>>>>>> openmw/openmw-48:files/data/mygui/openmw_postprocessor_hud.layout
+	<Property key="MinSize" value="600 400"/>
 
     <Widget type="TabControl" skin="TabControl_NoBorder" position="8 8 468 450" align="Stretch" name="TabControl">
         <Property key="ButtonAutoWidth" value="true"/>
@@ -27,7 +22,7 @@
 				<Property key="Padding" value="0"/>
 				<Property key="Spacing" value="8"/>
 
-				<Widget type="Widget" position ="0 0 0 200">
+				<Widget type="Widget" position ="0 0 0 300">
 					<UserString key="HStretch" value="true"/>
 					<UserString key="VStretch" value="false"/>
 

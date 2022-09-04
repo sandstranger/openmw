@@ -297,7 +297,6 @@
                             </Widget>
                         </Widget>
                         <Widget type="HBox" position="197 88 300 28">
-                        <Widget type="HBox" position="197 118 300 28">
                             <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="WindowBorderButton">
                                 <UserString key="SettingCategory" value="Video"/>
                                 <UserString key="SettingName" value="window border"/>
