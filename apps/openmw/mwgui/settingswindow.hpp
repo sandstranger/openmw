@@ -32,6 +32,7 @@ namespace MWGui
             MyGUI::Button* mWindowBorderButton;
             MyGUI::ComboBox* mTextureFilteringButton;
 
+            MyGUI::ComboBox* mWaterShader;
             MyGUI::ComboBox* mWaterTextureSize;
             MyGUI::ComboBox* mWaterReflectionDetail;
             MyGUI::ComboBox* mWaterRainRippleDetail;
@@ -68,6 +69,8 @@ namespace MWGui
             void onResolutionAccept();
             void onResolutionCancel();
             void highlightCurrentResolution();
+
+            void onWaterShaderChanged(MyGUI::ComboBox* _sender, size_t pos);
 
             void onWaterTextureSizeChanged(MyGUI::ComboBox* _sender, size_t pos);
             void onWaterReflectionDetailChanged(MyGUI::ComboBox* _sender, size_t pos);

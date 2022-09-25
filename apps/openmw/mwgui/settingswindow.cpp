@@ -259,6 +259,7 @@ namespace MWGui
         getWidget(mResetControlsButton, "ResetControlsButton");
         getWidget(mKeyboardSwitch, "KeyboardButton");
         getWidget(mControllerSwitch, "ControllerButton");
+        getWidget(mWaterShader, "WaterShader");
         getWidget(mWaterTextureSize, "WaterTextureSize");
         getWidget(mWaterReflectionDetail, "WaterReflectionDetail");
         getWidget(mWaterRainRippleDetail, "WaterRainRippleDetail");
@@ -345,6 +346,7 @@ namespace MWGui
         mTextureFilteringButton->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onTextureFilteringChanged);
         mResolutionList->eventListChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onResolutionSelected);
 
+        mWaterShader->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterShaderChanged);
         mWaterTextureSize->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterTextureSizeChanged);
         mWaterReflectionDetail->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterReflectionDetailChanged);
         mWaterRainRippleDetail->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterRainRippleDetailChanged);
@@ -402,6 +404,9 @@ namespace MWGui
             mWaterTextureSize->setIndexSelected(2);
         if (waterTextureSize >= 2048)
             mWaterTextureSize->setIndexSelected(3);
+
+        int waterShader = std::clamp(Settings::Manager::getInt("shader", "Water"), 0, 2);
+        mWaterShader->setIndexSelected(waterShader);
 
         int waterReflectionDetail = std::clamp(Settings::Manager::getInt("reflection detail", "Water"), 0, 5);
         mWaterReflectionDetail->setIndexSelected(waterReflectionDetail);
@@ -483,8 +488,7 @@ namespace MWGui
 
     void SettingsWindow::onButtonRequiringestartClicked(MyGUI::Widget* _sender)
     {
-        std::string message = "This change requires a restart to take effect.";
-        MWBase::Environment::get().getWindowManager()->interactiveMessageBox(message, {"#{sOK}"}, true);
+        MWBase::Environment::get().getWindowManager()->interactiveMessageBox("#{SettingsMenu:ChangeRequiresRestart}", {"#{sOK}"}, true);
     }
 
     void SettingsWindow::onResolutionSelected(MyGUI::ListBox* _sender, size_t index)
@@ -563,6 +567,13 @@ namespace MWGui
     {
         unsigned int level = std::min((unsigned int)9, (unsigned int)pos);
         Settings::Manager::setInt("tonemaper", "Shaders", level);
+        apply();
+    }
+
+    void SettingsWindow::onWaterShaderChanged(MyGUI::ComboBox* _sender, size_t pos)
+    {
+        unsigned int level = static_cast<unsigned int>(std::min<size_t>(pos, 2));
+        Settings::Manager::setInt("shader", "Water", level);
         apply();
     }
 

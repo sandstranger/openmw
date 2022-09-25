@@ -313,7 +313,7 @@ if(underwaterFog)
 
 #if !defined(FORCE_OPAQUE)
 // dont apply gamma to character preview, soft particles bug?
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0 / (@gamma + gamma - 1.0)));
+ //   gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0 / (@gamma + gamma - 1.0)));
 #endif
 
     gl_FragData[0] = gl_FragData[0] = applyFogAtPos(gl_FragData[0], passViewPos);

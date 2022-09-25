@@ -144,8 +144,8 @@ set(MODIFIED_SHADER_FILES
     modified/nv_default_fragment.glsl
     modified/nv_nolighting_vertex.glsl
     modified/nv_nolighting_fragment.glsl
-    blended_depth_postpass_vertex.glsl
-    blended_depth_postpass_fragment.glsl
+    modified/blended_depth_postpass_vertex.glsl
+    modified/blended_depth_postpass_fragment.glsl
     modified/gui_vertex.glsl
     modified/gui_fragment.glsl
     modified/debug_vertex.glsl
@@ -154,9 +154,10 @@ set(MODIFIED_SHADER_FILES
     modified/sky_fragment.glsl
     modified/skypasses.glsl
     modified/softparticles.glsl
-    hdr_luminance_fragment.glsl
-    fullscreen_tri_vertex.glsl
-    fullscreen_tri_fragment.glsl
+    modified/hdr_resolve_fragment.glsl
+    modified/hdr_luminance_fragment.glsl
+    modified/fullscreen_tri_vertex.glsl
+    modified/fullscreen_tri_fragment.glsl
 )
 
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_RESOURCES_ROOT} ${DDIR} "${SHADER_FILES}")

@@ -535,7 +535,7 @@ void Water::updateWaterMaterial()
     mWaterGeom->setStateSet(nullptr);
     mWaterGeom->setUpdateCallback(nullptr);
 
-    if (Settings::Manager::getBool("shader", "Water"))
+    if (Settings::Manager::getInt("shader", "Water") >= 1)
     {
         unsigned int rttSize = Settings::Manager::getInt("rtt size", "Water");
 
@@ -685,7 +685,7 @@ private:
 void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, Refraction* refraction)
 {
     std::string shaderPrefix = "";
-    if(Settings::Manager::getBool("vtastek shader", "Water"))
+    if(Settings::Manager::getInt("shader", "Water") == 2)
         shaderPrefix = "vtastek_";
 
     // use a define map to conditionally compile the shader
