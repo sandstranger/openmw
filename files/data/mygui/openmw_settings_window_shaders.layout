@@ -416,10 +416,10 @@
                                 <UserString key="SettingType" value="CheckButton"/>
                             </Widget>
                             <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ParallaxShadowsLabel">
-                                <Property key="Caption" value="Parallax Shadows"/>
+                                <Property key="Caption" value="#{SettingsMenu:ParallaxShadows}"/>
                                 <UserString key="ToolTipType" value="Layout"/>
                                 <UserString key="ToolTipLayout" value="TextToolTip"/>
-                                <UserString key="Caption_Text" value="Allow parallax maps to cast shadows on themselves.\nNot properly working without real shadows.\n\nThis setting require restart."/>
+                                <UserString key="Caption_Text" value="#{SettingsMenu:ParallaxShadowsDesc}"/>
                             </Widget>
                         </Widget>
 
@@ -430,10 +430,10 @@
                                 <UserString key="SettingType" value="CheckButton"/>
                             </Widget>
                             <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="RadialFogLabel">
-                                <Property key="Caption" value="Radial Fog"/>
+                                <Property key="Caption" value="#{SettingsMenu:RadialFog}"/>
                                 <UserString key="ToolTipType" value="Layout"/>
                                 <UserString key="ToolTipLayout" value="TextToolTip"/>
-                                <UserString key="Caption_Text" value="Determine fog intensity based on the distance from the eye point.\n\nThis makes fogging independent from the viewing angle."/>
+                                <UserString key="Caption_Text" value="#{SettingsMenu:RadialFogDesc}"/>
                             </Widget>
                         </Widget>
 
@@ -459,7 +459,7 @@
                         <Widget type="TextBox" skin="NormalText" position="0 226 352 18" align="Left Top" name="GrassDensityLabel">
                             <Property key="Caption" value="Grass Density"/>
                         </Widget>
-                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 154 352 18" align="HStretch Top" name="RenderingDistanceSlider">
+                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 226 352 18" align="HStretch Top" name="RenderingDistanceSlider">
                             <Property key="Range" value="4669"/>
                             <Property key="Page" value="128"/>
                             <UserString key="SettingType" value="Slider"/>
@@ -493,7 +493,7 @@
                             <UserString key="SettingMin" value="3000"/>
                             <UserString key="SettingMax" value="21504"/>
                             <UserString key="SettingLabelWidget" value="GrassDistanceLabel"/>
-                            <UserString key="SettingLabelCaption" value="Grass Rendering Distance (%s)"/>
+                            <UserString key="SettingLabelCaption" value="#{SettingsMenu:GrassRenderingDistance} (%s)"/>
                         </Widget>
                         <Widget type="ScrollBar" skin="MW_HScroll" position="0 250 352 18" align="HStretch Top" name="GrassDensitySlider">
                             <Property key="Range" value="11"/>
@@ -505,9 +505,8 @@
                             <UserString key="SettingMin" value="1"/>
                             <UserString key="SettingMax" value="100"/>
                             <UserString key="SettingLabelWidget" value="GrassDensityLabel"/>
-                            <UserString key="SettingLabelCaption" value="Grass Density (%s%%)"/>
+                            <UserString key="SettingLabelCaption" value="#{SettingsMenu:GrassDensity} (%s%%)"/>
                         </Widget>
-
                         <Widget type="TextBox" skin="SandText" position="0 115 352 18" align="Left Top">
                             <Property key="Caption" value="#{sNear}"/>
                             <Property key="TextAlign" value="Left"/>
@@ -518,24 +517,33 @@
                         </Widget>
 
                     </Widget>
+
+
+
                     <Widget type="TabItem">
-                        <Property key="Caption" value="  #{SettingsMenu:Water}  "/>
+                        <Property key="Caption" value=" #{SettingsMenu:Water} "/>
 
                         <Widget type="VBox" position_real="0 0 1 1" align="Stretch">
+
+                            <Widget type="Widget" position="0 0 0 18" align="Top Left HStretch">
+                                <UserString key="HStretch" value="true"/>
+                                <Widget type="AutoSizedTextBox" skin="NormalText">
+                                    <Property key="Caption" value="#{SettingsMenu:WaterShader}"/>
+                                </Widget>
+                                <Widget type="Spacer" />
+                            </Widget>
 
                             <Widget type="HBox" align="Stretch">
                                 <UserString key="HStretch" value="true"/>
                                 <UserString key="VStretch" value="false"/>
-
-                                <Widget type="AutoSizedButton" skin="MW_Button">
-                                    <UserString key="SettingCategory" value="Water"/>
-                                    <UserString key="SettingName" value="shader"/>
-                                    <UserString key="SettingType" value="CheckButton"/>
+                                <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 200 24" align="Left Top" name="WaterShader">
+                                    <Property key="AddItem" value="#{SettingsMenu:Simple}"/>
+                                    <Property key="AddItem" value="#{SettingsMenu:Original}"/>
+                                    <Property key="AddItem" value="#{SettingsMenu:Vtastek}"/>
                                 </Widget>
-                                <Widget type="AutoSizedTextBox" skin="SandText">
-                                    <Property key="Caption" value="#{SettingsMenu:WaterShader}"/>
-                                </Widget>
+                                <Widget type="Spacer" />
                             </Widget>
+
 
                             <Widget type="HBox" align="Stretch">
                                 <UserString key="HStretch" value="true"/>
@@ -546,7 +554,7 @@
                                     <UserString key="SettingType" value="CheckButton"/>
                                 </Widget>
                                 <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="UnderwaterFogLabel">
-                                    <Property key="Caption" value="Underwater fog"/>
+                                    <Property key="Caption" value="#{SettingsMenu:UnderwaterFog}"/>
                                 </Widget>
                             </Widget>
 
@@ -576,6 +584,7 @@
                                 <UserString key="HStretch" value="true"/>
                                 <UserString key="VStretch" value="false"/>
                                 <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 200 24" align="Left Top" name="WaterTextureSize">
+                                    <Property key="AddItem" value="#{SettingsMenu:Lowest}"/>
                                     <Property key="AddItem" value="#{sLow}"/>
                                     <Property key="AddItem" value="#{sMedium}"/>
                                     <Property key="AddItem" value="#{sHigh}"/>
@@ -628,6 +637,10 @@
                         </Widget>
 
                     </Widget>
+
+
+
+
                     <Widget type="TabItem">
                         <Property key="Caption" value="  #{SettingsMenu:Lights}  "/>
                         <!-- Lighting Method -->
@@ -688,10 +701,10 @@
                                 <UserString key="SettingType" value="CheckButton"/>
                             </Widget>
                             <Widget type="AutoSizedTextBox" skin="SandText" position="28 64 75 16" align="Left Top" name="LinearLightingLabel">
-                                <Property key="Caption" value="Linear Lighting"/>
+                                <Property key="Caption" value="#{SettingsMenu:LinearLighting}"/>
                                 <UserString key="ToolTipType" value="Layout"/>
                                 <UserString key="ToolTipLayout" value="TextToolTip"/>
-                                <UserString key="Caption_Text" value="Enable linear lighting and use of tonemappers.\n\nThis setting require restart."/>
+                                <UserString key="Caption_Text" value="#{SettingsMenu:LinearLightingDesc}"/>
                             </Widget>
                         </Widget>
 
@@ -703,10 +716,10 @@
                                 <UserString key="SettingType" value="CheckButton"/>
                             </Widget>
                             <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="PPLLightingLabel">
-                                <Property key="Caption" value="Per Pixel Lighting"/>
+                                <Property key="Caption" value="#{SettingsMenu:PerPixelLighting}"/>
                                 <UserString key="ToolTipType" value="Layout"/>
                                 <UserString key="ToolTipLayout" value="TextToolTip"/>
-                                <UserString key="Caption_Text" value="Force the use of per pixel lighting. By default, only bump mapped objects use per-pixel lighting.\n\nEnabling per-pixel lighting can result in visual differences to the original MW engine. \n\nThis setting require restart"/>
+                                <UserString key="Caption_Text" value="#{SettingsMenu:PerPixelLightingDesc}"/>
                             </Widget>
                         </Widget>
 
@@ -718,10 +731,10 @@
                                 <UserString key="SettingType" value="CheckButton"/>
                             </Widget>
                             <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ClampLightingLabel">
-                                <Property key="Caption" value="Clamp Lighting"/>
+                                <Property key="Caption" value="#{SettingsMenu:ClampLighting}"/>
                                 <UserString key="ToolTipType" value="Layout"/>
                                 <UserString key="ToolTipLayout" value="TextToolTip"/>
-                                <UserString key="Caption_Text" value="Restrict the amount of lighting that an object can receive to a maximum of (1,1,1).\n\nEnabling this option results in fixed-function compatible lighting, but the lighting may appear dull and there might be color shifts. \n\nDisabling this option results in more realistic lighting."/>
+                                <UserString key="Caption_Text" value="#{SettingsMenu:ClampLightingDesc}"/>
                             </Widget>
                        </Widget>
 
