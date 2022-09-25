@@ -308,7 +308,7 @@ if(gl_FragData[0].a != 0.0)
          gl_FragData[0].a = 1.0;
 #endif
 
-if(underwaterFog)
+if(underwaterFog && !simpleWater)
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
 
 #if !defined(FORCE_OPAQUE)

@@ -459,7 +459,7 @@
                         <Widget type="TextBox" skin="NormalText" position="0 226 352 18" align="Left Top" name="GrassDensityLabel">
                             <Property key="Caption" value="Grass Density"/>
                         </Widget>
-                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 226 352 18" align="HStretch Top" name="RenderingDistanceSlider">
+                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 154 352 18" align="HStretch Top" name="RenderingDistanceSlider">
                             <Property key="Range" value="4669"/>
                             <Property key="Page" value="128"/>
                             <UserString key="SettingType" value="Slider"/>

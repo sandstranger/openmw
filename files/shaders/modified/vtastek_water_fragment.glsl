@@ -196,9 +196,9 @@ if(radialFog)
     vec2 UV = worldPos.xy / (8192.0*5.0) * 3.0;
     UV.y *= -1.0;
 	
-	  vec2 dir = vec2(1.0,-1.0) * normalize(worldPos.xy + vec2(-20000.0,-69000.0));																						 
+	vec2 dir = vec2(1.0,-1.0) * normalize(worldPos.xy + vec2(-20000.0,-69000.0));																						 
 
-	  float shadow = 1.0;//unshadowedLightRatio(linearDepth);
+	float shadow = 1.0;//unshadowedLightRatio(linearDepth);
 
     vec2 screenCoords = screenCoordsPassthrough.xy / screenCoordsPassthrough.z;
 	
@@ -209,13 +209,16 @@ if(radialFog)
 	
     #define waterTimer osg_SimulationTime * 3.14
 
-	  vec2 windir = WIND_DIR;
+	vec2 windir = WIND_DIR;
     vec3 normal0 = 2.0 * texture2D(normalMap,normalCoords(UV, 0.05, 0.04, waterTimer, -0.015, -0.005, vec3(0.0,0.0,0.0), windir)).rgb - 1.0;
     vec3 normal1a = 2.0 * texture2D(normalMap,normalCoords(UV, 0.02,  0.09, waterTimer,  0.0,   0.0, normal0, windir * 1.0)).rgb - 1.0;
     vec3 normal1 = 2.0 * texture2D(normalMap,normalCoords(UV, 0.02,  0.01, 0.4 * waterTimer,  0.0,   0.0, normal1a * 1.0, 1.0 * dir)).rgb - 1.0;
     vec3 normal2 = 2.0 * texture2D(normalMap,normalCoords(UV, 0.25, 0.01, waterTimer, -0.04,  -0.03,  normal1,windir)).rgb - 1.0;
     vec3 normal3 = 2.0 * texture2D(normalMap,normalCoords(UV, 0.5,  0.09, waterTimer,  0.03,   0.04,  normal2,windir)).rgb - 1.0;
-
+    /*vec3 normal4 = 2.0 * texture2D(normalMap,normalCoords(UV, 1.0,  0.4,  waterTimer, -0.02,   0.1,   normal3,windir)).rgb - 1.0;
+    vec3 normal5 = 2.0 * texture2D(normalMap,normalCoords(UV, 2.0,  0.7,  waterTimer,  0.02, -0.04,  normal4,windir)).rgb - 1.0;
+    vec3 normal6 = 2.0 * texture2D(normalMap,normalCoords(UV, 2.0,  0.7,  waterTimer,  -0.02, 0.2,  normal5,windir)).rgb - 1.0;
+	*/
     vec4 rainRipple;
 
     if (rainIntensity > 0.01)
@@ -223,25 +226,37 @@ if(radialFog)
     else
       rainRipple = vec4(0.0);
 	
-	  vec4 rainRipplet = rainRipple; 
-    vec3 rippleAdd = normalize(rainRipple.xyz * rainRipple.w * 10.0 * vec3(1.0,1.0,0.03));
-	  rippleAdd = clamp(rippleAdd, 0.0, 1.0);
-	  float rainnorm = sin(rainRipple.w);
+	vec4 rainRipplet = rainRipple; 
 	
+    vec3 rippleAdd = normalize(rainRipple.xyz * rainRipple.w * 10.0 * vec3(1.0,1.0,0.03));
+	
+	rippleAdd = clamp(rippleAdd, 0.0, 1.0);
+	
+	float rainnorm = sin(rainRipple.w);
+	
+	//rippleAdd = normalize(vec3(-vec2(dFdx(rainnorm), dFdy(rainnorm)),0.0)); 
+
     vec2 bigWaves = vec2(BIG_WAVES_X,BIG_WAVES_Y);
     vec2 midWaves = mix(vec2(MID_WAVES_X,MID_WAVES_Y),vec2(MID_WAVES_RAIN_X,MID_WAVES_RAIN_Y),rainIntensity);
     vec2 smallWaves = mix(vec2(SMALL_WAVES_X,SMALL_WAVES_Y),vec2(SMALL_WAVES_RAIN_X,SMALL_WAVES_RAIN_Y),rainIntensity);
     float bump = mix(BUMP,BUMP_RAIN,rainIntensity);
-	  float dist = length(position.xy - cameraPos.xy);
-	  float distz = length(position.xyz - cameraPos.xyz);
-	  bump = mix(bump, 1.0, clamp(dist/2000.0, 0.0, 1.0));
+	float dist = length(position.xy - cameraPos.xy);
+	float distz = length(position.xyz - cameraPos.xyz);
+	bump = mix(bump, 1.0, clamp(dist/2000.0, 0.0, 1.0));
+    //vec3 normal = normal1 * bigWaves.y + normal2 * midWaves.x + normal3 * midWaves.y;
+    //vec3 normal = normal1 * bigWaves.y + normal2 * midWaves.x  +  normal3 * midWaves.y;
+    //normal = normalize(vec3(-normal.x, -normal.y, normal.z * bump));
+	
     vec3 normal = normal1 * bigWaves.y + normal2 * midWaves.x  +  normal3 * midWaves.y + rippleAdd.xyz;
     normal = normalize(vec3(-normal.x, -normal.y, normal.z * bump));
-    vec3 lVec = normalize((gl_ModelViewMatrixInverse * vec4(gl_LightSource[0].position.xyz, 0.0)).xyz);
+
+
+    vec3 lVec = normalize((gl_ModelViewMatrixInverse * vec4(lcalcPosition(0), 0.0)).xyz);
+
+    
     vec3 vVec = normalize(position.xyz - cameraPos.xyz);
 	
-
-	  float waterdif = dot(normal, lVec);
+	float waterdif = dot(normal, lVec);
 
     float sunFade = length(lcalcDiffuse(0) + 0.33 * gl_LightModel.ambient.xyz);
 
@@ -263,9 +278,9 @@ if(radialFog)
 #if REFRACTION
 
 	
-  float depthSample = linearizeDepth(texture2D(refractionDepthMap,screenCoords).x) * radialise;
+    float depthSample = linearizeDepth(texture2D(refractionDepthMap,screenCoords).x) * radialise;
 	float surfaceDepth = linearizeDepth(gl_FragCoord.z) * radialise;
-  float realWaterDepth = depthSample - surfaceDepth;  // undistorted water depth in view direction, independent of frustum
+    float realWaterDepth = depthSample - surfaceDepth;  // undistorted water depth in view direction, independent of frustum
 	
 	
 	float suppressfix = clamp(min(smoothstep(0.0,0.9,(realWaterDepth)/500.0) , 1.0-pow(distz/5000.0, 10.0)), 0.0, 1.0);

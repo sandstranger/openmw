@@ -405,7 +405,10 @@ namespace MWGui
         if (waterTextureSize >= 2048)
             mWaterTextureSize->setIndexSelected(3);
 
-        int waterShader = std::clamp(Settings::Manager::getInt("shader", "Water"), 0, 2);
+        int slots = 1;
+        if(shaderDir && std::string(shaderDir) == "modified") slots = 2;
+
+        int waterShader = std::clamp(Settings::Manager::getInt("shader", "Water"), 0, slots);
         mWaterShader->setIndexSelected(waterShader);
 
         int waterReflectionDetail = std::clamp(Settings::Manager::getInt("reflection detail", "Water"), 0, 5);
@@ -572,7 +575,11 @@ namespace MWGui
 
     void SettingsWindow::onWaterShaderChanged(MyGUI::ComboBox* _sender, size_t pos)
     {
-        unsigned int level = static_cast<unsigned int>(std::min<size_t>(pos, 2));
+        int slots = 1;
+        const char *shaderDir = getenv("OPENMW_SHADERS");
+        if(shaderDir && std::string(shaderDir) == "modified") slots = 2;
+
+        unsigned int level = static_cast<unsigned int>(std::min<size_t>(pos, slots));
         Settings::Manager::setInt("shader", "Water", level);
         apply();
     }
