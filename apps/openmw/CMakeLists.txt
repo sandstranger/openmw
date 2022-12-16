@@ -189,7 +189,9 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.16 AND MSVC)
 endif()
 
 if (ANDROID)
-    target_link_libraries(openmw EGL android log z)
+    find_package(OSGPlugins REQUIRED COMPONENTS ${USED_OSG_PLUGINS})
+    list(APPEND OPENSCENEGRAPH_LIBRARIES ${OSGPlugins_LIBRARIES})
+    target_link_libraries(openmw EGL android log z ${OPENSCENEGRAPH_LIBRARIES} freetype jpeg png)
 endif (ANDROID)
 
 if (USE_SYSTEM_TINYXML)

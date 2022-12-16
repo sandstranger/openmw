@@ -42,6 +42,7 @@
 #include "../mwscript/globalscripts.hpp"
 
 #include "quicksavemanager.hpp"
+#include <osg/Hint>
 
 void MWState::StateManager::cleanup (bool force)
 {
@@ -309,7 +310,9 @@ void MWState::StateManager::saveGame (const std::string& description, const Slot
         Settings::Manager::setString ("character", "Saves",
             slot->mPath.parent_path().filename().string());
 
-        const auto finish = std::chrono::steady_clock::now();
+		osg::Hint::GL4ES_SavePSA();
+        
+		const auto finish = std::chrono::steady_clock::now();
 
         Log(Debug::Info) << '\'' << description << "' is saved in "
             << std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(finish - start).count() << "ms";
