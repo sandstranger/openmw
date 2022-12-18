@@ -60,7 +60,6 @@ namespace SceneUtil
 {
     class ShadowManager;
     class WorkQueue;
-    class LightManager;
 }
 
 namespace DetourNavigator
@@ -117,7 +116,7 @@ namespace MWRender
 
         double getReferenceTime() const;
 
-        SceneUtil::LightManager* getLightRoot();
+        osg::Group* getLightRoot();
 
         void setNightEyeFactor(float factor);
 
@@ -274,7 +273,7 @@ namespace MWRender
 
         osg::ref_ptr<osgViewer::Viewer> mViewer;
         osg::ref_ptr<osg::Group> mRootNode;
-        osg::ref_ptr<SceneUtil::LightManager> mSceneRoot;
+        osg::ref_ptr<osg::Group> mSceneRoot;
         Resource::ResourceSystem* mResourceSystem;
 
         osg::ref_ptr<SceneUtil::WorkQueue> mWorkQueue;

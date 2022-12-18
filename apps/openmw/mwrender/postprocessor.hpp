@@ -219,8 +219,6 @@ namespace MWRender
         bool mNormals;
         bool mPrevNormals;
         bool mNormalsSupported;
-        bool mPassLights;
-        bool mPrevPassLights;
         bool mUBO;
         int mGLSLVersion;
 

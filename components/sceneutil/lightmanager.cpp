@@ -18,7 +18,6 @@
 
 #include <components/misc/hash.hpp>
 #include <components/misc/stringops.hpp>
-#include <components/misc/constants.hpp>
 
 #include <components/debug/debuglog.hpp>
 
@@ -840,7 +839,6 @@ namespace SceneUtil
         , mPointLightFadeEnd(copy.mPointLightFadeEnd)
         , mPointLightFadeStart(copy.mPointLightFadeStart)
         , mMaxLights(copy.mMaxLights)
-        , mPPLightBuffer(copy.mPPLightBuffer)
     {
     }
 
@@ -1003,9 +1001,6 @@ namespace SceneUtil
 
     void LightManager::update(size_t frameNum)
     {
-        if (mPPLightBuffer)
-            mPPLightBuffer->clear(frameNum);
-
         getLightIndexMap(frameNum).clear();
         mLights.clear();
         mLightsInViewSpace.clear();
@@ -1137,17 +1132,6 @@ namespace SceneUtil
                 l.mLightSource = transform.mLightSource;
                 l.mViewBound = viewBound;
                 it->second.push_back(l);
-
-                if (mPPLightBuffer && it->first->getName() == Constants::SceneCamera)
-                {
-                    const auto* light = l.mLightSource->getLight(frameNum);
-                    mPPLightBuffer->setLight(frameNum, light->getPosition() * (*viewMatrix),
-                                            light->getDiffuse(),
-                                            light->getConstantAttenuation(),
-                                            light->getLinearAttenuation(),
-                                            light->getQuadraticAttenuation(),
-                                            l.mLightSource->getRadius());
-                }
             }
         }
 
@@ -1182,14 +1166,6 @@ namespace SceneUtil
         uniform->setElement(0, sun);
 
         return uniform;
-    }
-
-    void LightManager::setCollectPPLights(bool enabled)
-    {
-        if (enabled)
-            mPPLightBuffer = std::make_shared<PPLightBuffer>();
-        else
-            mPPLightBuffer = nullptr;
     }
 
     LightSource::LightSource()

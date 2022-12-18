@@ -95,8 +95,6 @@ namespace MWRender
         , mNormals(false)
         , mPrevNormals(false)
         , mNormalsSupported(false)
-        , mPassLights(false)
-        , mPrevPassLights(false)
         , mMainTemplate(new osg::Texture2D)
     {
         mSoftParticles = Settings::Manager::getBool("soft particles", "Shaders") && !Stereo::getStereo() && !Stereo::getMultiview();
@@ -406,10 +404,9 @@ namespace MWRender
             mDirty = false;
         }
 
-        if ((mNormalsSupported && mNormals != mPrevNormals) || (mPassLights != mPrevPassLights))
+        if (mNormalsSupported && mNormals != mPrevNormals)
         {
             mPrevNormals = mNormals;
-            mPrevPassLights = mPassLights;
 
             mViewer->stopThreading();
 
@@ -418,15 +415,10 @@ namespace MWRender
             defines["disableNormals"] = mNormals ? "0" : "1";
             shaderManager.setGlobalDefines(defines);
 
-            mRendering.getLightRoot()->setCollectPPLights(mPassLights);
-            mStateUpdater->bindPointLights(mPassLights ? mRendering.getLightRoot()->getPPLightsBuffer() : nullptr);
-            mStateUpdater->reset();
-
             mViewer->startThreading();
 
             createTexturesAndCamera(frameId);
             createObjectsForFrame(frameId);
-
             mDirty = true;
             mDirtyFrameId = !frameId;
         }
@@ -510,7 +502,6 @@ namespace MWRender
         bool sunglare = true;
         mHDR = false;
         mNormals = false;
-        mPassLights = false;
 
         for (const auto& technique : mTechniques)
         {
@@ -532,9 +523,6 @@ namespace MWRender
 
             if (technique->getNormals())
                 mNormals = true;
-
-            if (technique->getLights())
-                mPassLights = true;
 
             if (node.mFlags & fx::Technique::Flag_Disable_SunGlare)
                 sunglare = false;

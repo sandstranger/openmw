@@ -43,8 +43,6 @@
 #include <components/sceneutil/writescene.hpp>
 #include <components/sceneutil/shadow.hpp>
 
-#include <components/misc/constants.hpp>
-
 #include <components/terrain/terraingrid.hpp>
 #include <components/terrain/quadtreeworld.hpp>
 
@@ -624,9 +622,10 @@ namespace MWRender
             cullingMode |= osg::CullStack::SMALL_FEATURE_CULLING;
         }
 
+        mViewer->getCamera()->setCullingMode( cullingMode );
+
         mViewer->getCamera()->setComputeNearFarMode(osg::Camera::DO_NOT_COMPUTE_NEAR_FAR);
         mViewer->getCamera()->setCullingMode(cullingMode);
-        mViewer->getCamera()->setName(Constants::SceneCamera);
 
         auto mask = ~(Mask_UpdateVisitor | Mask_SimpleWater);
         MWBase::Environment::get().getWindowManager()->setCullMask(mask);
@@ -730,7 +729,7 @@ namespace MWRender
         return mViewer->getFrameStamp()->getReferenceTime();
     }
 
-    SceneUtil::LightManager* RenderingManager::getLightRoot()
+    osg::Group* RenderingManager::getLightRoot()
     {
         return mSceneRoot.get();
     }
@@ -1506,7 +1505,7 @@ namespace MWRender
                                                 it->second == "light fade start" ||
                                                 it->second == "max lights"))
             {
-                auto* lightManager = getLightRoot();
+                auto* lightManager = static_cast<SceneUtil::LightManager*>(getLightRoot());
                 lightManager->processChangedSettings(changed);
 
                 if (it->second == "max lights" && !lightManager->usingFFP())

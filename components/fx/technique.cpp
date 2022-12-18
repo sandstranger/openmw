@@ -58,7 +58,6 @@ namespace fx
         mValid = false;
         mHDR = false;
         mNormals = false;
-        mLights = false;
         mEnabled = true;
         mPassMap.clear();
         mPasses.clear();
@@ -237,8 +236,6 @@ namespace fx
                 mHDR = parseBool();
             else if (key == "pass_normals")
                 mNormals = parseBool() && mSupportsNormals;
-            else if (key == "pass_lights")
-                mLights = parseBool();
             else if (key == "glsl_profile")
             {
                 expect<Lexer::String>();

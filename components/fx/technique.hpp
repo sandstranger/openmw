@@ -125,8 +125,6 @@ namespace fx
 
         bool getNormals() const { return mNormals && mSupportsNormals; }
 
-        bool getLights() const { return mLights; }
-
         const PassList& getPasses() { return mPasses; }
 
         const TexList& getTextures() const { return mTextures; }
@@ -250,7 +248,6 @@ namespace fx
         bool mValid;
         bool mHDR;
         bool mNormals;
-        bool mLights;
         int mWidth;
         int mHeight;
 
