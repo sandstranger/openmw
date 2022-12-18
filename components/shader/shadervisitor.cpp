@@ -11,7 +11,6 @@
 #include <osg/Multisample>
 #include <osg/Texture>
 #include <osg/ValueObject>
-#include <osg/Capability>
 
 #include <osgParticle/ParticleSystem>
 
@@ -31,50 +30,6 @@
 
 #include "removedalphafunc.hpp"
 #include "shadermanager.hpp"
-
-namespace
-{
-    class OpaqueDepthAttribute : public osg::StateAttribute
-    {
-    public:
-        OpaqueDepthAttribute() = default;
-
-        OpaqueDepthAttribute(const OpaqueDepthAttribute& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY)
-            : osg::StateAttribute(copy, copyop), mTextures(copy.mTextures), mUnit(copy.mUnit) {}
-
-        void setTexturesAndUnit(const std::array<osg::ref_ptr<osg::Texture2D>, 2>& textures, int unit)
-        {
-            mTextures = textures;
-            mUnit = unit;
-        }
-
-        META_StateAttribute(Shader, OpaqueDepthAttribute, osg::StateAttribute::TEXTURE)
-
-        int compare(const StateAttribute& sa) const override
-        {
-            COMPARE_StateAttribute_Types(OpaqueDepthAttribute, sa);
-
-            COMPARE_StateAttribute_Parameter(mTextures);
-
-            return 0;
-        }
-
-        void apply(osg::State& state) const override
-        {
-            auto index = state.getFrameStamp()->getFrameNumber() % 2;
-
-            if (!mTextures[index])
-                return;
-
-            state.setActiveTextureUnit(mUnit);
-            state.applyTextureAttribute(mUnit, mTextures[index]);
-        }
-
-    private:
-        mutable std::array<osg::ref_ptr<osg::Texture2D>, 2> mTextures;
-        int mUnit;
-    };
-}
 
 namespace Shader
 {
@@ -213,7 +168,6 @@ namespace Shader
         , mAutoUseSpecularMaps(false)
         , mApplyLightingToEnvMaps(false)
         , mConvertAlphaTestToAlphaToCoverage(false)
-        , mSupportsNormalsRT(false)
         , mShaderManager(shaderManager)
         , mImageManager(imageManager)
         , mDefaultShaderPrefix(defaultShaderPrefix)
@@ -663,14 +617,6 @@ namespace Shader
             defineMap["endLight"] = "0";
         }
 
-        if (reqs.mAlphaBlend && mSupportsNormalsRT)
-        {
-            if (reqs.mSoftParticles)
-                defineMap["disableNormals"] = "1";
-            else
-                writableStateSet->setAttribute(new osg::Disablei(GL_BLEND, 1));
-        }
-
         if (writableStateSet->getMode(GL_ALPHA_TEST) != osg::StateAttribute::INHERIT && !previousAddedState->hasMode(GL_ALPHA_TEST))
             removedState->setMode(GL_ALPHA_TEST, writableStateSet->getMode(GL_ALPHA_TEST));
         // This disables the deprecated fixed-function alpha test
@@ -689,7 +635,7 @@ namespace Shader
             updateRemovedState(*writableUserData, removedState);
         }
 
-        if (reqs.mSoftParticles && mOpaqueDepthTex.front())
+        if (reqs.mSoftParticles)
         {
             osg::ref_ptr<osg::Depth> depth = new SceneUtil::AutoDepth;
             depth->setWriteMask(false);
@@ -699,18 +645,14 @@ namespace Shader
             writableStateSet->addUniform(new osg::Uniform("particleSize", reqs.mSoftParticleSize));
             addedState->addUniform("particleSize");
 
-            constexpr int unit = 2;
-
-            writableStateSet->addUniform(new osg::Uniform("opaqueDepthTex", unit));
+            writableStateSet->addUniform(new osg::Uniform("opaqueDepthTex", 2));
             addedState->addUniform("opaqueDepthTex");
 
-            osg::ref_ptr<OpaqueDepthAttribute> opaqueDepthAttr = new OpaqueDepthAttribute;
-            opaqueDepthAttr->setTexturesAndUnit(mOpaqueDepthTex, unit);
-            writableStateSet->setAttributeAndModes(opaqueDepthAttr, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
-            addedState->setAttributeAndModes(opaqueDepthAttr);
+            writableStateSet->setTextureAttributeAndModes(2, mOpaqueDepthTex, osg::StateAttribute::ON);
+            addedState->setTextureAttributeAndModes(2, mOpaqueDepthTex);
         }
 
-        defineMap["softParticles"] = reqs.mSoftParticles && mOpaqueDepthTex.front() ? "1" : "0";
+        defineMap["softParticles"] = reqs.mSoftParticles ? "1" : "0";
 
         Stereo::Manager::instance().shaderStereoDefines(defineMap);
 
@@ -909,7 +851,7 @@ namespace Shader
         {
             pushRequirements(drawable);
 
-            if (partsys)
+            if (partsys && mOpaqueDepthTex)
             {
                 mRequirements.back().mSoftParticles = true;
                 mRequirements.back().mSoftParticleSize = partsys->getDefaultParticleTemplate().getSizeRange().maximum;
@@ -984,9 +926,9 @@ namespace Shader
         mConvertAlphaTestToAlphaToCoverage = convert;
     }
 
-    void ShaderVisitor::setOpaqueDepthTex(osg::ref_ptr<osg::Texture2D> texturePing, osg::ref_ptr<osg::Texture2D> texturePong)
+    void ShaderVisitor::setOpaqueDepthTex(osg::ref_ptr<osg::Texture2D> texture)
     {
-        mOpaqueDepthTex = { texturePing, texturePong };
+        mOpaqueDepthTex = texture;
     }
 
     ReinstateRemovedStateVisitor::ReinstateRemovedStateVisitor(bool allowedToModifyStateSets)

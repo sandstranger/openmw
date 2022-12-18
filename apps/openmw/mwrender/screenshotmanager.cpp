@@ -106,16 +106,17 @@ namespace MWRender
 
             if (ext)
             {
-                size_t frameId = renderInfo.getState()->getFrameStamp()->getFrameNumber() % 2;
                 osg::FrameBufferObject* fbo = nullptr;
-
                 if (Stereo::getStereo())
                     fbo = Stereo::Manager::instance().multiviewFramebuffer()->layerFbo(0);
-                else if (postProcessor && postProcessor->getFbo(PostProcessor::FBO_Primary, frameId))
-                    fbo = postProcessor->getFbo(PostProcessor::FBO_Primary, frameId);
+                else if (postProcessor)
+                    fbo = postProcessor->getFbo();
 
                 if (fbo)
-                    fbo->apply(*renderInfo.getState(), osg::FrameBufferObject::READ_FRAMEBUFFER);
+                {
+                    ext->glBindFramebuffer(GL_FRAMEBUFFER_EXT, fbo->getHandle(renderInfo.getContextID()));
+                    renderInfo.getState()->glReadBuffer(GL_COLOR_ATTACHMENT0_EXT);
+                }
             }
 
             mImage->readPixels(leftPadding, topPadding, width, height, GL_RGB, GL_UNSIGNED_BYTE);

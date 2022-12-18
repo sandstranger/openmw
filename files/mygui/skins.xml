@@ -20,7 +20,6 @@
         <List file="openmw_dialogue_window.skin.xml"/>
         <List file="openmw_scroll.skin.xml"/>
         <List file="openmw_debug_window.skin.xml" />
-        <List file="openmw_postprocessor_hud.skin.xml" />
     </MyGUI>
 </MyGUI>
 

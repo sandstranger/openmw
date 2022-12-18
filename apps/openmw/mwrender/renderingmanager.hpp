@@ -60,7 +60,6 @@ namespace SceneUtil
 {
     class ShadowManager;
     class WorkQueue;
-    class LightManager;
 }
 
 namespace DetourNavigator
@@ -117,7 +116,7 @@ namespace MWRender
 
         double getReferenceTime() const;
 
-        SceneUtil::LightManager* getLightRoot();
+        osg::Group* getLightRoot();
 
         void setNightEyeFactor(float factor);
 
@@ -129,8 +128,7 @@ namespace MWRender
         void skySetMoonColour(bool red);
 
         void setSunDirection(const osg::Vec3f& direction);
-        void setSunColour(const osg::Vec4f& diffuse, const osg::Vec4f& specular, float sunVis);
-        void setNight(bool isNight) { mNight = isNight; }
+        void setSunColour(const osg::Vec4f& diffuse, const osg::Vec4f& specular);
 
         void configureAmbient(const ESM::Cell* cell);
         void configureFog(const ESM::Cell* cell);
@@ -194,8 +192,6 @@ namespace MWRender
         Animation* getAnimation(const MWWorld::Ptr& ptr);
         const Animation* getAnimation(const MWWorld::ConstPtr& ptr) const;
 
-        PostProcessor* getPostProcessor();
-
         void addWaterRippleEmitter(const MWWorld::Ptr& ptr);
         void removeWaterRippleEmitter(const MWWorld::Ptr& ptr);
         void emitWaterRipple(const osg::Vec3f& pos);
@@ -251,10 +247,6 @@ namespace MWRender
 
         void updateProjectionMatrix();
 
-        void setScreenRes(int width, int height);
-
-        void setNavMeshMode(NavMeshMode value);
-
     private:
         void updateTextureFiltering();
         void updateAmbient();
@@ -274,7 +266,7 @@ namespace MWRender
 
         osg::ref_ptr<osgViewer::Viewer> mViewer;
         osg::ref_ptr<osg::Group> mRootNode;
-        osg::ref_ptr<SceneUtil::LightManager> mSceneRoot;
+        osg::ref_ptr<osg::Group> mSceneRoot;
         Resource::ResourceSystem* mResourceSystem;
 
         osg::ref_ptr<SceneUtil::WorkQueue> mWorkQueue;
@@ -326,7 +318,6 @@ namespace MWRender
         float mFieldOfView;
         float mFirstPersonFieldOfView;
         bool mUpdateProjectionMatrix = false;
-        bool mNight = false;
 
         void operator = (const RenderingManager&);
         RenderingManager(const RenderingManager&);

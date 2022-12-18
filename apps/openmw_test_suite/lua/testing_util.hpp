@@ -26,11 +26,6 @@ namespace
             return std::make_unique<std::stringstream>(mContent, std::ios_base::in);
         }
 
-        std::string getPath() override
-        {
-            return "TestFile";
-        }
-
     private:
         const std::string mContent;
     };

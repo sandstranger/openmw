@@ -40,8 +40,6 @@ set(SHADER_FILES
     nv_default_fragment.glsl
     nv_nolighting_vertex.glsl
     nv_nolighting_fragment.glsl
-    blended_depth_postpass_vertex.glsl
-    blended_depth_postpass_fragment.glsl
     gui_vertex.glsl
     gui_fragment.glsl
     debug_vertex.glsl
@@ -50,10 +48,6 @@ set(SHADER_FILES
     sky_fragment.glsl
     skypasses.glsl
     softparticles.glsl
-    hdr_fragment.glsl
-    hdr_luminance_fragment.glsl
-    fullscreen_tri_vertex.glsl
-    fullscreen_tri_fragment.glsl
 )
 
 set(MODIFIED_SHADER_FILES

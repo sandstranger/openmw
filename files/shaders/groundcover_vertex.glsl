@@ -33,12 +33,11 @@ varying float linearDepth;
 
 #if PER_PIXEL_LIGHTING
 varying vec3 passViewPos;
+varying vec3 passNormal;
 #else
 centroid varying vec3 passLighting;
 centroid varying vec3 shadowDiffuseLighting;
 #endif
-
-varying vec3 passNormal;
 
 #include "shadows_vertex.glsl"
 #include "lighting.glsl"
@@ -162,9 +161,9 @@ void main(void)
     passTangent = gl_MultiTexCoord7.xyzw * rotation;
 #endif
 
-    passNormal = rotation3(rotation) * gl_Normal.xyz;
 #if PER_PIXEL_LIGHTING
     passViewPos = viewPos.xyz;
+    passNormal = rotation3(rotation) * gl_Normal.xyz;
 #else
     vec3 diffuseLight, ambientLight;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);

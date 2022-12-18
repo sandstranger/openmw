@@ -43,8 +43,6 @@
 #include <components/sceneutil/writescene.hpp>
 #include <components/sceneutil/shadow.hpp>
 
-#include <components/misc/constants.hpp>
-
 #include <components/terrain/terraingrid.hpp>
 #include <components/terrain/quadtreeworld.hpp>
 
@@ -57,9 +55,7 @@
 #include "../mwworld/class.hpp"
 #include "../mwworld/groundcoverstore.hpp"
 #include "../mwgui/loadingscreen.hpp"
-#include "../mwgui/postprocessorhud.hpp"
 #include "../mwmechanics/actorutil.hpp"
-#include "../mwbase/windowmanager.hpp"
 
 #include "sky.hpp"
 #include "effectmanager.hpp"
@@ -144,7 +140,7 @@ namespace MWRender
             mProjectionMatrix = projectionMatrix;
         }
 
-        const osg::Matrixf& getProjectionMatrix() const
+        const osg::Matrixf& projectionMatrix() const
         {
             return mProjectionMatrix;
         }
@@ -229,6 +225,7 @@ namespace MWRender
         {
             mGrassData = grassData;
         }
+
 
     private:
         float mLinearFac;
@@ -452,11 +449,9 @@ namespace MWRender
         globalDefines["clamp"] = Settings::Manager::getBool("clamp lighting", "Shaders") ? "1" : "0";
         globalDefines["preLightEnv"] = Settings::Manager::getBool("apply lighting to environment maps", "Shaders") ? "1" : "0";
         globalDefines["radialFog"] = Settings::Manager::getBool("radial fog", "Shaders") ? "1" : "0";
-        globalDefines["refraction_enabled"] = "0";
         globalDefines["useGPUShader4"] = "0";
         globalDefines["useOVR_multiview"] = "0";
         globalDefines["numViews"] = "1";
-        globalDefines["disableNormals"] = "1";
 
         for (auto itr = lightDefines.begin(); itr != lightDefines.end(); itr++)
             globalDefines[itr->first] = itr->second;
@@ -568,9 +563,12 @@ namespace MWRender
         mPerViewUniformStateUpdater = new PerViewUniformStateUpdater();
         rootNode->addCullCallback(mPerViewUniformStateUpdater);
 
-        mPostProcessor = new PostProcessor(*this, viewer, mRootNode, resourceSystem->getVFS());
-        resourceSystem->getSceneManager()->setOpaqueDepthTex(mPostProcessor->getTexture(PostProcessor::Tex_OpaqueDepth, 0), mPostProcessor->getTexture(PostProcessor::Tex_OpaqueDepth, 1));
-        resourceSystem->getSceneManager()->setSupportsNormalsRT(mPostProcessor->getSupportsNormalsRT());
+        mPostProcessor = new PostProcessor(viewer, mRootNode);
+        resourceSystem->getSceneManager()->setDepthFormat(SceneUtil::AutoDepth::depthInternalFormat());
+        resourceSystem->getSceneManager()->setOpaqueDepthTex(mPostProcessor->getOpaqueDepthTex());
+
+        if (reverseZ && !SceneUtil::isFloatingPointDepthFormat(SceneUtil::AutoDepth::depthInternalFormat()))
+            Log(Debug::Warning) << "Floating point depth format not in use but reverse-z buffer is enabled, consider disabling it.";
 
         // water goes after terrain for correct waterculling order
         mWater.reset(new Water(sceneRoot->getParent(0), sceneRoot, mResourceSystem, mViewer->getIncrementalCompileOperation(), resourcePath));
@@ -624,9 +622,10 @@ namespace MWRender
             cullingMode |= osg::CullStack::SMALL_FEATURE_CULLING;
         }
 
+        mViewer->getCamera()->setCullingMode( cullingMode );
+
         mViewer->getCamera()->setComputeNearFarMode(osg::Camera::DO_NOT_COMPUTE_NEAR_FAR);
         mViewer->getCamera()->setCullingMode(cullingMode);
-        mViewer->getCamera()->setName(Constants::SceneCamera);
 
         auto mask = ~(Mask_UpdateVisitor | Mask_SimpleWater);
         MWBase::Environment::get().getWindowManager()->setCullMask(mask);
@@ -730,7 +729,7 @@ namespace MWRender
         return mViewer->getFrameStamp()->getReferenceTime();
     }
 
-    SceneUtil::LightManager* RenderingManager::getLightRoot()
+    osg::Group* RenderingManager::getLightRoot()
     {
         return mSceneRoot.get();
     }
@@ -772,10 +771,9 @@ namespace MWRender
 
     void RenderingManager::configureAmbient(const ESM::Cell *cell)
     {
-        bool isInterior = !cell->isExterior() && !(cell->mData.mFlags & ESM::Cell::QuasiEx);
         bool needsAdjusting = false;
         if (mResourceSystem->getSceneManager()->getLightingMethod() != SceneUtil::LightingMethod::FFP)
-            needsAdjusting = isInterior;
+            needsAdjusting = !cell->isExterior() && !(cell->mData.mFlags & ESM::Cell::QuasiEx);
 
         auto ambient = SceneUtil::colourFromRGB(cell->mAmbi.mAmbient);
 
@@ -805,14 +803,11 @@ namespace MWRender
         mSunLight->setPosition(osg::Vec4f(-0.15f, 0.15f, 1.f, 0.f));
     }
 
-    void RenderingManager::setSunColour(const osg::Vec4f& diffuse, const osg::Vec4f& specular, float sunVis)
+    void RenderingManager::setSunColour(const osg::Vec4f& diffuse, const osg::Vec4f& specular)
     {
         // need to wrap this in a StateUpdater?
         mSunLight->setDiffuse(diffuse);
         mSunLight->setSpecular(specular);
-
-        mPostProcessor->getStateUpdater()->setSunColor(diffuse);
-        mPostProcessor->getStateUpdater()->setSunVis(sunVis);
     }
 
     void RenderingManager::setSunDirection(const osg::Vec3f &direction)
@@ -822,8 +817,6 @@ namespace MWRender
         mSunLight->setPosition(osg::Vec4(position.x(), position.y(), position.z(), 0));
 
         mSky->setSunDirection(position);
-
-        mPostProcessor->getStateUpdater()->setSunPos(mSunLight->getPosition(), mNight);
     }
 
     void RenderingManager::addCell(const MWWorld::CellStore *store)
@@ -871,7 +864,6 @@ namespace MWRender
             mShadowManager->enableOutdoorMode();
         else
             mShadowManager->enableIndoorMode();
-        mPostProcessor->getStateUpdater()->setIsInterior(!enabled);
     }
 
     bool RenderingManager::toggleBorders()
@@ -977,28 +969,9 @@ namespace MWRender
         mCamera->update(dt, paused);
 
         bool isUnderwater = mWater->isUnderwater(mCamera->getPosition());
-
-        float fogStart = mFog->getFogStart(isUnderwater);
-        float fogEnd = mFog->getFogEnd(isUnderwater);
-        osg::Vec4f fogColor = mFog->getFogColor(isUnderwater);
-
-        mStateUpdater->setFogStart(fogStart);
-        mStateUpdater->setFogEnd(fogEnd);
-        setFogColor(fogColor);
-
-        auto world = MWBase::Environment::get().getWorld();
-        const auto& stateUpdater = mPostProcessor->getStateUpdater();
-
-        stateUpdater->setFogRange(fogStart, fogEnd);
-        stateUpdater->setNearFar(mNearClip, mViewDistance);
-        stateUpdater->setIsUnderwater(isUnderwater);
-        stateUpdater->setFogColor(fogColor);
-        stateUpdater->setGameHour(world->getTimeStamp().getHour());
-        stateUpdater->setWeatherId(world->getCurrentWeather());
-        stateUpdater->setNextWeatherId(world->getNextWeather());
-        stateUpdater->setWeatherTransition(world->getWeatherTransition());
-        stateUpdater->setWindSpeed(world->getWindSpeed());
-        mPostProcessor->setUnderwaterFlag(isUnderwater);
+        mStateUpdater->setFogStart(mFog->getFogStart(isUnderwater));
+        mStateUpdater->setFogEnd(mFog->getFogEnd(isUnderwater));
+        setFogColor(mFog->getFogColor(isUnderwater));
     }
 
     void RenderingManager::updatePlayerPtr(const MWWorld::Ptr &ptr)
@@ -1058,8 +1031,6 @@ namespace MWRender
         mWater->setCullCallback(mTerrain->getHeightCullCallback(height, Mask_Water));
         mWater->setHeight(height);
         mSky->setWaterHeight(height);
-
-        mPostProcessor->getStateUpdater()->setWaterHeight(height);
     }
 
     void RenderingManager::screenshot(osg::Image* image, int w, int h)
@@ -1254,11 +1225,6 @@ namespace MWRender
         return mObjects->getAnimation(ptr);
     }
 
-    PostProcessor* RenderingManager::getPostProcessor()
-    {
-        return mPostProcessor;
-    }
-
     void RenderingManager::setupPlayer(const MWWorld::Ptr &player)
     {
         if (!mPlayerNode)
@@ -1347,9 +1313,9 @@ namespace MWRender
         {
             auto res = Stereo::Manager::instance().eyeResolution();
             mSharedUniformStateUpdater->setScreenRes(res.x(), res.y());
-            Stereo::Manager::instance().setMasterProjectionMatrix(mPerViewUniformStateUpdater->getProjectionMatrix());
+            Stereo::Manager::instance().setMasterProjectionMatrix(mPerViewUniformStateUpdater->projectionMatrix());
         }
-        else if (!mPostProcessor->isEnabled())
+        else
         {
             mSharedUniformStateUpdater->setScreenRes(width, height);
         }
@@ -1358,23 +1324,6 @@ namespace MWRender
         // Limit FOV here just for sure, otherwise viewing distance can be too high.
         float distanceMult = std::cos(osg::DegreesToRadians(std::min(fov, 140.f))/2.f);
         mTerrain->setViewDistance(mViewDistance * (distanceMult ? 1.f/distanceMult : 1.f));
-
-        if (mGroundcoverWorld)
-        {
-            float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
-            mGroundcoverWorld->setViewDistance(groundcoverDistance);
-        }
-
-        if (mPostProcessor)
-        {
-            mPostProcessor->getStateUpdater()->setProjectionMatrix(mPerViewUniformStateUpdater->getProjectionMatrix());
-            mPostProcessor->getStateUpdater()->setFov(fov);
-        }
-    }
-
-    void RenderingManager::setScreenRes(int width, int height)
-    {
-        mSharedUniformStateUpdater->setScreenRes(width, height);
     }
 
     void RenderingManager::updateTextureFiltering()
@@ -1506,7 +1455,7 @@ namespace MWRender
                                                 it->second == "light fade start" ||
                                                 it->second == "max lights"))
             {
-                auto* lightManager = getLightRoot();
+                auto* lightManager = static_cast<SceneUtil::LightManager*>(getLightRoot());
                 lightManager->processChangedSettings(changed);
 
                 if (it->second == "max lights" && !lightManager->usingFFP())
@@ -1525,17 +1474,6 @@ namespace MWRender
 
                     mViewer->startThreading();
 */
-                }
-            }
-            else if (it->first == "Post Processing" && it->second == "enabled")
-            {
-                if (Settings::Manager::getBool("enabled", "Post Processing"))
-                    mPostProcessor->enable();
-                else
-                {
-                    mPostProcessor->disable();
-                    if (auto* hud = MWBase::Environment::get().getWindowManager()->getPostProcessorHud())
-                        hud->setVisible(false);
                 }
             }
         }

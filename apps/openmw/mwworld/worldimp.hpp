@@ -54,7 +54,6 @@ namespace MWRender
     class SkyManager;
     class Animation;
     class Camera;
-    class PostProcessor;
 }
 
 namespace ToUTF8
@@ -332,10 +331,6 @@ namespace MWWorld
             void changeWeather (const std::string& region, const unsigned int id) override;
 
             int getCurrentWeather() const override;
-
-            int getNextWeather() const override;
-
-            float getWeatherTransition() const override;
 
             unsigned int getNightDayMode() const override;
 
@@ -758,8 +753,6 @@ namespace MWWorld
             Misc::Rng::Generator& getPrng() override;
 
             MWRender::RenderingManager* getRenderingManager() override { return mRendering.get(); }
-
-            MWRender::PostProcessor* getPostProcessor() override;
     };
 }
 

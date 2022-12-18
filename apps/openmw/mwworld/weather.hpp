@@ -309,11 +309,7 @@ namespace MWWorld
 
         void advanceTime(double hours, bool incremental);
 
-        int getWeatherID() const { return mCurrentWeather; }
-
-        int getNextWeatherID() const { return mNextWeather; }
-
-        float getTransitionFactor() const { return mTransitionFactor; }
+        unsigned int getWeatherID() const;
 
         bool useTorches(float hour) const;
 

@@ -241,9 +241,6 @@ namespace MWInput
         case A_ToggleDebug:
             windowManager->toggleDebugWindow();
             break;
-        case A_TogglePostProcessorHUD:
-            windowManager->togglePostProcessorHud();
-            break;
         case A_QuickSave:
             quickSave();
             break;

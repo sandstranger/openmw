@@ -96,11 +96,6 @@ namespace MWRender
 
         float getBaseWindSpeed() const;
 
-        osg::Vec2f getSmoothedStormDir() const;
-
-        void setSunglare(bool enabled);
-
-
     private:
         void create();
         ///< no need to call this, automatically done on first enable()
@@ -189,7 +184,6 @@ namespace MWRender
 
         bool mEnabled;
         bool mSunEnabled;
-        bool mSunglareEnabled;
 
         float mPrecipitationAlpha;
         bool mDirtyParticlesEffect;

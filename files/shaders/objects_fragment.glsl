@@ -96,22 +96,19 @@ void main()
     vec2 adjustedDiffuseUV = diffuseMapUV;
 #endif
 
-    vec3 worldNormal = normalize(passNormal);
-
 #if @normalMap
     vec4 normalTex = texture2D(normalMap, normalMapUV);
 
-    vec3 normalizedNormal = worldNormal;
+    vec3 normalizedNormal = normalize(passNormal);
     vec3 normalizedTangent = normalize(passTangent.xyz);
     vec3 binormal = cross(normalizedTangent, normalizedNormal) * passTangent.w;
     mat3 tbnTranspose = mat3(normalizedTangent, binormal, normalizedNormal);
 
-    worldNormal = normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
-    vec3 viewNormal = gl_NormalMatrix * worldNormal;
+    vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
 #endif
 
 #if (!@normalMap && (@parallax || @forcePPL))
-    vec3 viewNormal = gl_NormalMatrix * worldNormal;
+    vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
 #endif
 
 #if @parallax
@@ -126,9 +123,7 @@ void main()
 #if 1
     // fetch a new normal using updated coordinates
     normalTex = texture2D(normalMap, adjustedDiffuseUV);
-
-    worldNormal = normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
-    viewNormal = gl_NormalMatrix * worldNormal;
+    viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
 #endif
 
 #endif
@@ -226,7 +221,7 @@ void main()
     if (matSpec != vec3(0.0))
     {
 #if (!@normalMap && !@parallax && !@forcePPL)
-        vec3 viewNormal = gl_NormalMatrix * worldNormal;
+        vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
 #endif
         gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos.xyz), shininess, matSpec) * shadowing;
     }
@@ -250,10 +245,6 @@ void main()
 #if defined(FORCE_OPAQUE) && FORCE_OPAQUE
     // having testing & blending isn't enough - we need to write an opaque pixel to be opaque
     gl_FragData[0].a = 1.0;
-#endif
-
-#if !defined(FORCE_OPAQUE) && !@disableNormals
-    gl_FragData[1].xyz = worldNormal * 0.5 + 0.5;
 #endif
 
     applyShadowDebugOverlay();

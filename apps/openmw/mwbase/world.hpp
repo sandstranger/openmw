@@ -67,7 +67,6 @@ namespace MWRender
     class Animation;
     class Camera;
     class RenderingManager;
-    class PostProcessor;
 }
 
 namespace MWMechanics
@@ -240,10 +239,6 @@ namespace MWBase
             virtual void changeWeather(const std::string& region, const unsigned int id) = 0;
 
             virtual int getCurrentWeather() const = 0;
-
-            virtual int getNextWeather() const = 0;
-
-            virtual float getWeatherTransition() const = 0;
 
             virtual unsigned int getNightDayMode() const = 0;
 
@@ -674,8 +669,6 @@ namespace MWBase
             virtual Misc::Rng::Generator& getPrng() = 0;
 
             virtual MWRender::RenderingManager* getRenderingManager() = 0;
-
-            virtual MWRender::PostProcessor* getPostProcessor() = 0;
     };
 }
 

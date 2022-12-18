@@ -1,8 +1,6 @@
 #ifndef OPENMW_COMPONENTS_SHADERVISITOR_H
 #define OPENMW_COMPONENTS_SHADERVISITOR_H
 
-#include <array>
-
 #include <osg/NodeVisitor>
 #include <osg/Program>
 #include <osg/Texture2D>
@@ -48,9 +46,7 @@ namespace Shader
 
         void setConvertAlphaTestToAlphaToCoverage(bool convert);
 
-        void setOpaqueDepthTex(osg::ref_ptr<osg::Texture2D> texturePing, osg::ref_ptr<osg::Texture2D> texturePong);
-
-        void setSupportsNormalsRT(bool supports) { mSupportsNormalsRT = supports; }
+        void setOpaqueDepthTex(osg::ref_ptr<osg::Texture2D> texture);
 
         void apply(osg::Node& node) override;
 
@@ -77,8 +73,6 @@ namespace Shader
 
         bool mConvertAlphaTestToAlphaToCoverage;
 
-        bool mSupportsNormalsRT;
-
         ShaderManager& mShaderManager;
         Resource::ImageManager& mImageManager;
 
@@ -93,7 +87,7 @@ namespace Shader
             bool mShaderRequired;
 
             int mColorMode;
-
+            
             bool mMaterialOverridden;
             bool mAlphaTestOverridden;
             bool mAlphaBlendOverridden;
@@ -122,7 +116,7 @@ namespace Shader
         bool adjustGeometry(osg::Geometry& sourceGeometry, const ShaderRequirements& reqs);
 
         osg::ref_ptr<const osg::Program> mProgramTemplate;
-        std::array<osg::ref_ptr<osg::Texture2D>, 2> mOpaqueDepthTex;
+        osg::ref_ptr<osg::Texture2D> mOpaqueDepthTex;
     };
 
     class ReinstateRemovedStateVisitor : public osg::NodeVisitor

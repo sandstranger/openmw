@@ -13,6 +13,7 @@ namespace osg
     class FrameBufferObject;
     class Texture;
     class Texture2D;
+    class Texture2DMultisample;
     class Texture2DArray;
 }
 
@@ -49,7 +50,6 @@ namespace Stereo
         osg::FrameBufferObject* layerFbo(int i);
         osg::FrameBufferObject* layerMsaaFbo(int i);
         osg::Texture2DArray* multiviewColorBuffer();
-        osg::Texture2DArray* multiviewDepthBuffer();
         osg::Texture2D* layerColorBuffer(int i);
         osg::Texture2D* layerDepthBuffer(int i);
 
@@ -62,6 +62,7 @@ namespace Stereo
 
     private:
         osg::Texture2D* createTexture(GLint sourceFormat, GLint sourceType, GLint internalFormat);
+        osg::Texture2DMultisample* createTextureMsaa(GLint sourceFormat, GLint sourceType, GLint internalFormat);
         osg::Texture2DArray* createTextureArray(GLint sourceFormat, GLint sourceType, GLint internalFormat);
 
         int mWidth;
@@ -75,7 +76,9 @@ namespace Stereo
         osg::ref_ptr<osg::Texture2DArray> mMultiviewColorTexture;
         osg::ref_ptr<osg::Texture2DArray> mMultiviewDepthTexture;
         std::array<osg::ref_ptr<osg::Texture2D>, 2> mColorTexture;
+        std::array<osg::ref_ptr<osg::Texture2DMultisample>, 2> mMsaaColorTexture;
         std::array<osg::ref_ptr<osg::Texture2D>, 2> mDepthTexture;
+        std::array<osg::ref_ptr<osg::Texture2DMultisample>, 2> mMsaaDepthTexture;
     };
 }
 

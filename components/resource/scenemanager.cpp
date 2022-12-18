@@ -318,7 +318,7 @@ namespace Resource
         , mApplyLightingToEnvMaps(false)
         , mLightingMethod(SceneUtil::LightingMethod::FFP)
         , mConvertAlphaTestToAlphaToCoverage(false)
-        , mSupportsNormalsRT(false)
+        , mDepthFormat(0)
         , mSharedStateManager(new SharedStateManager)
         , mImageManager(imageManager)
         , mNifFileManager(nifFileManager)
@@ -348,7 +348,7 @@ namespace Resource
         if (forceShadersForNode)
             shaderVisitor->setForceShaders(true);
         if (disableSoftParticles)
-            shaderVisitor->setOpaqueDepthTex(nullptr, nullptr);
+            shaderVisitor->setOpaqueDepthTex(nullptr);
         node->accept(*shaderVisitor);
     }
 
@@ -366,6 +366,16 @@ namespace Resource
     bool SceneManager::getClampLighting() const
     {
         return mClampLighting;
+    }
+
+    void SceneManager::setDepthFormat(GLenum format)
+    {
+        mDepthFormat = format;
+    }
+
+    GLenum SceneManager::getDepthFormat() const
+    {
+        return mDepthFormat;
     }
 
     void SceneManager::setAutoUseNormalMaps(bool use)
@@ -430,9 +440,9 @@ namespace Resource
         mConvertAlphaTestToAlphaToCoverage = convert;
     }
 
-    void SceneManager::setOpaqueDepthTex(osg::ref_ptr<osg::Texture2D> texturePing, osg::ref_ptr<osg::Texture2D> texturePong)
+    void SceneManager::setOpaqueDepthTex(osg::ref_ptr<osg::Texture2D> texture)
     {
-        mOpaqueDepthTex = { texturePing, texturePong };
+        mOpaqueDepthTex = texture;
     }
 
     SceneManager::~SceneManager()
@@ -921,8 +931,7 @@ namespace Resource
         shaderVisitor->setSpecularMapPattern(mSpecularMapPattern);
         shaderVisitor->setApplyLightingToEnvMaps(mApplyLightingToEnvMaps);
         shaderVisitor->setConvertAlphaTestToAlphaToCoverage(mConvertAlphaTestToAlphaToCoverage);
-        shaderVisitor->setOpaqueDepthTex(mOpaqueDepthTex[0], mOpaqueDepthTex[1]);
-        shaderVisitor->setSupportsNormalsRT(mSupportsNormalsRT);
+        shaderVisitor->setOpaqueDepthTex(mOpaqueDepthTex);
         return shaderVisitor;
     }
 }
