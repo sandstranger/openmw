@@ -74,6 +74,8 @@ set(MODIFIED_SHADER_FILES
     modified/objects_fragment.glsl
     modified/terrain_vertex.glsl
     modified/terrain_fragment.glsl
+    modified/particles_vertex.glsl
+    modified/particles_fragment.glsl
     modified/lighting.glsl
     modified/lighting_util.glsl
     modified/s360_fragment.glsl

@@ -2,7 +2,7 @@
 #pragma import_defines(FORCE_OPAQUE)
 
 #define OBJECT
-#define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL && !@isParticle))
+#define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL))
 
 #if @diffuseMap
 uniform sampler2D diffuseMap;
@@ -105,7 +105,7 @@ if(radialFog)
 else
     fogValue = getFogValue(depth);
 
-//if(fogValue != 1.0 && underwaterFogValue != 1.0)
+if(fogValue != 1.0 && underwaterFogValue != 1.0)
 {
 
 float shadowpara = 1.0;
@@ -114,7 +114,7 @@ float shadowpara = 1.0;
     vec2 adjustedDiffuseUV = diffuseMapUV;
 #endif
 
-#if (!@normalMap && (@specularMap || (@forcePPL && !@isParticle) ))
+#if (!@normalMap && (@specularMap || @forcePPL))
     vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
 #endif
 
@@ -329,11 +329,5 @@ if(underwaterFog)
 
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-#if !defined(FORCE_OPAQUE) && @softParticles && @isParticle
-    gl_FragData[0].a *= calcSoftParticleFade();
-#endif
-
     //gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0 / (@gamma + gamma - 1.0)));
-    
-
 }
