@@ -111,10 +111,6 @@ namespace MWRender
         if (!ext->glDisablei && ext->glDisableIndexedEXT)
             ext->glDisablei = ext->glDisableIndexedEXT;
 
-#ifdef ANDROID
-        ext->glDisablei = nullptr;
-#endif
-
         if (ext->glDisablei)
             mNormalsSupported = true;
         else
@@ -192,18 +188,11 @@ namespace MWRender
     {
         mReload = true;
         mEnabled = true;
-        bool postPass = Settings::Manager::getBool("transparent postpass", "Post Processing");
         mUsePostProcessing = usePostProcessing && !Stereo::getStereo() && !Stereo::getMultiview();
-
-        mDisableDepthPasses = !mSoftParticles && !postPass;
-
-#ifdef ANDROID
-        mDisableDepthPasses = true;
-#endif
 
         if (!mDisableDepthPasses && !Stereo::getStereo() && !Stereo::getMultiview())
         {
-            mTransparentDepthPostPass = new TransparentDepthBinCallback(mRendering.getResourceSystem()->getSceneManager()->getShaderManager(), postPass);
+            mTransparentDepthPostPass = new TransparentDepthBinCallback(mRendering.getResourceSystem()->getSceneManager()->getShaderManager(), Settings::Manager::getBool("transparent postpass", "Post Processing"));
             osgUtil::RenderBin::getRenderBinPrototype("DepthSortedBin")->setDrawCallback(mTransparentDepthPostPass);
         }
 
