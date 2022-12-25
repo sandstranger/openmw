@@ -43,4 +43,5 @@ void main()
 #endif
 
     gl_FragData[0] = applyFogAtDist(gl_FragData[0], euclideanDepth, linearDepth);
+	gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
 }
